@@ -1,5 +1,7 @@
 package org.ccjmne.faomaintenance.api.rest;
 
+import java.util.Set;
+
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -16,6 +18,7 @@ import javax.ws.rs.core.UriInfo;
 
 import org.ccjmne.faomaintenance.api.db.DBClient;
 import org.ccjmne.faomaintenance.api.resources.Employee;
+import org.ccjmne.faomaintenance.api.resources.Training;
 
 @Path("employees")
 public class EmployeesEndpoint {
@@ -42,7 +45,7 @@ public class EmployeesEndpoint {
 			return Response.status(Status.BAD_REQUEST).build();
 		}
 
-		return Response.created(uriInfo.getBaseUri().resolve("employees/" + employee.registrationNumber)).build();
+		return Response.created(uriInfo.getBaseUri().resolve("employees/" + employee.getRegistrationNumber())).build();
 	}
 
 	@PUT
@@ -55,5 +58,12 @@ public class EmployeesEndpoint {
 		}
 
 		return Response.accepted().location(uriInfo.getAbsolutePath()).build();
+	}
+
+	@GET
+	@Path("{registrationNumber}/trainings")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Set<Training> getTrainings(final @PathParam("registrationNumber") String registrationNumber) {
+		return this.dbClient.lookupEmployee(registrationNumber).getTrainings().keySet();
 	}
 }
