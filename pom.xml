@@ -39,6 +39,12 @@
 
 
 	<dependencies>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.1.2</version>
+		</dependency>
+
 		<!-- DATABASE DRIVER -->
 		<dependency>
 			<groupId>postgresql</groupId>
@@ -139,7 +145,7 @@
 		</dependency>
 	</dependencies>
 	<properties>
-		<jersey.version>2.13</jersey.version>
+		<jersey.version>2.15</jersey.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 </project>
