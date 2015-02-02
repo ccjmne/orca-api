@@ -1,10 +1,8 @@
 package org.ccjmne.faomaintenance.api.config;
 
-import java.text.DateFormat;
-
 import org.ccjmne.faomaintenance.api.utils.ConfiguredObjectMapper;
 import org.ccjmne.faomaintenance.api.utils.PostgresDSLContext;
-import org.ccjmne.faomaintenance.api.utils.SimplifiedDateFormat;
+import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -20,7 +18,7 @@ public class ApplicationConfig extends ResourceConfig {
 			@Override
 			protected void configure() {
 				bind(ConfiguredObjectMapper.class).to(ObjectMapper.class);
-				bind(SimplifiedDateFormat.class).to(DateFormat.class);
+				bind(SQLDateFormat.class).to(SQLDateFormat.class);
 				bind(PostgresDSLContext.class).to(DSLContext.class);
 			}
 		});
