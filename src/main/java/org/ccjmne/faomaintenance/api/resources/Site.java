@@ -18,6 +18,7 @@ public class Site {
 
 	@JsonIgnore
 	public List<Employee> employees;
+	private Map<String, SiteTrainingsStatistics> statistics;
 
 	public long getPermanentEmployeesCount() {
 		return this.employees.stream().filter(e -> e.isPermanent()).count();
@@ -32,11 +33,21 @@ public class Site {
 	}
 
 	public Map<String, SiteTrainingsStatistics> getStatistics() {
-		final Map<String, SiteTrainingsStatistics> res = new HashMap<>();
-		this.employees.forEach(e -> e.getStatistics().forEach(
-																(c, s) -> res.compute(c, (cert, stats) -> (stats == null) ? new SiteTrainingsStatistics(s)
-																															: stats.register(s))));
-		return res;
+		if (this.statistics == null) {
+			this.statistics = new HashMap<>();
+			this.employees.forEach(e -> e.getStatistics().forEach(
+																	(c, s) -> this.statistics
+																			.compute(c, (cert, stats) -> (stats == null) ? new SiteTrainingsStatistics(s)
+																														: stats.register(s))));
+		}
+		return this.statistics;
+	}
+
+	@SuppressWarnings("boxing")
+	public Map<String, Integer> getPercentiles() {
+		final Map<String, Integer> percentiles = new HashMap<>();
+		getStatistics().forEach((type, sts) -> percentiles.put(type, (sts.currentlyValidCount * 100) / getEmployeesCount()));
+		return percentiles;
 	}
 
 	public static class SiteTrainingsStatistics {
