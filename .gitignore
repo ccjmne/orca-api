@@ -1,2 +1,3 @@
-.settings/**
-target/**
+/.settings/
+/target/
+/src/main/java/org/ccjmne/faomaintenance/api/jooq/
