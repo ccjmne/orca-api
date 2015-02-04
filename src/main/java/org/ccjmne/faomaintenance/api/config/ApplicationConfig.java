@@ -1,5 +1,7 @@
 package org.ccjmne.faomaintenance.api.config;
 
+import java.text.DateFormat;
+
 import org.ccjmne.faomaintenance.api.utils.ConfiguredObjectMapper;
 import org.ccjmne.faomaintenance.api.utils.PostgresDSLContext;
 import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
@@ -18,7 +20,7 @@ public class ApplicationConfig extends ResourceConfig {
 			@Override
 			protected void configure() {
 				bind(ConfiguredObjectMapper.class).to(ObjectMapper.class);
-				bind(SQLDateFormat.class).to(SQLDateFormat.class);
+				bind(SQLDateFormat.class).to(SQLDateFormat.class).to(DateFormat.class);
 				bind(PostgresDSLContext.class).to(DSLContext.class);
 			}
 		});

@@ -1,7 +1,10 @@
 package org.ccjmne.faomaintenance.api.utils;
 
 import java.io.IOException;
+import java.text.DateFormat;
 import java.util.Arrays;
+
+import javax.inject.Inject;
 
 import org.jooq.Record;
 import org.jooq.Result;
@@ -18,13 +21,10 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 @SuppressWarnings("serial")
 public class ConfiguredObjectMapper extends ObjectMapper {
 
-	public ConfiguredObjectMapper() {
-		this.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-		// TODO: clean up
-		// this.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-		// this.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-		// false);
-
+	@Inject
+	public ConfiguredObjectMapper(final DateFormat dateFormat) {
+		disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+		setDateFormat(dateFormat);
 		registerModule(new JOOQResultsSerialiserModule());
 	}
 
