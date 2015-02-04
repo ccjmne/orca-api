@@ -4,12 +4,15 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import org.jooq.SQLDialect;
+import org.jooq.conf.Settings;
 import org.jooq.impl.DefaultDSLContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("serial")
 public class PostgresDSLContext extends DefaultDSLContext {
+
+	protected static final Boolean DEBUG = Boolean.valueOf(System.getProperty("debug", "FALSE"));
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(PostgresDSLContext.class);
 	private static final String DB_DRIVER = "org.postgresql.Driver";
@@ -30,6 +33,13 @@ public class PostgresDSLContext extends DefaultDSLContext {
 	}
 
 	public PostgresDSLContext() throws SQLException {
-		super(DriverManager.getConnection(DB_URL, DB_USER, DB_PASS), SQLDialect.POSTGRES);
+		super(DriverManager.getConnection(DB_URL, DB_USER, DB_PASS), SQLDialect.POSTGRES, new ConfiguredSettings());
+	}
+
+	private static class ConfiguredSettings extends Settings {
+
+		public ConfiguredSettings() {
+			setExecuteLogging(DEBUG);
+		}
 	}
 }
