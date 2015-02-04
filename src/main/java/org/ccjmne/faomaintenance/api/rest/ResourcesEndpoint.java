@@ -92,19 +92,19 @@ public class ResourcesEndpoint {
 	@GET
 	@Path("trainings")
 	public Result<Record> listTrainings(
-	                                    @QueryParam("employee") final String registrationNumber,
-	                                    @QueryParam("type") final List<Integer> types,
-	                                    @QueryParam("date") final String dateStr,
-	                                    @QueryParam("from") final String fromStr,
-	                                    @QueryParam("to") final String toStr) throws ParseException {
+										@QueryParam("employee") final String registrationNumber,
+										@QueryParam("type") final List<Integer> types,
+										@QueryParam("date") final String dateStr,
+										@QueryParam("from") final String fromStr,
+										@QueryParam("to") final String toStr) throws ParseException {
 		final SelectQuery<Record> query = this.ctx.selectQuery();
 		query.addFrom(Tables.TRAININGS);
 		if (registrationNumber != null) {
 			query.addJoin(
-			              Tables.TRAININGS_EMPLOYEES,
-			              Tables.TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(Tables.TRAININGS.TRNG_PK).and(
-			                                                                                       Tables.TRAININGS_EMPLOYEES.TREM_EMPL_FK
-			                                                                                       .eq(registrationNumber)));
+							Tables.TRAININGS_EMPLOYEES,
+							Tables.TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(Tables.TRAININGS.TRNG_PK).and(
+																										Tables.TRAININGS_EMPLOYEES.TREM_EMPL_FK
+																												.eq(registrationNumber)));
 		}
 
 		if (!types.isEmpty()) {
