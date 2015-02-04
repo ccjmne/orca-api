@@ -2,10 +2,13 @@ package org.ccjmne.faomaintenance.api.rest;
 
 import java.sql.Date;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -14,72 +17,65 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
 import org.ccjmne.faomaintenance.api.jooq.Tables;
+import org.ccjmne.faomaintenance.api.rest.EmployeeStatistics.EmployeeStatisticsBuilder;
 import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
 import org.jooq.Record;
-import org.jooq.Result;
 
 @Path("statistics")
 public class StatisticsEndpoint {
 
+	private static final int DEFAULT_INTERVAL = 6;
 	private final ResourcesEndpoint resources;
 	private final SQLDateFormat dateFormat;
-	private final Calendar calendar;
 
 	@Inject
 	public StatisticsEndpoint(final SQLDateFormat dateFormat, final ResourcesEndpoint resources) {
 		this.dateFormat = dateFormat;
 		this.resources = resources;
-		this.calendar = Calendar.getInstance();
 	}
 
 	@GET
 	@Path("employees/{registrationNumber}")
-	public Map<Integer, EmployeeStatistics> statsEmployee(
-															@PathParam("registrationNumber") final String registrationNumber,
-															@QueryParam("date") final String dateStr) throws ParseException {
+	public Map<Date, EmployeeStatistics> statsEmployee(
+														@PathParam("registrationNumber") final String registrationNumber,
+														@QueryParam("date") final String dateStr,
+														@QueryParam("from") final String fromStr,
+														@QueryParam("interval") final Integer interval) throws ParseException {
 		final Date asOf = (dateStr == null) ? new Date(new java.util.Date().getTime()) : this.dateFormat.parseSql(dateStr);
-		final Map<Integer, Record> trainingTypes = this.resources.listTrainingTypes().intoMap(Tables.TRAININGTYPES.TRTY_PK);
-		final Result<Record> trainings = this.resources.listTrainings(registrationNumber, Collections.EMPTY_LIST, null, null, dateStr);
-		final Map<Integer, EmployeeStatistics> res = new HashMap<>();
-		for (final Record training : trainings) {
-			final Record trainingType = trainingTypes.get(training.getValue(Tables.TRAININGS.TRNG_TRTY_FK));
-			if (training.getValue(Tables.TRAININGS_EMPLOYEES.TREM_VALID).booleanValue()) {
-				this.calendar.setTime(training.getValue(Tables.TRAININGS.TRNG_DATE));
-				this.calendar.add(Calendar.MONTH, trainingType.getValue(Tables.TRAININGTYPES.TRTY_VALIDITY).intValue());
-				res.computeIfAbsent(trainingType.getValue(Tables.TRAININGTYPES.TRTY_CERT_FK), unused -> new EmployeeStatistics(asOf, this.calendar.getTime()))
-						.renew(this.calendar.getTime());
+		final Iterator<Date> dates = (fromStr == null) ? Collections.singletonList(asOf).iterator() : getDates(
+																												(interval != null) ? interval.intValue()
+																																	: DEFAULT_INTERVAL,
+																												this.dateFormat.parseSql(fromStr),
+																												asOf);
+		final Map<Date, EmployeeStatistics> res = new TreeMap<>();
+		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(this.resources.listTrainingTypes().intoMap(Tables.TRAININGTYPES.TRTY_PK));
+		Date nextStop = dates.next();
+		for (final Record training : this.resources.listTrainings(registrationNumber, Collections.EMPTY_LIST, null, null, dateStr)) {
+			while (training.getValue(Tables.TRAININGS.TRNG_DATE).after(nextStop)) {
+				res.put(nextStop, builder.buildFor(nextStop));
+				nextStop = dates.next();
 			}
+
+			builder.accept(training);
+		}
+
+		while (dates.hasNext()) {
+			res.put(nextStop = dates.next(), builder.buildFor(nextStop));
 		}
 
 		return res;
 	}
 
-	public static class EmployeeStatistics {
-
-		private final Date asOf;
-		private java.util.Date expiryDate;
-
-		public EmployeeStatistics(final Date asOf, final java.util.Date expiryDate) {
-			this.asOf = asOf;
-			this.expiryDate = expiryDate;
+	private static Iterator<Date> getDates(final int interval, final Date from, final Date to) {
+		final Calendar calendar = Calendar.getInstance();
+		final List<Date> res = new ArrayList<>();
+		calendar.setTime(from);
+		while (calendar.getTime().before(to)) {
+			res.add(new java.sql.Date(calendar.getTime().getTime()));
+			calendar.add(Calendar.MONTH, interval);
 		}
 
-		public void renew(final java.util.Date renewDate) {
-			if (renewDate.after(this.expiryDate)) {
-				this.expiryDate = renewDate;
-			}
-		}
-
-		public Date getAsOf() {
-			return this.asOf;
-		}
-
-		public java.util.Date getExpiryDate() {
-			return this.expiryDate;
-		}
-
-		public boolean isValid() {
-			return this.expiryDate.after(this.asOf);
-		}
+		res.add(to);
+		return res.iterator();
 	}
 }
