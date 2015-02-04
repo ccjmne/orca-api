@@ -1,5 +1,9 @@
 package org.ccjmne.faomaintenance.api.rest.resources;
 
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
+
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -8,7 +12,6 @@ import java.util.Map;
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
 import jersey.repackaged.com.google.common.collect.ImmutableMap.Builder;
 
-import org.ccjmne.faomaintenance.jooq.classes.Tables;
 import org.jooq.Record;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
@@ -29,12 +32,12 @@ public class EmployeeStatistics {
 		}
 
 		public EmployeeStatistics.EmployeeStatisticsBuilder accept(final Record training) {
-			if (training.getValue(Tables.TRAININGS_EMPLOYEES.TREM_VALID).booleanValue()) {
-				final Record trainingType = this.trainingTypes.get(training.getValue(Tables.TRAININGS.TRNG_TRTY_FK));
-				this.calendar.setTime(training.getValue(Tables.TRAININGS.TRNG_DATE));
-				this.calendar.add(Calendar.MONTH, trainingType.getValue(Tables.TRAININGTYPES.TRTY_VALIDITY).intValue());
+			if (training.getValue(TRAININGS_EMPLOYEES.TREM_VALID).booleanValue()) {
+				final Record trainingType = this.trainingTypes.get(training.getValue(TRAININGS.TRNG_TRTY_FK));
+				this.calendar.setTime(training.getValue(TRAININGS.TRNG_DATE));
+				this.calendar.add(Calendar.MONTH, trainingType.getValue(TRAININGTYPES.TRTY_VALIDITY).intValue());
 				this.expiryDates.merge(
-										trainingType.getValue(Tables.TRAININGTYPES.TRTY_CERT_FK),
+										trainingType.getValue(TRAININGTYPES.TRTY_CERT_FK),
 										this.calendar.getTime(),
 										(expiryDate, potential) -> (potential.after(expiryDate)) ? potential : expiryDate);
 			}

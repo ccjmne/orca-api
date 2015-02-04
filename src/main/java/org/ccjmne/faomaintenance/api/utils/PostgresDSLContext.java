@@ -20,7 +20,7 @@ public class PostgresDSLContext extends DefaultDSLContext {
 	private static final String DB_USER = System.getProperty("db_user", "postgres");
 	private static final String DB_PASS = System.getProperty("db_pass", "asdf123");
 	private static final String DB_URL = String.format(
-	                                                   "jdbc:postgresql://%s:%s/%s",
+													   "jdbc:postgresql://%s:%s/%s",
 														System.getProperty("db_host", "localhost"),
 														System.getProperty("db_port", "5432"),
 														System.getProperty("db_name", "postgres"));
