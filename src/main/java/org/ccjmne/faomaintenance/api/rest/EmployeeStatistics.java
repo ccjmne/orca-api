@@ -5,12 +5,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import jersey.repackaged.com.google.common.collect.ImmutableMap;
+import jersey.repackaged.com.google.common.collect.ImmutableMap.Builder;
+
 import org.ccjmne.faomaintenance.api.jooq.Tables;
 import org.jooq.Record;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 
 public class EmployeeStatistics {
 
