@@ -7,13 +7,18 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Provider
 @Produces(MediaType.APPLICATION_JSON)
-public class SinkExceptionMapper implements ExceptionMapper<Exception> {
+public class NullPointerExceptionMapper implements ExceptionMapper<NullPointerException> {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(NullPointerExceptionMapper.class);
 
 	@Override
-	public Response toResponse(final Exception e) {
-		e.printStackTrace();
+	public Response toResponse(final NullPointerException e) {
+		LOGGER.warn("Could not process request.", e);
 		return Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();
 	}
 }
