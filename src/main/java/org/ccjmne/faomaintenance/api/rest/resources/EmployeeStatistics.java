@@ -11,6 +11,7 @@ import jersey.repackaged.com.google.common.collect.ImmutableMap.Builder;
 import org.ccjmne.faomaintenance.jooq.classes.Tables;
 import org.jooq.Record;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class EmployeeStatistics {
@@ -50,12 +51,12 @@ public class EmployeeStatistics {
 		return new EmployeeStatisticsBuilder(trainingTypes);
 	}
 
-	private final Map<Integer, Certificate> statistics;
+	private final Map<Integer, EmployeeCertificateStatistics> statistics;
 	private final Date asOf;
 
 	protected EmployeeStatistics(final Map<Integer, java.util.Date> expiryDates, final Date asOf) {
-		final Builder<Integer, Certificate> builder = ImmutableMap.<Integer, Certificate> builder();
-		expiryDates.forEach((certificate, expiryDate) -> builder.put(certificate, new Certificate(expiryDate)));
+		final Builder<Integer, EmployeeCertificateStatistics> builder = ImmutableMap.<Integer, EmployeeCertificateStatistics> builder();
+		expiryDates.forEach((certificate, expiryDate) -> builder.put(certificate, new EmployeeCertificateStatistics(expiryDate)));
 		this.statistics = builder.build();
 		this.asOf = asOf;
 	}
@@ -65,15 +66,16 @@ public class EmployeeStatistics {
 		return this.asOf;
 	}
 
-	public Map<Integer, Certificate> getStatistics() {
+	@JsonAnyGetter
+	public Map<Integer, EmployeeCertificateStatistics> getStatistics() {
 		return this.statistics;
 	}
 
-	public class Certificate {
+	public class EmployeeCertificateStatistics {
 
 		private final java.util.Date expiryDate;
 
-		protected Certificate(final java.util.Date expiryDate) {
+		protected EmployeeCertificateStatistics(final java.util.Date expiryDate) {
 			this.expiryDate = expiryDate;
 		}
 
