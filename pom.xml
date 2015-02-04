@@ -46,8 +46,13 @@
 		</dependencies>
 	</dependencyManagement>
 
-
 	<dependencies>
+		<dependency>
+			<groupId>org.ccjmne.faomaintenance</groupId>
+			<artifactId>foamainteance_jooqgeneration</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+
 		<!-- DATABASE DRIVER -->
 		<dependency>
 			<groupId>postgresql</groupId>
@@ -60,20 +65,6 @@
 			<groupId>org.jooq</groupId>
 			<artifactId>jooq</artifactId>
 			<version>3.5.1</version>
-		</dependency>
-
-		<!-- TESTS AND JOOQ-CODEGEN -->
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.12</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.jooq</groupId>
-			<artifactId>jooq-codegen</artifactId>
-			<version>3.5.1</version>
-			<scope>test</scope>
 		</dependency>
 
 		<!-- XLS(X) PARSING -->

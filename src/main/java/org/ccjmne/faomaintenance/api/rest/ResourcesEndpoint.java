@@ -10,10 +10,10 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
-import org.ccjmne.faomaintenance.api.jooq.Tables;
-import org.ccjmne.faomaintenance.api.jooq.tables.records.SitesRecord;
 import org.ccjmne.faomaintenance.api.utils.NoDataException;
 import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
+import org.ccjmne.faomaintenance.jooq.classes.Tables;
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesRecord;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Record;
@@ -37,7 +37,7 @@ public class ResourcesEndpoint {
 	public List<Record> listEmployees(@QueryParam("site") final String aurore, @QueryParam("date") final String dateStr) throws ParseException {
 		try {
 			final SelectQuery<Record> query = this.ctx.selectQuery(Tables.EMPLOYEES.join(Tables.SITES_EMPLOYEES)
-					.on(Tables.SITES_EMPLOYEES.SIEM_EMPL_FK.eq(Tables.EMPLOYEES.EMPL_PK)));
+			                                                       .on(Tables.SITES_EMPLOYEES.SIEM_EMPL_FK.eq(Tables.EMPLOYEES.EMPL_PK)));
 			query.addConditions(Tables.SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)));
 			if (aurore != null) {
 				query.addConditions(Tables.SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore));
@@ -92,19 +92,19 @@ public class ResourcesEndpoint {
 	@GET
 	@Path("trainings")
 	public Result<Record> listTrainings(
-										@QueryParam("employee") final String registrationNumber,
-										@QueryParam("type") final List<Integer> types,
-										@QueryParam("date") final String dateStr,
-										@QueryParam("from") final String fromStr,
-										@QueryParam("to") final String toStr) throws ParseException {
+	                                    @QueryParam("employee") final String registrationNumber,
+	                                    @QueryParam("type") final List<Integer> types,
+	                                    @QueryParam("date") final String dateStr,
+	                                    @QueryParam("from") final String fromStr,
+	                                    @QueryParam("to") final String toStr) throws ParseException {
 		final SelectQuery<Record> query = this.ctx.selectQuery();
 		query.addFrom(Tables.TRAININGS);
 		if (registrationNumber != null) {
 			query.addJoin(
-							Tables.TRAININGS_EMPLOYEES,
-							Tables.TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(Tables.TRAININGS.TRNG_PK).and(
-																										Tables.TRAININGS_EMPLOYEES.TREM_EMPL_FK
-																												.eq(registrationNumber)));
+			              Tables.TRAININGS_EMPLOYEES,
+			              Tables.TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(Tables.TRAININGS.TRNG_PK).and(
+			                                                                                       Tables.TRAININGS_EMPLOYEES.TREM_EMPL_FK
+			                                                                                       .eq(registrationNumber)));
 		}
 
 		if (!types.isEmpty()) {

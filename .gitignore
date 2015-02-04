@@ -1,3 +1,4 @@
 /.settings/
 /target/
-/src/main/java/org/ccjmne/faomaintenance/api/jooq/
+.classpath
+.project
