@@ -59,6 +59,7 @@ public class StatisticsEndpoint {
 			builder.accept(training);
 		}
 
+		res.put(nextStop, builder.buildFor(nextStop));
 		while (dates.hasNext()) {
 			res.put(nextStop = dates.next(), builder.buildFor(nextStop));
 		}

@@ -33,9 +33,9 @@ public class EmployeeStatistics {
 				this.calendar.setTime(training.getValue(Tables.TRAININGS.TRNG_DATE));
 				this.calendar.add(Calendar.MONTH, trainingType.getValue(Tables.TRAININGTYPES.TRTY_VALIDITY).intValue());
 				this.expiryDates.merge(
-				                       trainingType.getValue(Tables.TRAININGTYPES.TRTY_CERT_FK),
-				                       this.calendar.getTime(),
-				                       (expiryDate, potential) -> (potential.after(expiryDate)) ? potential : expiryDate);
+										trainingType.getValue(Tables.TRAININGTYPES.TRTY_CERT_FK),
+										this.calendar.getTime(),
+										(expiryDate, potential) -> (potential.after(expiryDate)) ? potential : expiryDate);
 			}
 
 			return this;
@@ -50,12 +50,12 @@ public class EmployeeStatistics {
 		return new EmployeeStatisticsBuilder(trainingTypes);
 	}
 
-	private final Map<Integer, CertificateStatistics> statistics;
+	private final Map<Integer, Certificate> statistics;
 	private final Date asOf;
 
-	public EmployeeStatistics(final Map<Integer, java.util.Date> expiryDates, final Date asOf) {
-		final Builder<Integer, CertificateStatistics> builder = ImmutableMap.<Integer, CertificateStatistics> builder();
-		expiryDates.forEach((certificate, expiryDate) -> builder.put(certificate, new CertificateStatistics(expiryDate)));
+	protected EmployeeStatistics(final Map<Integer, java.util.Date> expiryDates, final Date asOf) {
+		final Builder<Integer, Certificate> builder = ImmutableMap.<Integer, Certificate> builder();
+		expiryDates.forEach((certificate, expiryDate) -> builder.put(certificate, new Certificate(expiryDate)));
 		this.statistics = builder.build();
 		this.asOf = asOf;
 	}
@@ -65,15 +65,15 @@ public class EmployeeStatistics {
 		return this.asOf;
 	}
 
-	public Map<Integer, CertificateStatistics> getStatistics() {
+	public Map<Integer, Certificate> getStatistics() {
 		return this.statistics;
 	}
 
-	public class CertificateStatistics {
+	public class Certificate {
 
 		private final java.util.Date expiryDate;
 
-		public CertificateStatistics(final java.util.Date expiryDate) {
+		protected Certificate(final java.util.Date expiryDate) {
 			this.expiryDate = expiryDate;
 		}
 
