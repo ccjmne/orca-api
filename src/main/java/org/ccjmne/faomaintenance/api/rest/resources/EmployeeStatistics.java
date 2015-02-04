@@ -1,4 +1,4 @@
-package org.ccjmne.faomaintenance.api.rest;
+package org.ccjmne.faomaintenance.api.rest.resources;
 
 import java.util.Calendar;
 import java.util.Date;
