@@ -1,9 +1,8 @@
-package org.ccjmne.faomaintenance.api.rest;
+package org.ccjmne.faomaintenance.api.rest.resources;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeCertificateStatistics;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
@@ -11,15 +10,31 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 public class SiteStatistics {
 
 	private final Map<Integer, SiteCertificateStatistics> statistics;
+	private int employeesCount;
+	private int permanentsCount;
 
 	public SiteStatistics() {
 		this.statistics = new HashMap<>();
+		this.employeesCount = 0;
+		this.permanentsCount = 0;
 	}
 
-	public void register(final EmployeeStatistics employeeStatistics) {
+	public int getEmployeesCount() {
+		return this.employeesCount;
+	}
+
+	public int getPermanentsCount() {
+		return this.permanentsCount;
+	}
+
+	public void register(final Boolean permanent, final EmployeeStatistics employeeStatistics) {
 		employeeStatistics.getStatistics().forEach(
 													(cert, stat) -> this.statistics.computeIfAbsent(cert, unused -> new SiteCertificateStatistics())
 															.register(stat));
+		this.employeesCount++;
+		if (permanent.booleanValue()) {
+			this.permanentsCount++;
+		}
 	}
 
 	@JsonAnyGetter
