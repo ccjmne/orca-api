@@ -100,8 +100,8 @@ public class ResourcesEndpoint {
 		query.addFrom(TRAININGS);
 		if (registrationNumber != null) {
 			query.addJoin(
-						  TRAININGS_EMPLOYEES,
-						  TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK).and(
+							TRAININGS_EMPLOYEES,
+							TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK).and(
 																						TRAININGS_EMPLOYEES.TREM_EMPL_FK
 																								.eq(registrationNumber)));
 		}

@@ -1,5 +1,6 @@
 package org.ccjmne.faomaintenance.api.rest;
 
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
@@ -28,7 +29,6 @@ import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeStatisticsBuilder;
 import org.ccjmne.faomaintenance.api.rest.resources.SiteStatistics;
 import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
-import org.ccjmne.faomaintenance.jooq.classes.Tables;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
@@ -62,10 +62,10 @@ public class StatisticsEndpoint {
 		final Map<Integer, Record> trainingTypes = this.resources.listTrainingTypes().intoMap(TRAININGTYPES.TRTY_PK);
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStatistics = new HashMap<>();
 		final List<String> sites = this.resources.listSites(department).getValues(SITES.SITE_PK);
-		final Map<String, Boolean> employees = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, Tables.EMPLOYEES.EMPL_PERMANENT).from(SITES_EMPLOYEES)
-				.join(Tables.EMPLOYEES)
-				.on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(Tables.EMPLOYEES.EMPL_PK))
-				.where(SITES_EMPLOYEES.SIEM_SITE_FK.in(sites)).fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, Tables.EMPLOYEES.EMPL_PERMANENT);
+		final Map<String, Boolean> employees = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT).from(SITES_EMPLOYEES)
+				.join(EMPLOYEES)
+				.on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK))
+				.where(SITES_EMPLOYEES.SIEM_SITE_FK.in(sites)).fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
 		for (final String registrationNumber : employees.keySet()) {
 			employeesStatistics.put(registrationNumber, getEmployeeStatsForDates(registrationNumber, dateStr, dates, trainingTypes));
 		}
@@ -113,10 +113,10 @@ public class StatisticsEndpoint {
 																								asOf);
 		final Map<Integer, Record> trainingTypes = this.resources.listTrainingTypes().intoMap(TRAININGTYPES.TRTY_PK);
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStatistics = new HashMap<>();
-		final Map<String, Boolean> employees = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, Tables.EMPLOYEES.EMPL_PERMANENT).from(SITES_EMPLOYEES)
-				.join(Tables.EMPLOYEES)
-				.on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(Tables.EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore))
-				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, Tables.EMPLOYEES.EMPL_PERMANENT);
+		final Map<String, Boolean> employees = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT).from(SITES_EMPLOYEES)
+				.join(EMPLOYEES)
+				.on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore))
+				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
 		for (final String registrationNumber : employees.keySet()) {
 			employeesStatistics.put(registrationNumber, getEmployeeStatsForDates(registrationNumber, dateStr, dates, trainingTypes));
 		}
