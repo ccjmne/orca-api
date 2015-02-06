@@ -63,9 +63,8 @@ public class StatisticsEndpoint {
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStatistics = new HashMap<>();
 		final List<String> sites = this.resources.listSites(department).getValues(SITES.SITE_PK);
 		final Map<String, Boolean> employees = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT).from(SITES_EMPLOYEES)
-				.join(EMPLOYEES)
-				.on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK))
-				.where(SITES_EMPLOYEES.SIEM_SITE_FK.in(sites)).fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
+				.join(EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.in(sites))
+				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
 		for (final String registrationNumber : employees.keySet()) {
 			employeesStatistics.put(registrationNumber, getEmployeeStatsForDates(registrationNumber, dateStr, dates, trainingTypes));
 		}
@@ -84,10 +83,7 @@ public class StatisticsEndpoint {
 			if (mostAccurate != null) {
 				for (final Entry<String, List<String>> siteHistory : mostAccurate.getValue().entrySet()) {
 					final SiteStatistics stats = new SiteStatistics();
-					siteHistory.getValue().forEach(
-													registrationNumber -> stats.register(
-																							employees.get(registrationNumber),
-																							employeesStatistics.get(registrationNumber).get(date)));
+					siteHistory.getValue().forEach(rNumber -> stats.register(employees.get(rNumber), employeesStatistics.get(rNumber).get(date)));
 					res.computeIfAbsent(date, unused -> new HashMap<>()).put(siteHistory.getKey(), stats);
 				}
 			} else {
@@ -114,16 +110,14 @@ public class StatisticsEndpoint {
 		final Map<Integer, Record> trainingTypes = this.resources.listTrainingTypes().intoMap(TRAININGTYPES.TRTY_PK);
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStatistics = new HashMap<>();
 		final Map<String, Boolean> employees = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT).from(SITES_EMPLOYEES)
-				.join(EMPLOYEES)
-				.on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore))
+				.join(EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore))
 				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
 		for (final String registrationNumber : employees.keySet()) {
 			employeesStatistics.put(registrationNumber, getEmployeeStatsForDates(registrationNumber, dateStr, dates, trainingTypes));
 		}
 
 		final TreeMap<Date, List<String>> employeesHistory = new TreeMap<>(this.ctx.select(SITES_EMPLOYEES.SIEM_EMPL_FK, UPDATES.UPDT_DATE)
-				.from(SITES_EMPLOYEES)
-				.join(UPDATES).on(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(UPDATES.UPDT_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore))
+				.from(SITES_EMPLOYEES).join(UPDATES).on(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(UPDATES.UPDT_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore))
 				.fetchGroups(UPDATES.UPDT_DATE, SITES_EMPLOYEES.SIEM_EMPL_FK));
 
 		final Map<Date, SiteStatistics> res = new TreeMap<>();
@@ -153,7 +147,7 @@ public class StatisticsEndpoint {
 		return getEmployeeStatsForDates(
 										registrationNumber,
 										dateStr,
-										(fromStr == null) ? Collections.singletonList(asOf) : getDates((interval != null) ? interval.intValue()
+										(fromStr == null) ? Collections.singletonList(asOf) : getDates((interval != null)	? interval.intValue()
 																															: DEFAULT_INTERVAL, this.dateFormat
 												.parseSql(fromStr), asOf),
 										this.resources.listTrainingTypes().intoMap(TRAININGTYPES.TRTY_PK));

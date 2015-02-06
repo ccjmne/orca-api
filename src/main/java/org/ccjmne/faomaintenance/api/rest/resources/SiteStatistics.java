@@ -27,10 +27,8 @@ public class SiteStatistics {
 		return this.permanentsCount;
 	}
 
-	public void register(final Boolean permanent, final EmployeeStatistics employeeStatistics) {
-		employeeStatistics.getStatistics().forEach(
-													(cert, stat) -> this.statistics.computeIfAbsent(cert, unused -> new SiteCertificateStatistics())
-															.register(stat));
+	public void register(final Boolean permanent, final EmployeeStatistics stats) {
+		stats.getStatistics().forEach((cert, stat) -> this.statistics.computeIfAbsent(cert, unused -> new SiteCertificateStatistics()).register(stat));
 		this.employeesCount++;
 		if (permanent.booleanValue()) {
 			this.permanentsCount++;

@@ -11,15 +11,21 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.text.ParseException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
 import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
+import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesRecord;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -42,9 +48,7 @@ public class ResourcesEndpoint {
 	@GET
 	@Path("employees")
 	public Result<Record> listEmployees(@QueryParam("site") final String aurore, @QueryParam("date") final String dateStr) throws ParseException {
-		final SelectQuery<Record> query = this.ctx.selectQuery(EMPLOYEES.join(SITES_EMPLOYEES).on(
-																									SITES_EMPLOYEES.SIEM_EMPL_FK
-																											.eq(EMPLOYEES.EMPL_PK)));
+		final SelectQuery<Record> query = this.ctx.selectQuery(EMPLOYEES.join(SITES_EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)));
 		query.addConditions(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)));
 		if (aurore != null) {
 			query.addConditions(SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore));
@@ -101,9 +105,7 @@ public class ResourcesEndpoint {
 		if (registrationNumber != null) {
 			query.addJoin(
 							TRAININGS_EMPLOYEES,
-							TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK).and(
-																						TRAININGS_EMPLOYEES.TREM_EMPL_FK
-																								.eq(registrationNumber)));
+							TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK).and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(registrationNumber)));
 		}
 
 		if (!types.isEmpty()) {
@@ -130,6 +132,50 @@ public class ResourcesEndpoint {
 	@Path("trainings/{id}")
 	public Record lookupTraining(@PathParam("id") final Integer id) {
 		return this.ctx.select().from(TRAININGS).where(TRAININGS.TRNG_PK.equal(id)).fetchOne();
+	}
+
+	@POST
+	@Path("trainings")
+	public Integer addTraining(final Map<String, Object> training) throws ParseException {
+		return insertTraining(new Integer(this.ctx.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training);
+	}
+
+	@SuppressWarnings("unchecked")
+	private Integer insertTraining(final Integer trainingId, final Map<String, Object> map) throws ParseException {
+		this.ctx
+				.insertInto(TRAININGS, TRAININGS.TRNG_PK, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_DATE, TRAININGS.TRNG_OUTCOME)
+				.values(
+						trainingId,
+						(Integer) map.get("trng_trty_fk"),
+						this.dateFormat.parseSql(map.get("trng_date").toString()), map.get("trng_outcome").toString()).execute();
+		((Map<String, Map<String, String>>) map.getOrDefault("trainees", Collections.EMPTY_MAP)).forEach((trainee, info) -> this.ctx
+				.insertInto(
+							TRAININGS_EMPLOYEES,
+							TRAININGS_EMPLOYEES.TREM_TRNG_FK,
+							TRAININGS_EMPLOYEES.TREM_EMPL_FK,
+							TRAININGS_EMPLOYEES.TREM_VALID,
+							TRAININGS_EMPLOYEES.TREM_COMMENT)
+				.values(trainingId, trainee, Boolean.valueOf(String.valueOf(info.get("trem_valid"))), info.get("trem_comment")).execute());
+		return trainingId;
+	}
+
+	@PUT
+	@Path("trainings/{id}")
+	public boolean updateTraining(@PathParam("id") final Integer id, final Map<String, Object> training) throws ParseException {
+		final boolean exists = deleteTraining(id);
+		insertTraining(id, training);
+		return exists;
+	}
+
+	@DELETE
+	@Path("trainings/{id}")
+	public boolean deleteTraining(final Integer trainingId) {
+		final boolean exists = this.ctx.select().from(TRAININGS).where(TRAININGS.TRNG_PK.equal(trainingId)).fetch().isNotEmpty();
+		if (exists) {
+			this.ctx.delete(TRAININGS).where(TRAININGS.TRNG_PK.equal(trainingId)).execute();
+		}
+
+		return exists;
 	}
 
 	@GET
