@@ -46,11 +46,11 @@ public class ImportEndpoint {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ImportEndpoint.class);
 
-	private final SQLDateFormat dateFormat;
 	private final DSLContext ctx;
+	private final SQLDateFormat dateFormat;
 
 	@Inject
-	public ImportEndpoint(final SQLDateFormat dateFormat, final DSLContext ctx) {
+	public ImportEndpoint(final DSLContext ctx, final SQLDateFormat dateFormat) {
 		this.dateFormat = dateFormat;
 		this.ctx = ctx;
 	}
@@ -97,10 +97,14 @@ public class ImportEndpoint {
 
 	private void processSheet(final Sheet sheet) {
 		final Iterator<Row> rows = sheet.rowIterator();
+		if (!rows.hasNext()) {
+			return;
+		}
+
 		final Integer updt_pk = new Integer(this.ctx.nextval(Sequences.UPDATES_UPDT_PK_SEQ).intValue());
 		this.ctx.insertInto(UPDATES).set(UPDATES.UPDT_PK, updt_pk).set(UPDATES.UPDT_DATE, new java.sql.Date(new Date().getTime())).execute();
-
-		final Map<String, Integer> headersIndex = buildHeadersIndex(rows.next());
+		final Map<String, Integer> headersIndex = new HashMap<>();
+		rows.next().cellIterator().forEachRemaining(cell -> headersIndex.put(process(cell, ""), Integer.valueOf(cell.getColumnIndex())));
 		while (rows.hasNext()) {
 			final Row row = rows.next();
 			final Map<String, String> employee = new HashMap<>();
@@ -114,7 +118,6 @@ public class ImportEndpoint {
 				// TODO: feedback
 				// Ignoring non existing sites, non-parseable dates, empty
 				// lines...
-				e.printStackTrace();
 			}
 		}
 
@@ -151,12 +154,6 @@ public class ImportEndpoint {
 		}
 
 		return empl_pk;
-	}
-
-	private Map<String, Integer> buildHeadersIndex(final Row headerRow) {
-		final Map<String, Integer> res = new HashMap<>();
-		headerRow.cellIterator().forEachRemaining(cell -> res.put(process(cell, ""), Integer.valueOf(cell.getColumnIndex())));
-		return res;
 	}
 
 	// TODO: parametrise header's names
