@@ -27,7 +27,6 @@ import javax.ws.rs.QueryParam;
 import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesRecord;
-import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Result;
@@ -47,11 +46,14 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("employees")
-	public Result<Record> listEmployees(@QueryParam("site") final String aurore, @QueryParam("date") final String dateStr) throws ParseException {
-		final SelectQuery<Record> query = this.ctx.selectQuery(EMPLOYEES.join(SITES_EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)));
-		query.addConditions(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)));
+	public Result<? extends Record> listEmployees(@QueryParam("site") final String aurore, @QueryParam("date") final String dateStr) throws ParseException {
+		final SelectQuery<? extends Record> query = this.ctx.selectQuery(EMPLOYEES);
 		if (aurore != null) {
-			query.addConditions(SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore));
+			query.addJoin(
+							SITES_EMPLOYEES,
+							SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
+							SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore),
+							SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)));
 		}
 
 		return query.fetch();
@@ -80,16 +82,13 @@ public class ResourcesEndpoint {
 		return this.ctx.select().from(SITES).where(SITES.SITE_PK.equal(aurore)).fetchOne();
 	}
 
-	private Integer getLatestUpdateWhere(final Condition... conditions) {
-		return this.ctx.select().from(UPDATES).where(conditions).orderBy(UPDATES.UPDT_DATE.desc()).fetchAny(UPDATES.UPDT_PK);
-	}
-
 	private Integer getUpdateFor(final String dateStr) throws ParseException {
 		if (dateStr != null) {
-			return getLatestUpdateWhere(UPDATES.UPDT_DATE.le(this.dateFormat.parseSql(dateStr)));
+			return this.ctx.select().from(UPDATES).where(UPDATES.UPDT_DATE.le(this.dateFormat.parseSql(dateStr))).orderBy(UPDATES.UPDT_DATE.desc())
+					.fetchAny(UPDATES.UPDT_PK);
 		}
 
-		return getLatestUpdateWhere();
+		return this.ctx.select().from(UPDATES).orderBy(UPDATES.UPDT_DATE.desc()).fetchAny(UPDATES.UPDT_PK);
 	}
 
 	@GET
