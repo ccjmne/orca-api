@@ -104,11 +104,11 @@ public class ImportEndpoint {
 		final Integer updt_pk = new Integer(this.ctx.nextval(Sequences.UPDATES_UPDT_PK_SEQ).intValue());
 		this.ctx.insertInto(UPDATES).set(UPDATES.UPDT_PK, updt_pk).set(UPDATES.UPDT_DATE, new java.sql.Date(new Date().getTime())).execute();
 		final Map<String, Integer> headersIndex = new HashMap<>();
-		rows.next().cellIterator().forEachRemaining(cell -> headersIndex.put(process(cell, ""), Integer.valueOf(cell.getColumnIndex())));
+		rows.next().cellIterator().forEachRemaining(cell -> headersIndex.put(readCell(cell, ""), Integer.valueOf(cell.getColumnIndex())));
 		while (rows.hasNext()) {
 			final Row row = rows.next();
 			final Map<String, String> employee = new HashMap<>();
-			headersIndex.forEach((header, idx) -> employee.put(header, process(row.getCell(idx.intValue()), header)));
+			headersIndex.forEach((header, idx) -> employee.put(header, readCell(row.getCell(idx.intValue()), header)));
 			try {
 				final String empl_pk = updateEmployee(employee);
 				// TODO: parametrise site header's name
@@ -157,7 +157,7 @@ public class ImportEndpoint {
 	}
 
 	// TODO: parametrise header's names
-	private final String process(final Cell cell, final String as) {
+	private String readCell(final Cell cell, final String as) {
 		if (cell == null) {
 			return "";
 		}

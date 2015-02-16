@@ -46,8 +46,9 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("employees")
-	public Result<? extends Record> listEmployees(@QueryParam("site") final String aurore, @QueryParam("date") final String dateStr) throws ParseException {
-		final SelectQuery<? extends Record> query = this.ctx.selectQuery(EMPLOYEES);
+	public Result<Record> listEmployees(@QueryParam("site") final String aurore, @QueryParam("date") final String dateStr) throws ParseException {
+		final SelectQuery<Record> query = this.ctx.selectQuery();
+		query.addFrom(EMPLOYEES);
 		if (aurore != null) {
 			query.addJoin(
 							SITES_EMPLOYEES,
