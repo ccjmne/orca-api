@@ -1,10 +1,10 @@
 package org.ccjmne.faomaintenance.api.rest;
 
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -29,6 +30,7 @@ import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeStatisticsBuilder;
 import org.ccjmne.faomaintenance.api.rest.resources.SiteStatistics;
 import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
@@ -37,20 +39,26 @@ public class StatisticsEndpoint {
 
 	private static final int DEFAULT_INTERVAL = 6;
 	private final ResourcesEndpoint resources;
+	private final ResourcesByKeysEndpoint resourcesByKeys;
 	private final SQLDateFormat dateFormat;
 	private final DSLContext ctx;
 
 	@Inject
-	public StatisticsEndpoint(final DSLContext ctx, final SQLDateFormat dateFormat, final ResourcesEndpoint resources) {
+	public StatisticsEndpoint(
+								final DSLContext ctx,
+								final SQLDateFormat dateFormat,
+								final ResourcesEndpoint resources,
+								final ResourcesByKeysEndpoint resourcesByKeys) {
 		this.ctx = ctx;
 		this.dateFormat = dateFormat;
 		this.resources = resources;
+		this.resourcesByKeys = resourcesByKeys;
 	}
 
 	@GET
 	@Path("sites")
 	public Map<Date, Map<String, SiteStatistics>> statsSites(
-																@QueryParam("dept") final Integer department,
+																@QueryParam("department") final Integer department,
 																@QueryParam("date") final String dateStr,
 																@QueryParam("from") final String fromStr,
 																@QueryParam("interval") final Integer interval) throws ParseException {
@@ -59,22 +67,26 @@ public class StatisticsEndpoint {
 																								(interval != null) ? interval.intValue() : DEFAULT_INTERVAL,
 																								this.dateFormat.parseSql(fromStr),
 																								asOf);
-		final Map<Integer, Record> trainingTypes = this.resources.listTrainingTypes().intoMap(TRAININGTYPES.TRTY_PK);
+		final Map<Integer, TrainingtypesRecord> trainingTypes = this.resourcesByKeys.listTrainingTypes();
+		final Map<Integer, List<Integer>> certificatesByTrainingType = this.resourcesByKeys.listTrainingtypesCertificates();
+		final List<Integer> certificates = this.resources.listCertificates().getValues(CERTIFICATES.CERT_PK);
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStatistics = new HashMap<>();
-		final List<String> sites = this.resources.listSites(department).getValues(SITES.SITE_PK);
+		final List<String> sites = this.resources.listSites(department, dateStr).getValues(SITES.SITE_PK);
 		final Map<String, Boolean> employees = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT).from(SITES_EMPLOYEES)
 				.join(EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.in(sites))
 				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
-		for (final String registrationNumber : employees.keySet()) {
-			employeesStatistics.put(registrationNumber, getEmployeeStatsForDates(registrationNumber, dateStr, dates, trainingTypes));
+		for (final String empl_pk : employees.keySet()) {
+			employeesStatistics.put(
+									empl_pk,
+									getEmployeeStatsForDates(empl_pk, dateStr, dates, trainingTypes, certificatesByTrainingType));
 		}
 
 		final TreeMap<Date, Map<String, List<String>>> employeesHistory = new TreeMap<>();
-		for (final String aurore : sites) {
-			new TreeMap<>(this.ctx.select(SITES_EMPLOYEES.SIEM_EMPL_FK, UPDATES.UPDT_DATE).from(SITES_EMPLOYEES).join(UPDATES)
-					.on(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(UPDATES.UPDT_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore))
-					.fetchGroups(UPDATES.UPDT_DATE, SITES_EMPLOYEES.SIEM_EMPL_FK)).forEach((date, siteEmployees) -> employeesHistory
-					.computeIfAbsent(date, unused -> new HashMap<>()).put(aurore, siteEmployees));
+		for (final String site_pk : sites) {
+			this.ctx.select(SITES_EMPLOYEES.SIEM_EMPL_FK, UPDATES.UPDT_DATE).from(SITES_EMPLOYEES).join(UPDATES)
+					.on(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(UPDATES.UPDT_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
+					.fetchGroups(UPDATES.UPDT_DATE, SITES_EMPLOYEES.SIEM_EMPL_FK)
+					.forEach((date, siteEmployees) -> employeesHistory.computeIfAbsent(date, unused -> new HashMap<>()).put(site_pk, siteEmployees));
 		}
 
 		final Map<Date, Map<String, SiteStatistics>> res = new TreeMap<>();
@@ -82,8 +94,8 @@ public class StatisticsEndpoint {
 			final Entry<Date, Map<String, List<String>>> mostAccurate = employeesHistory.floorEntry(date);
 			if (mostAccurate != null) {
 				for (final Entry<String, List<String>> siteHistory : mostAccurate.getValue().entrySet()) {
-					final SiteStatistics stats = new SiteStatistics();
-					siteHistory.getValue().forEach(rNumber -> stats.register(employees.get(rNumber), employeesStatistics.get(rNumber).get(date)));
+					final SiteStatistics stats = new SiteStatistics(certificates);
+					siteHistory.getValue().forEach(rNumber -> stats.register(rNumber, employees.get(rNumber), employeesStatistics.get(rNumber).get(date)));
 					res.computeIfAbsent(date, unused -> new HashMap<>()).put(siteHistory.getKey(), stats);
 				}
 			} else {
@@ -95,9 +107,9 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
-	@Path("sites/{aurore}")
+	@Path("sites/{site_pk}")
 	public Map<Date, SiteStatistics> statsSite(
-												@PathParam("aurore") final String aurore,
+												@PathParam("site_pk") final String site_pk,
 												@QueryParam("date") final String dateStr,
 												@QueryParam("from") final String fromStr,
 												@QueryParam("interval") final Integer interval) throws ParseException {
@@ -107,26 +119,30 @@ public class StatisticsEndpoint {
 																													: DEFAULT_INTERVAL,
 																								this.dateFormat.parseSql(fromStr),
 																								asOf);
-		final Map<Integer, Record> trainingTypes = this.resources.listTrainingTypes().intoMap(TRAININGTYPES.TRTY_PK);
+		final Map<Integer, TrainingtypesRecord> trainingTypes = this.resourcesByKeys.listTrainingTypes();
+		final Map<Integer, List<Integer>> certificatesByTrainingType = this.resourcesByKeys.listTrainingtypesCertificates();
+		final List<Integer> certificates = this.resources.listCertificates().getValues(CERTIFICATES.CERT_PK);
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStatistics = new HashMap<>();
-		final Map<String, Boolean> employees = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT).from(SITES_EMPLOYEES)
-				.join(EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore))
+		final Map<String, Boolean> employeesStatus = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT).from(SITES_EMPLOYEES)
+				.join(EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
 				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
-		for (final String registrationNumber : employees.keySet()) {
-			employeesStatistics.put(registrationNumber, getEmployeeStatsForDates(registrationNumber, dateStr, dates, trainingTypes));
+		for (final String empl_pk : employeesStatus.keySet()) {
+			employeesStatistics
+					.put(empl_pk, getEmployeeStatsForDates(empl_pk, dateStr, dates, trainingTypes, certificatesByTrainingType));
 		}
 
-		final TreeMap<Date, List<String>> employeesHistory = new TreeMap<>(this.ctx.select(SITES_EMPLOYEES.SIEM_EMPL_FK, UPDATES.UPDT_DATE)
-				.from(SITES_EMPLOYEES).join(UPDATES).on(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(UPDATES.UPDT_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore))
-				.fetchGroups(UPDATES.UPDT_DATE, SITES_EMPLOYEES.SIEM_EMPL_FK));
+		final TreeSet<Date> updates = new TreeSet<>(this.ctx.select(UPDATES.UPDT_DATE).from(UPDATES).fetchSet(UPDATES.UPDT_DATE));
+		final Map<Date, List<String>> employeesHistory = this.ctx.select(SITES_EMPLOYEES.SIEM_EMPL_FK, UPDATES.UPDT_DATE)
+				.from(SITES_EMPLOYEES).join(UPDATES).on(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(UPDATES.UPDT_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
+				.fetchGroups(UPDATES.UPDT_DATE, SITES_EMPLOYEES.SIEM_EMPL_FK);
 
 		final Map<Date, SiteStatistics> res = new TreeMap<>();
 		for (final Date date : dates) {
-			final SiteStatistics stats = new SiteStatistics();
-			final Entry<Date, List<String>> mostAccurate = employeesHistory.floorEntry(date);
+			final SiteStatistics stats = new SiteStatistics(certificates);
+			final Date mostAccurate = updates.floor(date);
 			if (mostAccurate != null) {
-				for (final String registrationNumber : mostAccurate.getValue()) {
-					stats.register(employees.get(registrationNumber), employeesStatistics.get(registrationNumber).get(date));
+				for (final String empl_pk : employeesHistory.getOrDefault(mostAccurate, Collections.EMPTY_LIST)) {
+					stats.register(empl_pk, employeesStatus.get(empl_pk), employeesStatistics.get(empl_pk).get(date));
 				}
 			}
 
@@ -137,32 +153,57 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
-	@Path("employees/{registrationNumber}")
+	@Path("employees")
+	public Map<Date, Map<String, EmployeeStatistics>> statsEmployees(
+																		@QueryParam("site") final String site_pk,
+																		@QueryParam("date") final String dateStr,
+																		@QueryParam("from") final String fromStr,
+																		@QueryParam("interval") final Integer interval) throws ParseException {
+		final Date asOf = (dateStr == null) ? new Date(new java.util.Date().getTime()) : this.dateFormat.parseSql(dateStr);
+		final List<Date> dates = (fromStr == null) ? Collections.singletonList(asOf) : getDates(
+																								(interval != null) ? interval.intValue()
+																													: DEFAULT_INTERVAL,
+																								this.dateFormat.parseSql(fromStr),
+																								asOf);
+		final Map<Integer, TrainingtypesRecord> trainingTypes = this.resourcesByKeys.listTrainingTypes();
+		final Map<Integer, List<Integer>> certificatesByTrainingType = this.resourcesByKeys.listTrainingtypesCertificates();
+		final Map<Date, Map<String, EmployeeStatistics>> res = new TreeMap<>();
+		for (final String rNumber : this.resources.listEmployees(site_pk, dateStr, null).getValues(EMPLOYEES.EMPL_PK)) {
+			getEmployeeStatsForDates(rNumber, dateStr, dates, trainingTypes, certificatesByTrainingType)
+					.forEach((date, stats) -> res.computeIfAbsent(date, unused -> new HashMap<>()).put(rNumber, stats));
+		}
+
+		return res;
+	}
+
+	@GET
+	@Path("employees/{empl_pk}")
 	public Map<Date, EmployeeStatistics> statsEmployee(
-														@PathParam("registrationNumber") final String registrationNumber,
+														@PathParam("empl_pk") final String empl_pk,
 														@QueryParam("date") final String dateStr,
 														@QueryParam("from") final String fromStr,
 														@QueryParam("interval") final Integer interval) throws ParseException {
 		final Date asOf = (dateStr == null) ? new Date(new java.util.Date().getTime()) : this.dateFormat.parseSql(dateStr);
 		return getEmployeeStatsForDates(
-										registrationNumber,
+										empl_pk,
 										dateStr,
-										(fromStr == null) ? Collections.singletonList(asOf) : getDates((interval != null)	? interval.intValue()
+										(fromStr == null) ? Collections.singletonList(asOf) : getDates((interval != null) ? interval.intValue()
 																															: DEFAULT_INTERVAL, this.dateFormat
 												.parseSql(fromStr), asOf),
-										this.resources.listTrainingTypes().intoMap(TRAININGTYPES.TRTY_PK));
+										this.resourcesByKeys.listTrainingTypes(), this.resourcesByKeys.listTrainingtypesCertificates());
 	}
 
 	private Map<Date, EmployeeStatistics> getEmployeeStatsForDates(
-																	final String registrationNumber,
+																	final String empl_pk,
 																	final String dateStr,
 																	final Iterable<Date> datesList,
-																	final Map<Integer, Record> trainingTypes) throws ParseException {
+																	final Map<Integer, TrainingtypesRecord> trainingTypes,
+																	final Map<Integer, List<Integer>> certificatesByTrainingType) throws ParseException {
 		final Iterator<Date> dates = datesList.iterator();
 		final Map<Date, EmployeeStatistics> res = new TreeMap<>();
-		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(trainingTypes);
+		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(trainingTypes, certificatesByTrainingType);
 		Date nextStop = dates.next();
-		for (final Record training : this.resources.listTrainings(registrationNumber, Collections.EMPTY_LIST, null, null, dateStr)) {
+		for (final Record training : this.resources.listTrainings(empl_pk, Collections.EMPTY_LIST, null, null, dateStr)) {
 			while (training.getValue(TRAININGS.TRNG_DATE).after(nextStop)) {
 				res.put(nextStop, builder.buildFor(nextStop));
 				nextStop = dates.next();

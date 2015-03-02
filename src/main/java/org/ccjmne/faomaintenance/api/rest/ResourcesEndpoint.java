@@ -8,6 +8,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.text.ParseException;
@@ -26,11 +27,15 @@ import javax.ws.rs.QueryParam;
 
 import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesRecord;
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.DepartmentsRecord;
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Result;
 import org.jooq.SelectQuery;
+import org.jooq.impl.DSL;
 
 @Path("resources")
 public class ResourcesEndpoint {
@@ -46,66 +51,83 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("employees")
-	public Result<Record> listEmployees(@QueryParam("site") final String aurore, @QueryParam("date") final String dateStr) throws ParseException {
+	public Result<Record> listEmployees(
+										@QueryParam("site") final String site_pk,
+										@QueryParam("date") final String dateStr,
+										@QueryParam("training") final String trng_pk) throws ParseException {
 		final SelectQuery<Record> query = this.ctx.selectQuery();
 		query.addFrom(EMPLOYEES);
-		if (aurore != null) {
+		if (site_pk != null) {
 			query.addJoin(
 							SITES_EMPLOYEES,
 							SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-							SITES_EMPLOYEES.SIEM_SITE_FK.eq(aurore),
+							SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk),
 							SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)));
+		}
+
+		if (trng_pk != null) {
+			query.addJoin(
+							TRAININGS_EMPLOYEES,
+							TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(Integer.valueOf(trng_pk)),
+							TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK));
 		}
 
 		return query.fetch();
 	}
 
 	@GET
-	@Path("employees/{registrationNumber}")
-	public Record lookupEmployee(@PathParam("registrationNumber") final String registrationNumber) {
-		return this.ctx.select().from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.equal(registrationNumber)).fetchOne();
+	@Path("employees/{empl_pk}")
+	public Record lookupEmployee(@PathParam("empl_pk") final String empl_pk) {
+		return this.ctx.select().from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.equal(empl_pk)).fetchOne();
 	}
 
 	@GET
 	@Path("sites")
-	public Result<SitesRecord> listSites(@QueryParam("department") final Integer department) {
-		final SelectQuery<SitesRecord> query = this.ctx.selectQuery(SITES);
-		if (department != null) {
-			query.addConditions(SITES.SITE_DEPT_FK.eq(department));
+	public Result<Record> listSites(@QueryParam("department") final Integer dept_pk, @QueryParam("date") final String dateStr)
+			throws ParseException {
+		final SelectQuery<Record> query = this.ctx.selectQuery();
+		query.addSelect(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK));
+		query.addFrom(SITES);
+		query.addJoin(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr))));
+		query.addConditions(SITES.SITE_PK.notEqual(String.valueOf(0)));
+		query.addGroupBy(SITES.SITE_PK);
+
+		if (dept_pk != null) {
+			query.addConditions(SITES.SITE_DEPT_FK.eq(dept_pk));
 		}
 
 		return query.fetch();
 	}
 
 	@GET
-	@Path("sites/{aurore}")
-	public Record lookupSite(@PathParam("aurore") final String aurore) {
-		return this.ctx.select().from(SITES).where(SITES.SITE_PK.equal(aurore)).fetchOne();
+	@Path("sites/{site_pk}")
+	public Record lookupSite(@PathParam("site_pk") final String site_pk) {
+		return this.ctx.select().from(SITES).where(SITES.SITE_PK.equal(site_pk)).fetchOne();
 	}
 
 	private Integer getUpdateFor(final String dateStr) throws ParseException {
 		if (dateStr != null) {
-			return this.ctx.select().from(UPDATES).where(UPDATES.UPDT_DATE.le(this.dateFormat.parseSql(dateStr))).orderBy(UPDATES.UPDT_DATE.desc())
+			return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_DATE.le(this.dateFormat.parseSql(dateStr))).orderBy(UPDATES.UPDT_DATE.desc())
 					.fetchAny(UPDATES.UPDT_PK);
 		}
 
-		return this.ctx.select().from(UPDATES).orderBy(UPDATES.UPDT_DATE.desc()).fetchAny(UPDATES.UPDT_PK);
+		return this.ctx.selectFrom(UPDATES).orderBy(UPDATES.UPDT_DATE.desc()).fetchAny(UPDATES.UPDT_PK);
 	}
 
 	@GET
 	@Path("trainings")
 	public Result<Record> listTrainings(
-										@QueryParam("employee") final String registrationNumber,
+										@QueryParam("employee") final String empl_pk,
 										@QueryParam("type") final List<Integer> types,
 										@QueryParam("date") final String dateStr,
 										@QueryParam("from") final String fromStr,
 										@QueryParam("to") final String toStr) throws ParseException {
 		final SelectQuery<Record> query = this.ctx.selectQuery();
 		query.addFrom(TRAININGS);
-		if (registrationNumber != null) {
+		if (empl_pk != null) {
 			query.addJoin(
 							TRAININGS_EMPLOYEES,
-							TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK).and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(registrationNumber)));
+							TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK).and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk)));
 		}
 
 		if (!types.isEmpty()) {
@@ -129,9 +151,9 @@ public class ResourcesEndpoint {
 	}
 
 	@GET
-	@Path("trainings/{id}")
-	public Record lookupTraining(@PathParam("id") final Integer id) {
-		return this.ctx.select().from(TRAININGS).where(TRAININGS.TRNG_PK.equal(id)).fetchOne();
+	@Path("trainings/{trng_pk}")
+	public Record lookupTraining(@PathParam("trng_pk") final Integer trng_pk) {
+		return this.ctx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).fetchOne();
 	}
 
 	@POST
@@ -141,11 +163,11 @@ public class ResourcesEndpoint {
 	}
 
 	@SuppressWarnings("unchecked")
-	private Integer insertTraining(final Integer trainingId, final Map<String, Object> map) throws ParseException {
+	private Integer insertTraining(final Integer trng_pk, final Map<String, Object> map) throws ParseException {
 		this.ctx
 				.insertInto(TRAININGS, TRAININGS.TRNG_PK, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_DATE, TRAININGS.TRNG_OUTCOME)
 				.values(
-						trainingId,
+						trng_pk,
 						(Integer) map.get("trng_trty_fk"),
 						this.dateFormat.parseSql(map.get("trng_date").toString()), map.get("trng_outcome").toString()).execute();
 		((Map<String, Map<String, String>>) map.getOrDefault("trainees", Collections.EMPTY_MAP)).forEach((trainee, info) -> this.ctx
@@ -155,24 +177,24 @@ public class ResourcesEndpoint {
 							TRAININGS_EMPLOYEES.TREM_EMPL_FK,
 							TRAININGS_EMPLOYEES.TREM_VALID,
 							TRAININGS_EMPLOYEES.TREM_COMMENT)
-				.values(trainingId, trainee, Boolean.valueOf(String.valueOf(info.get("trem_valid"))), info.get("trem_comment")).execute());
-		return trainingId;
+				.values(trng_pk, trainee, Boolean.valueOf(String.valueOf(info.get("trem_valid"))), info.get("trem_comment")).execute());
+		return trng_pk;
 	}
 
 	@PUT
-	@Path("trainings/{id}")
-	public boolean updateTraining(@PathParam("id") final Integer id, final Map<String, Object> training) throws ParseException {
-		final boolean exists = deleteTraining(id);
-		insertTraining(id, training);
+	@Path("trainings/{trng_pk}")
+	public boolean updateTraining(@PathParam("trng_pk") final Integer trng_pk, final Map<String, Object> training) throws ParseException {
+		final boolean exists = deleteTraining(trng_pk);
+		insertTraining(trng_pk, training);
 		return exists;
 	}
 
 	@DELETE
-	@Path("trainings/{id}")
-	public boolean deleteTraining(final Integer trainingId) {
-		final boolean exists = this.ctx.select().from(TRAININGS).where(TRAININGS.TRNG_PK.equal(trainingId)).fetch().isNotEmpty();
+	@Path("trainings/{trng_pk}")
+	public boolean deleteTraining(@PathParam("trng_pk") final Integer trng_pk) {
+		final boolean exists = this.ctx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).fetch().isNotEmpty();
 		if (exists) {
-			this.ctx.delete(TRAININGS).where(TRAININGS.TRNG_PK.equal(trainingId)).execute();
+			this.ctx.delete(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).execute();
 		}
 
 		return exists;
@@ -180,19 +202,25 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("departments")
-	public Result<Record> listDepartments() {
-		return this.ctx.select().from(DEPARTMENTS).fetch();
+	public Result<DepartmentsRecord> listDepartments() {
+		return this.ctx.selectFrom(DEPARTMENTS).fetch();
 	}
 
 	@GET
-	@Path("training_types")
-	public Result<Record> listTrainingTypes() {
-		return this.ctx.select().from(TRAININGTYPES).fetch();
+	@Path("trainingtypes")
+	public Result<TrainingtypesRecord> listTrainingTypes() {
+		return this.ctx.selectFrom(TRAININGTYPES).fetch();
+	}
+
+	@GET
+	@Path("trainingtypes_certificates")
+	public Result<TrainingtypesCertificatesRecord> listTrainingTypesCertificates() {
+		return this.ctx.selectFrom(TRAININGTYPES_CERTIFICATES).fetch();
 	}
 
 	@GET
 	@Path("certificates")
-	public Result<Record> listCertificates() {
-		return this.ctx.select().from(CERTIFICATES).fetch();
+	public Result<CertificatesRecord> listCertificates() {
+		return this.ctx.selectFrom(CERTIFICATES).fetch();
 	}
 }
