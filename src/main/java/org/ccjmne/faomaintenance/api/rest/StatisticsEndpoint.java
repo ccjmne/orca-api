@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -26,6 +27,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
+import org.ccjmne.faomaintenance.api.db.ResourcesAccessor;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeStatisticsBuilder;
 import org.ccjmne.faomaintenance.api.rest.resources.SiteStatistics;
@@ -34,25 +36,70 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableMap;
+
 @Path("statistics")
 public class StatisticsEndpoint {
 
 	private static final int DEFAULT_INTERVAL = 6;
-	private final ResourcesEndpoint resources;
+	private final ResourcesAccessor resources;
 	private final ResourcesByKeysEndpoint resourcesByKeys;
 	private final SQLDateFormat dateFormat;
 	private final DSLContext ctx;
+
+	// private final LoadingCache<String, EmployeeStatistics>
+	// employeeStatisticsCache;
+	private final LoadingCache<String, Map.Entry<Date, SiteStatistics>> siteStatisticsCache;
 
 	@Inject
 	public StatisticsEndpoint(
 								final DSLContext ctx,
 								final SQLDateFormat dateFormat,
-								final ResourcesEndpoint resources,
+								final ResourcesAccessor resources,
 								final ResourcesByKeysEndpoint resourcesByKeys) {
 		this.ctx = ctx;
 		this.dateFormat = dateFormat;
 		this.resources = resources;
 		this.resourcesByKeys = resourcesByKeys;
+		// this.employeeStatisticsCache =
+		// CacheBuilder.newBuilder().refreshAfterWrite(2,
+		// TimeUnit.MINUTES).expireAfterAccess(4, TimeUnit.MINUTES)
+		// .<String, EmployeeStatistics> build(new CacheLoader<String,
+		// EmployeeStatistics>() {
+		//
+		// @Override
+		// public EmployeeStatistics load(final String empl_pk) throws Exception
+		// {
+		// return StatisticsEndpoint.this.statsEmployee(empl_pk, null, null,
+		// null).values().iterator().next();
+		// }
+		// });
+
+		this.siteStatisticsCache = CacheBuilder.newBuilder().refreshAfterWrite(10, TimeUnit.MINUTES).expireAfterAccess(30, TimeUnit.MINUTES)
+				.<String, Map.Entry<Date, SiteStatistics>> build(new CacheLoader<String, Map.Entry<Date, SiteStatistics>>() {
+
+					@Override
+					public Map.Entry<Date, SiteStatistics> load(final String site_pk) throws Exception {
+						return StatisticsEndpoint.this.calculateSiteStats(site_pk, null, null, null).entrySet().iterator().next();
+					}
+				});
+	}
+
+	@GET
+	@Path("sites/{site_pk}")
+	public Map<Date, SiteStatistics> getSiteStats(
+													@PathParam("site_pk") final String site_pk,
+													@QueryParam("date") final String dateStr,
+													@QueryParam("from") final String fromStr,
+													@QueryParam("interval") final Integer interval) throws ParseException {
+		if ((dateStr == null) && (fromStr == null)) {
+			return new ImmutableMap.Builder<Date, SiteStatistics>().put(this.siteStatisticsCache.getUnchecked(site_pk)).build();
+		}
+
+		return calculateSiteStats(site_pk, dateStr, fromStr, interval);
 	}
 
 	@GET
@@ -107,12 +154,12 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
-	@Path("sites/{site_pk}")
-	public Map<Date, SiteStatistics> statsSite(
-												@PathParam("site_pk") final String site_pk,
-												@QueryParam("date") final String dateStr,
-												@QueryParam("from") final String fromStr,
-												@QueryParam("interval") final Integer interval) throws ParseException {
+	// @Path("sites/{site_pk}")
+	public Map<Date, SiteStatistics> calculateSiteStats(
+														@PathParam("site_pk") final String site_pk,
+														@QueryParam("date") final String dateStr,
+														@QueryParam("from") final String fromStr,
+														@QueryParam("interval") final Integer interval) throws ParseException {
 		final Date asOf = (dateStr == null) ? new Date(new java.util.Date().getTime()) : this.dateFormat.parseSql(dateStr);
 		final List<Date> dates = (fromStr == null) ? Collections.singletonList(asOf) : getDates(
 																								(interval != null) ? interval.intValue()
@@ -168,9 +215,9 @@ public class StatisticsEndpoint {
 		final Map<Integer, TrainingtypesRecord> trainingTypes = this.resourcesByKeys.listTrainingTypes();
 		final Map<Integer, List<Integer>> certificatesByTrainingType = this.resourcesByKeys.listTrainingtypesCertificates();
 		final Map<Date, Map<String, EmployeeStatistics>> res = new TreeMap<>();
-		for (final String rNumber : this.resources.listEmployees(site_pk, dateStr, null).getValues(EMPLOYEES.EMPL_PK)) {
-			getEmployeeStatsForDates(rNumber, dateStr, dates, trainingTypes, certificatesByTrainingType)
-					.forEach((date, stats) -> res.computeIfAbsent(date, unused -> new HashMap<>()).put(rNumber, stats));
+		for (final String empl_pk : this.resources.listEmployees(site_pk, dateStr, null).getValues(EMPLOYEES.EMPL_PK)) {
+			getEmployeeStatsForDates(empl_pk, dateStr, dates, trainingTypes, certificatesByTrainingType)
+					.forEach((date, stats) -> res.computeIfAbsent(date, unused -> new HashMap<>()).put(empl_pk, stats));
 		}
 
 		return res;

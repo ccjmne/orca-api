@@ -19,10 +19,10 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
 @SuppressWarnings("serial")
-public class ConfiguredObjectMapper extends ObjectMapper {
+public class CustomObjectMapper extends ObjectMapper {
 
 	@Inject
-	public ConfiguredObjectMapper(final DateFormat dateFormat) {
+	public CustomObjectMapper(final DateFormat dateFormat) {
 		disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 		setDateFormat(dateFormat);
 		registerModule(new JOOQResultsSerialiserModule());

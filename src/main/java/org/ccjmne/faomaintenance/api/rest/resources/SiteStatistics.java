@@ -63,9 +63,5 @@ public class SiteStatistics {
 		public int getCount() {
 			return this.count;
 		}
-
-		public int getRate() {
-			return getEmployeesCount() == 0 ? 0 : (this.count * 100) / getEmployeesCount();
-		}
 	}
 }
