@@ -171,6 +171,7 @@ public class ResourcesEndpoint {
 	}
 
 	@SuppressWarnings("unchecked")
+	// TODO: invalidate trainees stats
 	private Integer insertTraining(final Integer trng_pk, final Map<String, Object> map) throws ParseException {
 		this.ctx
 				.insertInto(TRAININGS, TRAININGS.TRNG_PK, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_DATE, TRAININGS.TRNG_OUTCOME)
@@ -199,6 +200,7 @@ public class ResourcesEndpoint {
 
 	@DELETE
 	@Path("trainings/{trng_pk}")
+	// TODO: invalidate trainees stats
 	public boolean deleteTraining(@PathParam("trng_pk") final Integer trng_pk) {
 		final boolean exists = this.ctx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).fetch().isNotEmpty();
 		if (exists) {
