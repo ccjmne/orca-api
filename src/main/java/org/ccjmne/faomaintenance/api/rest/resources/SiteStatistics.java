@@ -1,7 +1,7 @@
 package org.ccjmne.faomaintenance.api.rest.resources;
 
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeCertificateStatistics;
@@ -13,7 +13,7 @@ public class SiteStatistics {
 	private int employeesCount;
 	private int permanentsCount;
 
-	public SiteStatistics(final List<Integer> certificates) {
+	public SiteStatistics(final Collection<Integer> certificates) {
 		this.certificates = new HashMap<>();
 		certificates.forEach(cert_pk -> this.certificates.put(cert_pk, new SiteCertificateStatistics()));
 		this.employeesStatistics = new HashMap<>();
