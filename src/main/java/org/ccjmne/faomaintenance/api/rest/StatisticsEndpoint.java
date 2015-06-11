@@ -80,6 +80,7 @@ public class StatisticsEndpoint {
 		this.certificates = Suppliers.memoizeWithExpiration(() -> this.resourcesByKeys.listCertificates(), 1, TimeUnit.DAYS);
 		this.certificatesByTrainingTypes = Suppliers.memoizeWithExpiration(() -> this.resourcesByKeys.listTrainingtypesCertificates(), 1, TimeUnit.DAYS);
 
+		// TODO: adjust cache expiration timers
 		this.employeeStatisticsCache = CacheBuilder
 				.newBuilder()
 				.refreshAfterWrite(10, TimeUnit.SECONDS)
@@ -94,6 +95,7 @@ public class StatisticsEndpoint {
 																					}
 																				}), this.statisticsCalculationThreadPool));
 
+		// TODO: adjust cache expiration timers
 		this.siteStatisticsCache = CacheBuilder
 				.newBuilder()
 				.refreshAfterWrite(10, TimeUnit.SECONDS)
