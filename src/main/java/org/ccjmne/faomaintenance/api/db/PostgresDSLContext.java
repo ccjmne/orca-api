@@ -1,4 +1,4 @@
-package org.ccjmne.faomaintenance.api.utils;
+package org.ccjmne.faomaintenance.api.db;
 
 import org.jooq.SQLDialect;
 import org.jooq.conf.Settings;
@@ -25,6 +25,8 @@ public class PostgresDSLContext extends DefaultDSLContext {
 														System.getProperty("db_port", "5432"),
 														System.getProperty("db_name", "postgres"));
 
+	private static final CustomHikariSettings HIKARI_SETTINGS = new CustomHikariSettings();
+
 	private static HikariDataSource DATA_SOURCE;
 	static {
 		try {
@@ -37,7 +39,7 @@ public class PostgresDSLContext extends DefaultDSLContext {
 		config.setJdbcUrl(DB_URL);
 		config.setUsername(DB_USER);
 		config.setPassword(DB_PASS);
-		config.setMaximumPoolSize(18);
+		config.setMaximumPoolSize(16);
 		config.addDataSourceProperty("cachePrepStmts", "true");
 		config.addDataSourceProperty("prepStmtCacheSize", "250");
 		config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
@@ -46,12 +48,12 @@ public class PostgresDSLContext extends DefaultDSLContext {
 	}
 
 	public PostgresDSLContext() {
-		super(DATA_SOURCE, SQLDialect.POSTGRES, new ConfiguredSettings());
+		super(DATA_SOURCE, SQLDialect.POSTGRES, HIKARI_SETTINGS);
 	}
 
-	private static class ConfiguredSettings extends Settings {
+	private static class CustomHikariSettings extends Settings {
 
-		public ConfiguredSettings() {
+		public CustomHikariSettings() {
 			setExecuteLogging(DEBUG);
 		}
 	}

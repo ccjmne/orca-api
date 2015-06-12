@@ -34,6 +34,8 @@ import org.jooq.impl.DSL;
 @Path("resources")
 public class ResourcesEndpoint {
 
+	private static final String SITE_UNASSIGNED = "0";
+
 	private final DSLContext ctx;
 	private final SQLDateFormat dateFormat;
 
@@ -57,6 +59,12 @@ public class ResourcesEndpoint {
 							SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
 							SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk),
 							SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)));
+		} else {
+			query.addJoin(
+							SITES_EMPLOYEES,
+							SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
+							SITES_EMPLOYEES.SIEM_SITE_FK.notEqual(SITE_UNASSIGNED),
+							SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)));
 		}
 
 		if (trng_pk != null) {
@@ -72,7 +80,7 @@ public class ResourcesEndpoint {
 	@GET
 	@Path("employees/{empl_pk}")
 	public Record lookupEmployee(@PathParam("empl_pk") final String empl_pk) {
-		return this.ctx.select().from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.equal(empl_pk)).fetchOne();
+		return this.ctx.selectFrom(EMPLOYEES).where(EMPLOYEES.EMPL_PK.equal(empl_pk)).fetchOne();
 	}
 
 	@GET
@@ -80,11 +88,11 @@ public class ResourcesEndpoint {
 	public Result<Record> listSites(@QueryParam("department") final Integer dept_pk, @QueryParam("date") final String dateStr)
 			throws ParseException {
 		final SelectQuery<Record> query = this.ctx.selectQuery();
-		query.addSelect(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK));
+		query.addSelect(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK);
 		query.addFrom(SITES);
-		query.addJoin(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr))));
+		query.addConditions(SITES.SITE_PK.in(DSL.selectDistinct(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
+				.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)))));
 		query.addConditions(SITES.SITE_PK.notEqual(String.valueOf(0)));
-		query.addGroupBy(SITES.SITE_PK);
 
 		if (dept_pk != null) {
 			query.addConditions(SITES.SITE_DEPT_FK.eq(dept_pk));
