@@ -12,21 +12,15 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIF
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.text.ParseException;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import javax.inject.Inject;
-import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
 import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
-import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.DepartmentsRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
@@ -162,52 +156,6 @@ public class ResourcesEndpoint {
 	@Path("trainings/{trng_pk}")
 	public Record lookupTraining(@PathParam("trng_pk") final Integer trng_pk) {
 		return this.ctx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).fetchOne();
-	}
-
-	@POST
-	@Path("trainings")
-	public Integer addTraining(final Map<String, Object> training) throws ParseException {
-		return insertTraining(new Integer(this.ctx.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training);
-	}
-
-	@SuppressWarnings("unchecked")
-	// TODO: invalidate trainees stats
-	private Integer insertTraining(final Integer trng_pk, final Map<String, Object> map) throws ParseException {
-		this.ctx
-				.insertInto(TRAININGS, TRAININGS.TRNG_PK, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_DATE, TRAININGS.TRNG_OUTCOME)
-				.values(
-						trng_pk,
-						(Integer) map.get("trng_trty_fk"),
-						this.dateFormat.parseSql(map.get("trng_date").toString()), map.get("trng_outcome").toString()).execute();
-		((Map<String, Map<String, String>>) map.getOrDefault("trainees", Collections.EMPTY_MAP)).forEach((trainee, info) -> this.ctx
-				.insertInto(
-							TRAININGS_EMPLOYEES,
-							TRAININGS_EMPLOYEES.TREM_TRNG_FK,
-							TRAININGS_EMPLOYEES.TREM_EMPL_FK,
-							TRAININGS_EMPLOYEES.TREM_VALID,
-							TRAININGS_EMPLOYEES.TREM_COMMENT)
-				.values(trng_pk, trainee, Boolean.valueOf(String.valueOf(info.get("trem_valid"))), info.get("trem_comment")).execute());
-		return trng_pk;
-	}
-
-	@PUT
-	@Path("trainings/{trng_pk}")
-	public boolean updateTraining(@PathParam("trng_pk") final Integer trng_pk, final Map<String, Object> training) throws ParseException {
-		final boolean exists = deleteTraining(trng_pk);
-		insertTraining(trng_pk, training);
-		return exists;
-	}
-
-	@DELETE
-	@Path("trainings/{trng_pk}")
-	// TODO: invalidate trainees stats
-	public boolean deleteTraining(@PathParam("trng_pk") final Integer trng_pk) {
-		final boolean exists = this.ctx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).fetch().isNotEmpty();
-		if (exists) {
-			this.ctx.delete(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).execute();
-		}
-
-		return exists;
 	}
 
 	@GET
