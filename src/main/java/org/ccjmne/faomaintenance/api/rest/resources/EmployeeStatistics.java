@@ -94,5 +94,12 @@ public class EmployeeStatistics {
 		public boolean isValid() {
 			return this.expiryDate.after(getAsOf());
 		}
+
+		public boolean isValidForAWhile() {
+			final Calendar instance = Calendar.getInstance();
+			instance.setTime(getAsOf());
+			instance.add(6, Calendar.MONTH);
+			return this.expiryDate.after(instance.getTime());
+		}
 	}
 }
