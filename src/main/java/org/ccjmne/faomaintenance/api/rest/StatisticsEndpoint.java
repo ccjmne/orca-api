@@ -80,11 +80,10 @@ public class StatisticsEndpoint {
 		this.certificates = Suppliers.memoizeWithExpiration(() -> this.resourcesByKeys.listCertificates(), 1, TimeUnit.DAYS);
 		this.certificatesByTrainingTypes = Suppliers.memoizeWithExpiration(() -> this.resourcesByKeys.listTrainingtypesCertificates(), 1, TimeUnit.DAYS);
 
-		// TODO: adjust cache expiration timers
 		this.employeeStatisticsCache = CacheBuilder
 				.newBuilder()
-				.refreshAfterWrite(10, TimeUnit.SECONDS)
-				.expireAfterAccess(60, TimeUnit.SECONDS)
+				.refreshAfterWrite(30, TimeUnit.MINUTES)
+				.expireAfterAccess(2, TimeUnit.HOURS)
 				.<String, Map.Entry<Date, EmployeeStatistics>> build(
 																		CacheLoader.asyncReloading(CacheLoader
 																				.<String, Map.Entry<Date, EmployeeStatistics>> from(empl_pk -> {
@@ -95,11 +94,10 @@ public class StatisticsEndpoint {
 																					}
 																				}), this.statisticsCalculationThreadPool));
 
-		// TODO: adjust cache expiration timers
 		this.siteStatisticsCache = CacheBuilder
 				.newBuilder()
-				.refreshAfterWrite(10, TimeUnit.SECONDS)
-				.expireAfterAccess(60, TimeUnit.SECONDS)
+				.refreshAfterWrite(1, TimeUnit.HOURS)
+				.expireAfterAccess(8, TimeUnit.HOURS)
 				.<String, Map.Entry<Date, SiteStatistics>> build(
 																	CacheLoader.asyncReloading(CacheLoader
 																			.<String, Map.Entry<Date, SiteStatistics>> from(site_pk -> {
