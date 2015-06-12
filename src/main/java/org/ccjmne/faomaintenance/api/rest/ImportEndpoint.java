@@ -41,7 +41,7 @@ import org.jooq.tools.csv.CSVReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Path("update")
+@Path("import")
 public class ImportEndpoint {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ImportEndpoint.class);
