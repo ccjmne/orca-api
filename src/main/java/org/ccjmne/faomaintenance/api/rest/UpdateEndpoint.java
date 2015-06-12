@@ -1,5 +1,6 @@
 package org.ccjmne.faomaintenance.api.rest;
 
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 
@@ -23,11 +24,15 @@ public class UpdateEndpoint {
 
 	private final DSLContext ctx;
 	private final SQLDateFormat dateFormat;
+	private final ResourcesEndpoint resources;
+	private final StatisticsEndpoint statistics;
 
 	@Inject
-	public UpdateEndpoint(final DSLContext ctx, final SQLDateFormat dateFormat) {
+	public UpdateEndpoint(final DSLContext ctx, final SQLDateFormat dateFormat, final ResourcesEndpoint resources, final StatisticsEndpoint statistics) {
 		this.ctx = ctx;
 		this.dateFormat = dateFormat;
+		this.resources = resources;
+		this.statistics = statistics;
 	}
 
 	@POST
@@ -44,7 +49,9 @@ public class UpdateEndpoint {
 						trng_pk,
 						(Integer) map.get("trng_trty_fk"),
 						this.dateFormat.parseSql(map.get("trng_date").toString()), map.get("trng_outcome").toString()).execute();
-		((Map<String, Map<String, String>>) map.getOrDefault("trainees", Collections.EMPTY_MAP)).forEach((trainee, info) ->
+		final Map<String, Map<String, String>> trainees = (Map<String, Map<String, String>>) map.getOrDefault("trainees", Collections.EMPTY_MAP);
+		this.statistics.invalidateEmployeesStats(trainees.keySet());
+		trainees.forEach((trainee, info) ->
 				this.ctx.insertInto(
 									TRAININGS_EMPLOYEES,
 									TRAININGS_EMPLOYEES.TREM_TRNG_FK,
@@ -66,9 +73,10 @@ public class UpdateEndpoint {
 
 	@DELETE
 	@Path("trainings/{trng_pk}")
-	public boolean deleteTraining(@PathParam("trng_pk") final Integer trng_pk) {
+	public boolean deleteTraining(@PathParam("trng_pk") final Integer trng_pk) throws ParseException {
 		final boolean exists = this.ctx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).fetch().isNotEmpty();
 		if (exists) {
+			this.statistics.invalidateEmployeesStats(this.resources.listEmployees(null, null, String.valueOf(trng_pk.intValue())).getValues(EMPLOYEES.EMPL_PK));
 			this.ctx.delete(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).execute();
 		}
 

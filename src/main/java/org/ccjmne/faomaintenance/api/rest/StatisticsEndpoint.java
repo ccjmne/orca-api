@@ -118,6 +118,13 @@ public class StatisticsEndpoint {
 
 	public void invalidateEmployeesStats(final Collection<String> employees) {
 		this.employeeStatisticsCache.invalidateAll(employees);
+		invalidateSiteStats(this.ctx
+				.selectDistinct(SITES_EMPLOYEES.SIEM_SITE_FK)
+				.from(SITES_EMPLOYEES)
+				.where(
+						SITES_EMPLOYEES.SIEM_UPDT_FK.eq(this.ctx.selectFrom(UPDATES).orderBy(UPDATES.UPDT_DATE.desc()).fetchAny(UPDATES.UPDT_PK))
+								.and(SITES_EMPLOYEES.SIEM_EMPL_FK.in(employees))).fetch(SITES_EMPLOYEES.SIEM_SITE_FK));
+
 	}
 
 	@GET
