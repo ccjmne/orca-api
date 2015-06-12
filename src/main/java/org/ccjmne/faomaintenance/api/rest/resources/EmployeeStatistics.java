@@ -82,9 +82,16 @@ public class EmployeeStatistics {
 	public class EmployeeCertificateStatistics {
 
 		private final java.util.Date expiryDate;
+		private final boolean valid;
+		private final boolean validForAWhile;
 
 		protected EmployeeCertificateStatistics(final java.util.Date expiryDate) {
 			this.expiryDate = expiryDate;
+			this.valid = this.expiryDate.after(getAsOf());
+			final Calendar instance = Calendar.getInstance();
+			instance.setTime(getAsOf());
+			instance.add(6, Calendar.MONTH);
+			this.validForAWhile = this.expiryDate.after(instance.getTime());
 		}
 
 		public java.util.Date getExpiryDate() {
@@ -92,14 +99,11 @@ public class EmployeeStatistics {
 		}
 
 		public boolean isValid() {
-			return this.expiryDate.after(getAsOf());
+			return this.valid;
 		}
 
 		public boolean isValidForAWhile() {
-			final Calendar instance = Calendar.getInstance();
-			instance.setTime(getAsOf());
-			instance.add(6, Calendar.MONTH);
-			return this.expiryDate.after(instance.getTime());
+			return this.validForAWhile;
 		}
 	}
 }
