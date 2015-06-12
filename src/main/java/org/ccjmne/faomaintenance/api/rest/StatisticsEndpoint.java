@@ -229,7 +229,7 @@ public class StatisticsEndpoint {
 			final Entry<Date, Map<String, List<String>>> mostAccurate = employeesHistory.floorEntry(date);
 			if (mostAccurate != null) {
 				for (final Entry<String, List<String>> siteHistory : mostAccurate.getValue().entrySet()) {
-					final SiteStatistics stats = new SiteStatistics(this.certificates.get().keySet());
+					final SiteStatistics stats = new SiteStatistics(this.certificates.get());
 					siteHistory.getValue().forEach(rNumber -> stats.register(rNumber, employees.get(rNumber), employeesStats.get(rNumber).get(date)));
 					res.computeIfAbsent(date, unused -> new HashMap<>()).put(siteHistory.getKey(), stats);
 				}
@@ -242,7 +242,6 @@ public class StatisticsEndpoint {
 	}
 
 	private Map<Date, SiteStatistics> calculateSiteStats(final String site_pk, final List<Date> dates) throws ParseException {
-		System.out.println("calculating stats for site " + site_pk);
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStats = new HashMap<>();
 		final Map<String, Boolean> employeesContractTypes = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT)
 				.from(SITES_EMPLOYEES)
@@ -259,7 +258,7 @@ public class StatisticsEndpoint {
 
 		final Map<Date, SiteStatistics> res = new TreeMap<>();
 		for (final Date date : dates) {
-			final SiteStatistics stats = new SiteStatistics(this.certificates.get().keySet());
+			final SiteStatistics stats = new SiteStatistics(this.certificates.get());
 			final Date mostAccurate = updates.floor(date);
 			if (mostAccurate != null) {
 				for (final String empl_pk : employeesHistory.getOrDefault(mostAccurate, Collections.EMPTY_LIST)) {
@@ -274,13 +273,12 @@ public class StatisticsEndpoint {
 	}
 
 	private Map.Entry<Date, SiteStatistics> calculateLatestSiteStats(final String site_pk) throws ParseException {
-		System.out.println("calculating stats for site " + site_pk);
 		final Date currentDate = new Date(new java.util.Date().getTime());
 		final Map<String, Boolean> employeesContractTypes = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT)
 				.from(SITES_EMPLOYEES)
 				.join(EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
 				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
-		final SiteStatistics stats = new SiteStatistics(this.certificates.get().keySet());
+		final SiteStatistics stats = new SiteStatistics(this.certificates.get());
 		getEmployeesStats(site_pk, null, null, null).values().iterator().next()
 				.forEach(
 							(empl_pk, empl_stats) -> stats.register(empl_pk, employeesContractTypes.get(empl_pk), empl_stats));
@@ -290,7 +288,6 @@ public class StatisticsEndpoint {
 	private Map<Date, EmployeeStatistics> buildEmployeeStats(
 																final String empl_pk,
 																final Iterable<Date> dates) throws ParseException {
-		System.out.println("calculating stats history for employee " + empl_pk);
 		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(this.trainingTypes.get(), this.certificatesByTrainingTypes.get());
 		final Iterator<Date> datesIterator = dates.iterator();
 		final Map<Date, EmployeeStatistics> res = new TreeMap<>();
@@ -314,7 +311,6 @@ public class StatisticsEndpoint {
 	}
 
 	private Map.Entry<Date, EmployeeStatistics> buildLatestEmployeeStats(final String empl_pk) throws ParseException {
-		System.out.println("calculating stats for employee " + empl_pk);
 		final Date currentDate = new Date(new java.util.Date().getTime());
 		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(this.trainingTypes.get(), this.certificatesByTrainingTypes.get());
 		this.resources.listTrainings(empl_pk, Collections.EMPTY_LIST, null, null, null).forEach(training -> builder.accept(training));
