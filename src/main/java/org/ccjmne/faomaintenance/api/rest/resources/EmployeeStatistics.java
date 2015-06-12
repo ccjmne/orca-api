@@ -64,10 +64,10 @@ public class EmployeeStatistics {
 	private final Date asOf;
 
 	protected EmployeeStatistics(final Map<Integer, java.util.Date> expiryDates, final Date asOf) {
+		this.asOf = asOf;
 		final Builder<Integer, EmployeeCertificateStatistics> builder = ImmutableMap.<Integer, EmployeeCertificateStatistics> builder();
 		expiryDates.forEach((certificate, expiryDate) -> builder.put(certificate, new EmployeeCertificateStatistics(expiryDate)));
 		this.certificates = builder.build();
-		this.asOf = asOf;
 	}
 
 	@JsonIgnore
@@ -90,7 +90,7 @@ public class EmployeeStatistics {
 			this.valid = this.expiryDate.after(getAsOf());
 			final Calendar instance = Calendar.getInstance();
 			instance.setTime(getAsOf());
-			instance.add(6, Calendar.MONTH);
+			instance.add(Calendar.MONTH, 6);
 			this.validForAWhile = this.expiryDate.after(instance.getTime());
 		}
 
