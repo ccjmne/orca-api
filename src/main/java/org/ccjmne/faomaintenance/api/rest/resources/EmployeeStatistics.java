@@ -19,6 +19,8 @@ import com.google.common.collect.ImmutableMap.Builder;
 
 public class EmployeeStatistics {
 
+	private static final String OUTCOME_VALID = "VALIDATED";
+
 	public static class EmployeeStatisticsBuilder {
 
 		private final Map<Integer, TrainingtypesRecord> trainingTypes;
@@ -34,7 +36,7 @@ public class EmployeeStatistics {
 		}
 
 		public EmployeeStatistics.EmployeeStatisticsBuilder accept(final Record training) {
-			if (training.getValue(TRAININGS_EMPLOYEES.TREM_VALID).booleanValue()) {
+			if (OUTCOME_VALID.equals(training.getValue(TRAININGS_EMPLOYEES.TREM_OUTCOME))) {
 				final Record trainingType = this.trainingTypes.get(training.getValue(TRAININGS.TRNG_TRTY_FK));
 				this.calendar.setTime(training.getValue(TRAININGS.TRNG_DATE));
 				this.calendar.add(Calendar.MONTH, trainingType.getValue(TRAININGTYPES.TRTY_VALIDITY).intValue());
@@ -104,6 +106,18 @@ public class EmployeeStatistics {
 
 		public boolean isValidForAWhile() {
 			return this.validForAWhile;
+		}
+
+		public String getValidityStatus() {
+			if (isValidForAWhile()) {
+				return "success";
+			}
+
+			if (isValid()) {
+				return "warning";
+			}
+
+			return "danger";
 		}
 	}
 }

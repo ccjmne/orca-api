@@ -28,6 +28,6 @@ public class ApplicationConfig extends ResourceConfig {
 		});
 
 		register(MultiPartFeature.class);
-		packages("org.ccjmne.faomaintenance.api.config.providers,org.ccjmne.faomaintenance.api.rest");
+		packages("org.ccjmne.faomaintenance.api.config.providers, org.ccjmne.faomaintenance.api.rest");
 	}
 }

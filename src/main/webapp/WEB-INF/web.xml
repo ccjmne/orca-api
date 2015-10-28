@@ -18,4 +18,90 @@
 		<servlet-name>First Aid Officer API</servlet-name>
 		<url-pattern>/*</url-pattern>
 	</servlet-mapping>
+
+	<login-config>
+		<auth-method>BASIC</auth-method>
+	</login-config>
+
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>Data fetching API</web-resource-name>
+
+			<url-pattern>/statistics/*</url-pattern>
+			<url-pattern>/resources/*</url-pattern>
+			<url-pattern>/resources-by-keys/*</url-pattern>
+			<url-pattern>/auth/*</url-pattern>
+			<url-pattern>/account/*</url-pattern>
+			<http-method>GET</http-method>
+			<http-method>PUT</http-method>
+		</web-resource-collection>
+
+		<auth-constraint>
+			<description>Any basic user can access that API</description>
+			<role-name>user</role-name>
+		</auth-constraint>
+	</security-constraint>
+
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>Trainings Management API</web-resource-name>
+
+			<url-pattern>/trainings/*</url-pattern>
+			<http-method>POST</http-method>
+			<http-method>PUT</http-method>
+			<http-method>DELETE</http-method>
+		</web-resource-collection>
+
+		<auth-constraint>
+			<description>Only trainers can access that API</description>
+			<role-name>trainer</role-name>
+		</auth-constraint>
+	</security-constraint>
+
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>General Management API</web-resource-name>
+
+			<url-pattern>/admin/*</url-pattern>
+			<url-pattern>/update/*</url-pattern>
+			<http-method>GET</http-method>
+			<http-method>DELETE</http-method>
+			<http-method>POST</http-method>
+			<http-method>PUT</http-method>
+		</web-resource-collection>
+
+		<auth-constraint>
+			<description>Only administrators can access that API</description>
+			<role-name>admin</role-name>
+		</auth-constraint>
+	</security-constraint>
+
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>CORS pre-flight OPTION requests</web-resource-name>
+
+			<url-pattern>/update/*</url-pattern>
+			<url-pattern>/statistics/*</url-pattern>
+			<url-pattern>/resources/*</url-pattern>
+			<url-pattern>/trainings/*</url-pattern>
+			<url-pattern>/resources-by-keys/*</url-pattern>
+			<url-pattern>/account/*</url-pattern>
+			<url-pattern>/admin/*</url-pattern>
+			<url-pattern>/auth/*</url-pattern>
+
+			<http-method>OPTIONS</http-method>
+			<!-- No authentication constraints here -->
+		</web-resource-collection>
+	</security-constraint>
+
+	<security-role>
+		<role-name>user</role-name>
+	</security-role>
+	<security-role>
+		<role-name>trainer</role-name>
+	</security-role>
+	<security-role>
+		<role-name>admin</role-name>
+	</security-role>
+
 </web-app>

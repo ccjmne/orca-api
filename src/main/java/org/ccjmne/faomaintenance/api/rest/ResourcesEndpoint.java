@@ -52,6 +52,14 @@ public class ResourcesEndpoint {
 										@QueryParam("date") final String dateStr,
 										@QueryParam("training") final String trng_pk) throws ParseException {
 		final SelectQuery<Record> query = this.ctx.selectQuery();
+		query.addSelect(
+						EMPLOYEES.EMPL_PK,
+						EMPLOYEES.EMPL_FIRSTNAME,
+						EMPLOYEES.EMPL_SURNAME,
+						EMPLOYEES.EMPL_DOB,
+						EMPLOYEES.EMPL_PERMANENT,
+						EMPLOYEES.EMPL_ADDR);
+		query.addSelect(SITES_EMPLOYEES.fields());
 		query.addFrom(EMPLOYEES);
 		if (site_pk != null) {
 			query.addJoin(
@@ -63,11 +71,12 @@ public class ResourcesEndpoint {
 			query.addJoin(
 							SITES_EMPLOYEES,
 							SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-							SITES_EMPLOYEES.SIEM_SITE_FK.notEqual(SITE_UNASSIGNED),
+							SITES_EMPLOYEES.SIEM_SITE_FK.ne(SITE_UNASSIGNED),
 							SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)));
 		}
 
 		if (trng_pk != null) {
+			query.addSelect(TRAININGS_EMPLOYEES.fields());
 			query.addJoin(
 							TRAININGS_EMPLOYEES,
 							TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(Integer.valueOf(trng_pk)),
@@ -80,7 +89,15 @@ public class ResourcesEndpoint {
 	@GET
 	@Path("employees/{empl_pk}")
 	public Record lookupEmployee(@PathParam("empl_pk") final String empl_pk) {
-		return this.ctx.selectFrom(EMPLOYEES).where(EMPLOYEES.EMPL_PK.equal(empl_pk)).fetchOne();
+		return this.ctx
+				.select(
+						EMPLOYEES.EMPL_PK,
+						EMPLOYEES.EMPL_FIRSTNAME,
+						EMPLOYEES.EMPL_SURNAME,
+						EMPLOYEES.EMPL_DOB,
+						EMPLOYEES.EMPL_PERMANENT,
+						EMPLOYEES.EMPL_ADDR)
+				.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.equal(empl_pk)).fetchOne();
 	}
 
 	@GET
@@ -127,9 +144,7 @@ public class ResourcesEndpoint {
 		final SelectQuery<Record> query = this.ctx.selectQuery();
 		query.addFrom(TRAININGS);
 		if (empl_pk != null) {
-			query.addJoin(
-							TRAININGS_EMPLOYEES,
-							TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK).and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk)));
+			query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK).and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk)));
 		}
 
 		if (!types.isEmpty()) {

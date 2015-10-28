@@ -102,8 +102,7 @@ public class StatisticsEndpoint {
 																	CacheLoader.asyncReloading(CacheLoader
 																			.<String, Map.Entry<Date, SiteStatistics>> from(site_pk -> {
 																				try {
-																					return StatisticsEndpoint.this
-																							.calculateLatestSiteStats(site_pk);
+																					return StatisticsEndpoint.this.calculateLatestSiteStats(site_pk);
 																				} catch (final Exception e) {
 																					throw new RuntimeException(e);
 																				}
@@ -160,19 +159,22 @@ public class StatisticsEndpoint {
 																@QueryParam("date") final String dateStr,
 																@QueryParam("from") final String fromStr,
 																@QueryParam("interval") final Integer interval) throws ParseException {
-
 		final List<String> sites = this.resources.listSites(department, dateStr).getValues(SITES.SITE_PK);
-		if ((dateStr == null) && (fromStr == null)) {
+		if ((dateStr == null) && (fromStr == null) && (this.siteStatisticsCache.size() >= (sites.size() / 2))) {
 			final Builder<String, SiteStatistics> sitesStats = new ImmutableMap.Builder<>();
 			for (final String site_pk : sites) {
-				// Going through the cache first
-				sitesStats.put(site_pk, getSiteStats(site_pk, null, null, null).values().iterator().next());
+				sitesStats.put(site_pk, this.siteStatisticsCache.getUnchecked(site_pk).getValue());
 			}
 
 			return Collections.singletonMap(new Date(new java.util.Date().getTime()), sitesStats.build());
 		}
 
-		return calculateSitesStats(sites, dateStr, fromStr, interval);
+		final TreeMap<Date, Map<String, SiteStatistics>> res = calculateSitesStats(sites, dateStr, fromStr, interval);
+		if (dateStr == null) {
+			res.lastEntry().getValue().forEach((site_pk, stats) -> this.siteStatisticsCache.put(site_pk, new SimpleEntry<>(res.lastKey(), stats)));
+		}
+
+		return res;
 	}
 
 	@GET
@@ -186,8 +188,7 @@ public class StatisticsEndpoint {
 		if ((dateStr == null) && (fromStr == null)) {
 			final Builder<String, EmployeeStatistics> employeesStats = new ImmutableMap.Builder<>();
 			for (final String empl_pk : employees) {
-				// Going through the cache first
-				employeesStats.put(empl_pk, getEmployeeStats(empl_pk, null, null, null).values().iterator().next());
+				employeesStats.put(empl_pk, this.employeeStatisticsCache.getUnchecked(empl_pk).getValue());
 			}
 
 			return Collections.singletonMap(new Date(new java.util.Date().getTime()), employeesStats.build());
@@ -202,11 +203,11 @@ public class StatisticsEndpoint {
 		return res;
 	}
 
-	private Map<Date, Map<String, SiteStatistics>> calculateSitesStats(
-																		final List<String> sites,
-																		final String dateStr,
-																		final String fromStr,
-																		final Integer interval) throws ParseException {
+	private TreeMap<Date, Map<String, SiteStatistics>> calculateSitesStats(
+																			final List<String> sites,
+																			final String dateStr,
+																			final String fromStr,
+																			final Integer interval) throws ParseException {
 		final List<Date> dates = computeDates(fromStr, dateStr, interval);
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStats = new HashMap<>();
 		final Map<String, Boolean> employees = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT).from(SITES_EMPLOYEES)
@@ -224,14 +225,14 @@ public class StatisticsEndpoint {
 					.forEach((date, siteEmployees) -> employeesHistory.computeIfAbsent(date, unused -> new HashMap<>()).put(site_pk, siteEmployees));
 		}
 
-		final Map<Date, Map<String, SiteStatistics>> res = new TreeMap<>();
+		final TreeMap<Date, Map<String, SiteStatistics>> res = new TreeMap<>();
 		for (final Date date : dates) {
 			final Entry<Date, Map<String, List<String>>> mostAccurate = employeesHistory.floorEntry(date);
 			if (mostAccurate != null) {
-				for (final Entry<String, List<String>> siteHistory : mostAccurate.getValue().entrySet()) {
+				for (final Entry<String, List<String>> sitesEmployeesHistory : mostAccurate.getValue().entrySet()) {
 					final SiteStatistics stats = new SiteStatistics(this.certificates.get());
-					siteHistory.getValue().forEach(rNumber -> stats.register(rNumber, employees.get(rNumber), employeesStats.get(rNumber).get(date)));
-					res.computeIfAbsent(date, unused -> new HashMap<>()).put(siteHistory.getKey(), stats);
+					sitesEmployeesHistory.getValue().forEach(empl_pk -> stats.register(empl_pk, employees.get(empl_pk), employeesStats.get(empl_pk).get(date)));
+					res.computeIfAbsent(date, unused -> new HashMap<>()).put(sitesEmployeesHistory.getKey(), stats);
 				}
 			} else {
 				res.put(date, Collections.EMPTY_MAP);
@@ -289,22 +290,18 @@ public class StatisticsEndpoint {
 																final String empl_pk,
 																final Iterable<Date> dates) throws ParseException {
 		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(this.trainingTypes.get(), this.certificatesByTrainingTypes.get());
-		final Iterator<Date> datesIterator = dates.iterator();
+		dates.iterator();
 		final Map<Date, EmployeeStatistics> res = new TreeMap<>();
-		Date nextStop = datesIterator.next();
+
 		// TODO: Only retrieve the Training Types that we care about
-		for (final Record training : this.resources.listTrainings(empl_pk, Collections.EMPTY_LIST, null, null, null)) {
-			while (training.getValue(TRAININGS.TRNG_DATE).after(nextStop)) {
-				res.put(nextStop, builder.buildFor(nextStop));
-				nextStop = datesIterator.next();
+		final Iterator<Record> trainings = this.resources.listTrainings(empl_pk, Collections.EMPTY_LIST, null, null, null).iterator();
+		Record training;
+		for (final Date nextStop : dates) {
+			while (trainings.hasNext() && !nextStop.before((training = trainings.next()).getValue(TRAININGS.TRNG_DATE))) {
+				builder.accept(training);
 			}
 
-			builder.accept(training);
-		}
-
-		res.put(nextStop, builder.buildFor(nextStop));
-		while (datesIterator.hasNext()) {
-			res.put(nextStop = datesIterator.next(), builder.buildFor(nextStop));
+			res.put(nextStop, builder.buildFor(nextStop));
 		}
 
 		return res;
@@ -313,7 +310,7 @@ public class StatisticsEndpoint {
 	private Map.Entry<Date, EmployeeStatistics> buildLatestEmployeeStats(final String empl_pk) throws ParseException {
 		final Date currentDate = new Date(new java.util.Date().getTime());
 		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(this.trainingTypes.get(), this.certificatesByTrainingTypes.get());
-		this.resources.listTrainings(empl_pk, Collections.EMPTY_LIST, null, null, null).forEach(training -> builder.accept(training));
+		this.resources.listTrainings(empl_pk, Collections.EMPTY_LIST, null, null, currentDate.toString()).forEach(training -> builder.accept(training));
 		return new SimpleEntry<>(currentDate, builder.buildFor(currentDate));
 	}
 

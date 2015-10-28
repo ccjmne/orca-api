@@ -92,7 +92,7 @@ public class SiteStatistics {
 				return "success";
 			}
 
-			if (this.count >= ((2 * target) / 3)) {
+			if (this.count > ((2 * target) / 3)) {
 				return "warning";
 			}
 
