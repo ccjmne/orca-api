@@ -102,13 +102,18 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("sites")
-	public Result<Record> listSites(@QueryParam("department") final Integer dept_pk, @QueryParam("date") final String dateStr)
+	public Result<Record> listSites(
+									@QueryParam("department") final Integer dept_pk,
+									@QueryParam("date") final String dateStr,
+									@QueryParam("unlisted") final boolean unlisted)
 			throws ParseException {
 		final SelectQuery<Record> query = this.ctx.selectQuery();
 		query.addSelect(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK);
 		query.addFrom(SITES);
-		query.addConditions(SITES.SITE_PK.in(DSL.selectDistinct(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-				.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)))));
+		if (!unlisted) {
+			query.addConditions(SITES.SITE_PK.in(DSL.selectDistinct(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
+					.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)))));
+		}
 		query.addConditions(SITES.SITE_PK.notEqual(String.valueOf(0)));
 
 		if (dept_pk != null) {
