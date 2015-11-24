@@ -109,13 +109,17 @@ public class StatisticsEndpoint {
 																			}), this.statisticsCalculationThreadPool));
 	}
 
-	public void invalidateSiteStats(final Collection<String> sites) {
+	public void invalidateSitesStats() {
+		this.siteStatisticsCache.invalidateAll();
+	}
+
+	public void invalidateSitesStats(final Collection<String> sites) {
 		this.siteStatisticsCache.invalidateAll(sites);
 	}
 
 	public void invalidateEmployeesStats(final Collection<String> employees) {
 		this.employeeStatisticsCache.invalidateAll(employees);
-		invalidateSiteStats(this.ctx
+		invalidateSitesStats(this.ctx
 				.selectDistinct(SITES_EMPLOYEES.SIEM_SITE_FK)
 				.from(SITES_EMPLOYEES)
 				.where(
@@ -159,7 +163,7 @@ public class StatisticsEndpoint {
 																@QueryParam("date") final String dateStr,
 																@QueryParam("from") final String fromStr,
 																@QueryParam("interval") final Integer interval) throws ParseException {
-		final List<String> sites = this.resources.listSites(department, dateStr).getValues(SITES.SITE_PK);
+		final List<String> sites = this.resources.listSites(department, dateStr, false).getValues(SITES.SITE_PK);
 		if ((dateStr == null) && (fromStr == null) && (this.siteStatisticsCache.size() >= (sites.size() / 2))) {
 			final Builder<String, SiteStatistics> sitesStats = new ImmutableMap.Builder<>();
 			for (final String site_pk : sites) {
