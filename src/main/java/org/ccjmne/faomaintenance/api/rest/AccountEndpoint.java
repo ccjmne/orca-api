@@ -14,7 +14,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.RolesRecord;
 import org.jooq.DSLContext;
+import org.jooq.Result;
 
 @Singleton
 @Path("account")
@@ -32,6 +34,12 @@ public class AccountEndpoint {
 	@GET
 	public Map<String, Object> getCurrentUserInfo(@Context final HttpServletRequest request) {
 		return this.admin.getUserInfo(request.getRemoteUser());
+	}
+
+	@GET
+	@Path("roles")
+	public Result<RolesRecord> getAvailableRoles() {
+		return this.admin.getAvailableRoles();
 	}
 
 	@PUT
