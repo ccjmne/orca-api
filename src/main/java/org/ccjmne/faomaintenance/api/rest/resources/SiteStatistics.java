@@ -87,12 +87,12 @@ public class SiteStatistics {
 		}
 
 		public String getTargetStatus() {
-			final int target = getTarget();
-			if (this.count >= target) {
+			final int countPercentage = getCountPercentage();
+			if (countPercentage >= this.targetPercentage) {
 				return "success";
 			}
 
-			if (this.count > ((2 * target) / 3)) {
+			if (countPercentage > ((2 * this.targetPercentage) / 3)) {
 				return "warning";
 			}
 
