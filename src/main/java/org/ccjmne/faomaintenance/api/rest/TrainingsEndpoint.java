@@ -6,6 +6,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 
 import java.text.ParseException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -18,6 +19,7 @@ import javax.ws.rs.PathParam;
 import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 
 @Path("trainings")
 public class TrainingsEndpoint {
@@ -37,32 +39,50 @@ public class TrainingsEndpoint {
 
 	@POST
 	public Integer addTraining(final Map<String, Object> training) throws ParseException {
-		return insertTraining(new Integer(this.ctx.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training);
+		return insertTraining(new Integer(this.ctx.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, this.ctx);
+	}
+
+	@POST
+	@Path("/bulk")
+	public void addTrainings(final List<Map<String, Object>> trainings) {
+		this.ctx.transaction(config -> {
+			final DSLContext transactionContext = DSL.using(config);
+			for (final Map<String, Object> training : trainings) {
+				insertTraining(new Integer(transactionContext.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transactionContext);
+			}
+		});
 	}
 
 	@PUT
 	@Path("{trng_pk}")
-	public boolean updateTraining(@PathParam("trng_pk") final Integer trng_pk, final Map<String, Object> training) throws ParseException {
-		final boolean exists = deleteTraining(trng_pk);
-		insertTraining(trng_pk, training);
-		return exists;
+	public Boolean updateTraining(@PathParam("trng_pk") final Integer trng_pk, final Map<String, Object> training) {
+		return this.ctx.transactionResult(config -> {
+			final DSLContext transactionCtx = DSL.using(config);
+			final boolean exists = deleteTrainingImpl(trng_pk, transactionCtx);
+			insertTraining(trng_pk, training, transactionCtx);
+			return Boolean.valueOf(exists);
+		});
 	}
 
 	@DELETE
 	@Path("{trng_pk}")
 	public boolean deleteTraining(@PathParam("trng_pk") final Integer trng_pk) throws ParseException {
-		final boolean exists = this.ctx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).fetch().isNotEmpty();
+		return deleteTrainingImpl(trng_pk, this.ctx);
+	}
+
+	private boolean deleteTrainingImpl(final Integer trng_pk, final DSLContext transactionCtx) throws ParseException {
+		final boolean exists = transactionCtx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).fetch().isNotEmpty();
 		if (exists) {
 			this.statistics.invalidateEmployeesStats(this.resources.listEmployees(null, null, String.valueOf(trng_pk.intValue())).getValues(EMPLOYEES.EMPL_PK));
-			this.ctx.delete(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).execute();
+			transactionCtx.delete(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).execute();
 		}
 
 		return exists;
 	}
 
 	@SuppressWarnings("unchecked")
-	private Integer insertTraining(final Integer trng_pk, final Map<String, Object> map) throws ParseException {
-		this.ctx
+	private Integer insertTraining(final Integer trng_pk, final Map<String, Object> map, final DSLContext transactionContext) throws ParseException {
+		transactionContext
 				.insertInto(TRAININGS, TRAININGS.TRNG_PK, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_DATE, TRAININGS.TRNG_OUTCOME)
 				.values(
 						trng_pk,
@@ -70,14 +90,14 @@ public class TrainingsEndpoint {
 						this.dateFormat.parseSql(map.get("trng_date").toString()), map.get("trng_outcome").toString()).execute();
 		final Map<String, Map<String, String>> trainees = (Map<String, Map<String, String>>) map.getOrDefault("trainees", Collections.EMPTY_MAP);
 		this.statistics.invalidateEmployeesStats(trainees.keySet());
-		trainees.forEach((trainee, info) ->
-				this.ctx.insertInto(
-									TRAININGS_EMPLOYEES,
-									TRAININGS_EMPLOYEES.TREM_TRNG_FK,
-									TRAININGS_EMPLOYEES.TREM_EMPL_FK,
-									TRAININGS_EMPLOYEES.TREM_OUTCOME,
-									TRAININGS_EMPLOYEES.TREM_COMMENT)
-						.values(trng_pk, trainee, info.get("trem_outcome"), info.get("trem_comment")).execute());
+		trainees.forEach((trem_empl_fk, data) ->
+				transactionContext.insertInto(
+												TRAININGS_EMPLOYEES,
+												TRAININGS_EMPLOYEES.TREM_TRNG_FK,
+												TRAININGS_EMPLOYEES.TREM_EMPL_FK,
+												TRAININGS_EMPLOYEES.TREM_OUTCOME,
+												TRAININGS_EMPLOYEES.TREM_COMMENT)
+						.values(trng_pk, trem_empl_fk, data.get("trem_outcome"), data.get("trem_comment")).execute());
 
 		return trng_pk;
 	}
