@@ -1,82 +1,104 @@
 package org.ccjmne.faomaintenance.api.rest;
 
-import java.text.DateFormat;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+
 import java.text.ParseException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriInfo;
 
-import org.ccjmne.faomaintenance.api.db.DBClient;
-import org.ccjmne.faomaintenance.api.resources.Training;
+import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
+import org.ccjmne.faomaintenance.jooq.classes.Sequences;
+import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 
 @Path("trainings")
 public class TrainingsEndpoint {
 
-	private final DBClient dbClient;
-	private final DateFormat dateFormat;
+	private final DSLContext ctx;
+	private final SQLDateFormat dateFormat;
+	private final ResourcesEndpoint resources;
+	private final StatisticsEndpoint statistics;
 
 	@Inject
-	public TrainingsEndpoint(final DBClient dbClient, final DateFormat dateFormat) {
-		this.dbClient = dbClient;
+	public TrainingsEndpoint(final DSLContext ctx, final SQLDateFormat dateFormat, final ResourcesEndpoint resources, final StatisticsEndpoint statistics) {
+		this.ctx = ctx;
 		this.dateFormat = dateFormat;
-	}
-
-	@GET
-	@Path("{trainingId}")
-	public Training lookup(@PathParam("trainingId") final int trainingId) {
-		return this.dbClient.lookupTraining(trainingId);
-	}
-
-	@GET
-	public Response list(@QueryParam("from") final String from, @QueryParam("to") final String to, @QueryParam("types") final List<Integer> types) {
-		try {
-			final List<Training> trainings;
-			if (to == null) {
-				trainings = this.dbClient.listTrainings(this.dateFormat.parse(from), types.toArray(new Integer[0]));
-			} else {
-				trainings = this.dbClient.listTrainings(this.dateFormat.parse(from), this.dateFormat.parse(to), types.toArray(new Integer[0]));
-			}
-
-			return Response.ok(trainings).build();
-		} catch (final ParseException e) {
-			return Response.status(Status.BAD_REQUEST).build();
-		}
+		this.resources = resources;
+		this.statistics = statistics;
 	}
 
 	@POST
-	public Response post(@Context final UriInfo uriInfo, final Map<String, Object> map) {
-		return Response.created(uriInfo.getBaseUri().resolve("trainings/" + this.dbClient.addTraining(map))).build();
+	public Integer addTraining(final Map<String, Object> training) throws ParseException {
+		return insertTraining(new Integer(this.ctx.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, this.ctx);
+	}
+
+	@POST
+	@Path("/bulk")
+	public void addTrainings(final List<Map<String, Object>> trainings) {
+		this.ctx.transaction(config -> {
+			final DSLContext transactionContext = DSL.using(config);
+			for (final Map<String, Object> training : trainings) {
+				insertTraining(new Integer(transactionContext.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transactionContext);
+			}
+		});
 	}
 
 	@PUT
-	@Path("{trainingId}")
-	public Response put(@Context final UriInfo uriInfo, @PathParam("trainingId") final int trainingId, final Map<String, Object> map) {
-		if (this.dbClient.updateTraining(trainingId, map)) {
-			return Response.accepted(uriInfo.getAbsolutePath()).build();
-		}
-
-		return Response.created(uriInfo.getAbsolutePath()).build();
+	@Path("{trng_pk}")
+	public Boolean updateTraining(@PathParam("trng_pk") final Integer trng_pk, final Map<String, Object> training) {
+		return this.ctx.transactionResult(config -> {
+			final DSLContext transactionCtx = DSL.using(config);
+			final boolean exists = deleteTrainingImpl(trng_pk, transactionCtx);
+			insertTraining(trng_pk, training, transactionCtx);
+			return Boolean.valueOf(exists);
+		});
 	}
 
 	@DELETE
-	@Path("{trainingId}")
-	public Response delete(@PathParam("trainingId") final int trainingId) {
-		if (this.dbClient.deleteTraining(trainingId)) {
-			return Response.accepted().build();
+	@Path("{trng_pk}")
+	public boolean deleteTraining(@PathParam("trng_pk") final Integer trng_pk) throws ParseException {
+		return deleteTrainingImpl(trng_pk, this.ctx);
+	}
+
+	private boolean deleteTrainingImpl(final Integer trng_pk, final DSLContext transactionCtx) throws ParseException {
+		final boolean exists = transactionCtx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).fetch().isNotEmpty();
+		if (exists) {
+			this.statistics.invalidateEmployeesStats(this.resources.listEmployees(null, null, String.valueOf(trng_pk.intValue())).getValues(EMPLOYEES.EMPL_PK));
+			transactionCtx.delete(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).execute();
 		}
 
-		return Response.notModified().build();
+		return exists;
+	}
+
+	@SuppressWarnings("unchecked")
+	private Integer insertTraining(final Integer trng_pk, final Map<String, Object> map, final DSLContext transactionContext) throws ParseException {
+		transactionContext
+				.insertInto(TRAININGS, TRAININGS.TRNG_PK, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_DATE, TRAININGS.TRNG_OUTCOME)
+				.values(
+						trng_pk,
+						(Integer) map.get("trng_trty_fk"),
+						this.dateFormat.parseSql(map.get("trng_date").toString()), map.get("trng_outcome").toString()).execute();
+		final Map<String, Map<String, String>> trainees = (Map<String, Map<String, String>>) map.getOrDefault("trainees", Collections.EMPTY_MAP);
+		this.statistics.invalidateEmployeesStats(trainees.keySet());
+		trainees.forEach((trem_empl_fk, data) ->
+				transactionContext.insertInto(
+												TRAININGS_EMPLOYEES,
+												TRAININGS_EMPLOYEES.TREM_TRNG_FK,
+												TRAININGS_EMPLOYEES.TREM_EMPL_FK,
+												TRAININGS_EMPLOYEES.TREM_OUTCOME,
+												TRAININGS_EMPLOYEES.TREM_COMMENT)
+						.values(trng_pk, trem_empl_fk, data.get("trem_outcome"), data.get("trem_comment")).execute());
+
+		return trng_pk;
 	}
 }
