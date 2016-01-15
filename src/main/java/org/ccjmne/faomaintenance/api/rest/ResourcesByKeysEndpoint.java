@@ -45,9 +45,10 @@ public class ResourcesByKeysEndpoint {
 	@Path("sites")
 	public Map<String, Record> listSites(
 											@QueryParam("department") final Integer department,
+											@QueryParam("employee") final String employee,
 											@QueryParam("date") final String dateStr,
 											@QueryParam("unlisted") final boolean unlisted) throws ParseException {
-		return this.resources.listSites(department, dateStr, unlisted).intoMap(SITES.SITE_PK);
+		return this.resources.listSites(department, employee, dateStr, unlisted).intoMap(SITES.SITE_PK);
 	}
 
 	@GET
