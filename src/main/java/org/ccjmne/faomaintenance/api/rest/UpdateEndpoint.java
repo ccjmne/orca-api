@@ -46,8 +46,8 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesEmployeesRecor
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.jooq.DSLContext;
-import org.jooq.Field;
 import org.jooq.InsertValuesStep3;
+import org.jooq.TableField;
 import org.jooq.impl.DSL;
 import org.jooq.tools.csv.CSVReader;
 import org.slf4j.Logger;
@@ -217,10 +217,9 @@ public class UpdateEndpoint {
 		return Response.ok().build();
 	}
 
-	@SuppressWarnings("unchecked")
 	private String updateEmployee(final Map<String, String> employee, final DSLContext context) throws ParseException {
 		final String empl_pk = employee.get(EMPLOYEES.EMPL_PK.getName());
-		final Map<Object, Object> record = new HashMap<>();
+		final Map<TableField<?, ?>, Object> record = new HashMap<>();
 		record.put(EMPLOYEES.EMPL_FIRSTNAME, employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName()));
 		record.put(EMPLOYEES.EMPL_SURNAME, employee.get(EMPLOYEES.EMPL_SURNAME.getName()));
 		record.put(EMPLOYEES.EMPL_DOB, this.dateFormat.parseSql(employee.get(EMPLOYEES.EMPL_DOB.getName())));
@@ -228,10 +227,10 @@ public class UpdateEndpoint {
 		record.put(EMPLOYEES.EMPL_ADDR, employee.get(EMPLOYEES.EMPL_ADDR.getName()));
 
 		if (context.fetchExists(EMPLOYEES, EMPLOYEES.EMPL_PK.eq(empl_pk))) {
-			context.update(EMPLOYEES).set((Map<? extends Field<?>, ?>) record).where(EMPLOYEES.EMPL_PK.eq(empl_pk)).execute();
+			context.update(EMPLOYEES).set(record).where(EMPLOYEES.EMPL_PK.eq(empl_pk)).execute();
 		} else {
 			record.put(EMPLOYEES.EMPL_PK, empl_pk);
-			context.insertInto(EMPLOYEES).set((Map<? extends Field<?>, ?>) record).execute();
+			context.insertInto(EMPLOYEES).set(record).execute();
 		}
 
 		return empl_pk;
