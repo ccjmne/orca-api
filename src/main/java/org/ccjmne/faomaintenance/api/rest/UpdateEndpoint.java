@@ -197,17 +197,18 @@ public class UpdateEndpoint {
 						.where(
 								EMPLOYEES_ROLES.EMPL_PK.notIn(transactionCtx.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES)
 										.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk))))
+						.and(EMPLOYEES_ROLES.EMPL_PK.ne("admin"))
 						.execute();
 
 				// ... and set their site to #0 ('unassigned')
 				transactionCtx.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_UPDT_FK)
 						.select(
 								transactionCtx.select(
-														SITES_EMPLOYEES.SIEM_EMPL_FK,
+														EMPLOYEES.EMPL_PK,
 														DSL.val("0"),
 														DSL.val(updt_pk))
-										.from(SITES_EMPLOYEES)
-										.where(SITES_EMPLOYEES.SIEM_EMPL_FK
+										.from(EMPLOYEES)
+										.where(EMPLOYEES.EMPL_PK
 												.notIn(transactionCtx.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES)
 														.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk)))))
 						.execute();
