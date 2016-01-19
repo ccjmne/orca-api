@@ -83,32 +83,23 @@ public class StatisticsEndpoint {
 		this.employeeStatisticsCache = CacheBuilder
 				.newBuilder()
 				.refreshAfterWrite(30, TimeUnit.MINUTES)
-				.expireAfterAccess(2, TimeUnit.HOURS).<String, Map.Entry<Date, EmployeeStatistics>> build(
-																											CacheLoader.asyncReloading(
-																																		CacheLoader.<String, Map.Entry<Date, EmployeeStatistics>> from(empl_pk -> {
-																																			try {
-																																				return StatisticsEndpoint.this.buildLatestEmployeeStats(empl_pk);
-																																			} catch (final Exception e) {
-																																				throw new RuntimeException(
-																																											e);
-																																			}
-																																		}),
-																																		this.statisticsCalculationThreadPool));
+				.expireAfterAccess(2, TimeUnit.HOURS).<String, Map
+				.Entry<Date, EmployeeStatistics>> build(CacheLoader.asyncReloading(CacheLoader.<String, Map.Entry<Date, EmployeeStatistics>> from(empl_pk -> {
+					try {
+						return StatisticsEndpoint.this.buildLatestEmployeeStats(empl_pk);
+					} catch (final Exception e) {
+						throw new RuntimeException(e);
+					}
+				}), this.statisticsCalculationThreadPool));
 
-		this.siteStatisticsCache = CacheBuilder
-				.newBuilder()
-				.refreshAfterWrite(1, TimeUnit.HOURS)
-				.expireAfterAccess(8, TimeUnit.HOURS).<String, Map.Entry<Date, SiteStatistics>> build(
-																										CacheLoader.asyncReloading(
-																																	CacheLoader.<String, Map.Entry<Date, SiteStatistics>> from(site_pk -> {
-																																		try {
-																																			return StatisticsEndpoint.this.calculateLatestSiteStats(site_pk);
-																																		} catch (final Exception e) {
-																																			throw new RuntimeException(
-																																										e);
-																																		}
-																																	}),
-																																	this.statisticsCalculationThreadPool));
+		this.siteStatisticsCache = CacheBuilder.newBuilder().refreshAfterWrite(1, TimeUnit.HOURS).expireAfterAccess(8, TimeUnit.HOURS).<String, Map
+				.Entry<Date, SiteStatistics>> build(CacheLoader.asyncReloading(CacheLoader.<String, Map.Entry<Date, SiteStatistics>> from(site_pk -> {
+					try {
+						return StatisticsEndpoint.this.calculateLatestSiteStats(site_pk);
+					} catch (final Exception e) {
+						throw new RuntimeException(e);
+					}
+				}), this.statisticsCalculationThreadPool));
 	}
 
 	public void invalidateSitesStats() {
