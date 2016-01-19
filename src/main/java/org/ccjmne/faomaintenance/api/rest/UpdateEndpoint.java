@@ -18,6 +18,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -56,6 +58,7 @@ import org.slf4j.LoggerFactory;
 @Path("update")
 public class UpdateEndpoint {
 
+	private static final Pattern FIRST_LETTER = Pattern.compile("\\b(\\w)");
 	private static final Logger LOGGER = LoggerFactory.getLogger(UpdateEndpoint.class);
 	private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
 
@@ -217,10 +220,20 @@ public class UpdateEndpoint {
 		return Response.ok().build();
 	}
 
+	private static String capitalise(final String str) {
+		final StringBuilder res = new StringBuilder(str.toLowerCase());
+		final Matcher matcher = FIRST_LETTER.matcher(res);
+		while (matcher.find()) {
+			res.replace(matcher.start(), matcher.start() + 1, matcher.group().toUpperCase());
+		}
+
+		return res.toString();
+	}
+
 	private String updateEmployee(final Map<String, String> employee, final DSLContext context) throws ParseException {
 		final String empl_pk = employee.get(EMPLOYEES.EMPL_PK.getName());
 		final Map<TableField<?, ?>, Object> record = new HashMap<>();
-		record.put(EMPLOYEES.EMPL_FIRSTNAME, employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName()));
+		record.put(EMPLOYEES.EMPL_FIRSTNAME, capitalise(employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName())));
 		record.put(EMPLOYEES.EMPL_SURNAME, employee.get(EMPLOYEES.EMPL_SURNAME.getName()));
 		record.put(EMPLOYEES.EMPL_DOB, this.dateFormat.parseSql(employee.get(EMPLOYEES.EMPL_DOB.getName())));
 		record.put(EMPLOYEES.EMPL_PERMANENT, Boolean.valueOf("CDI".equalsIgnoreCase(employee.get(EMPLOYEES.EMPL_PERMANENT.getName()))));
