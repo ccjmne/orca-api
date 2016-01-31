@@ -294,10 +294,11 @@ public class StatisticsEndpoint {
 
 		// TODO: Only retrieve the Training Types that we care about
 		final Iterator<Record> trainings = this.resources.listTrainings(empl_pk, Collections.emptyList(), null, null, null).iterator();
-		Record training;
+		Record training = trainings.hasNext() ? trainings.next() : null;
 		for (final Date nextStop : dates) {
-			while (trainings.hasNext() && !nextStop.before((training = trainings.next()).getValue(TRAININGS.TRNG_DATE))) {
+			if ((training != null) && !nextStop.before(training.getValue(TRAININGS.TRNG_DATE))) {
 				builder.accept(training);
+				training = trainings.hasNext() ? trainings.next() : null;
 			}
 
 			res.put(nextStop, builder.buildFor(nextStop));
