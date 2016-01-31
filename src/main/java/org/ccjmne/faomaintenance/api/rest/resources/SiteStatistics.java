@@ -5,10 +5,10 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 import java.util.HashMap;
 import java.util.Map;
 
-import jersey.repackaged.com.google.common.collect.ImmutableMap;
-
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeCertificateStatistics;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
+
+import com.google.common.collect.ImmutableMap;
 
 public class SiteStatistics {
 
@@ -83,7 +83,7 @@ public class SiteStatistics {
 		}
 
 		public int getCountPercentage() {
-			return (this.count * 100) / getEmployeesCount();
+			return getEmployeesCount() > 0 ? (this.count * 100) / getEmployeesCount() : 0;
 		}
 
 		public String getTargetStatus() {
