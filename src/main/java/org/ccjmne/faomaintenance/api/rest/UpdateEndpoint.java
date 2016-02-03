@@ -18,6 +18,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -46,8 +48,8 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesEmployeesRecor
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.jooq.DSLContext;
-import org.jooq.Field;
 import org.jooq.InsertValuesStep3;
+import org.jooq.TableField;
 import org.jooq.impl.DSL;
 import org.jooq.tools.csv.CSVReader;
 import org.slf4j.Logger;
@@ -56,6 +58,7 @@ import org.slf4j.LoggerFactory;
 @Path("update")
 public class UpdateEndpoint {
 
+	private static final Pattern FIRST_LETTER = Pattern.compile("\\b(\\w)");
 	private static final Logger LOGGER = LoggerFactory.getLogger(UpdateEndpoint.class);
 	private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
 
@@ -113,7 +116,7 @@ public class UpdateEndpoint {
 		final boolean exists = this.ctx.selectFrom(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.equal(dept_pk)).fetch().isNotEmpty();
 		if (exists) {
 			try {
-				this.resources.listSites(dept_pk, null, false).forEach(site -> deleteSite(site.getValue(SITES.SITE_PK)));
+				this.resources.listSites(dept_pk, null, null, false).forEach(site -> deleteSite(site.getValue(SITES.SITE_PK)));
 			} catch (IllegalArgumentException | ParseException e) {
 				// Should *never* happen
 				e.printStackTrace();
@@ -193,18 +196,22 @@ public class UpdateEndpoint {
 						.delete(EMPLOYEES_ROLES)
 						.where(
 								EMPLOYEES_ROLES.EMPL_PK.notIn(transactionCtx.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES)
-										.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk)))).execute();
+										.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk))))
+						.and(EMPLOYEES_ROLES.EMPL_PK.ne("admin"))
+						.execute();
 
 				// ... and set their site to #0 ('unassigned')
 				transactionCtx.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_UPDT_FK)
 						.select(
 								transactionCtx.select(
-														SITES_EMPLOYEES.SIEM_EMPL_FK,
+														EMPLOYEES.EMPL_PK,
 														DSL.val("0"),
-														DSL.val(updt_pk)).from(SITES_EMPLOYEES)
-										.where(SITES_EMPLOYEES.SIEM_EMPL_FK
+														DSL.val(updt_pk))
+										.from(EMPLOYEES)
+										.where(EMPLOYEES.EMPL_PK
 												.notIn(transactionCtx.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES)
-														.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk))))).execute();
+														.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk)))))
+						.execute();
 			});
 		} catch (final Exception e) {
 			return Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();
@@ -214,21 +221,30 @@ public class UpdateEndpoint {
 		return Response.ok().build();
 	}
 
-	@SuppressWarnings("unchecked")
+	private static String capitalise(final String str) {
+		final StringBuilder res = new StringBuilder(str.toLowerCase());
+		final Matcher matcher = FIRST_LETTER.matcher(res);
+		while (matcher.find()) {
+			res.replace(matcher.start(), matcher.start() + 1, matcher.group().toUpperCase());
+		}
+
+		return res.toString();
+	}
+
 	private String updateEmployee(final Map<String, String> employee, final DSLContext context) throws ParseException {
 		final String empl_pk = employee.get(EMPLOYEES.EMPL_PK.getName());
-		final Map<Object, Object> record = new HashMap<>();
-		record.put(EMPLOYEES.EMPL_FIRSTNAME, employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName()));
+		final Map<TableField<?, ?>, Object> record = new HashMap<>();
+		record.put(EMPLOYEES.EMPL_FIRSTNAME, capitalise(employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName())));
 		record.put(EMPLOYEES.EMPL_SURNAME, employee.get(EMPLOYEES.EMPL_SURNAME.getName()));
 		record.put(EMPLOYEES.EMPL_DOB, this.dateFormat.parseSql(employee.get(EMPLOYEES.EMPL_DOB.getName())));
 		record.put(EMPLOYEES.EMPL_PERMANENT, Boolean.valueOf("CDI".equalsIgnoreCase(employee.get(EMPLOYEES.EMPL_PERMANENT.getName()))));
 		record.put(EMPLOYEES.EMPL_ADDR, employee.get(EMPLOYEES.EMPL_ADDR.getName()));
 
 		if (context.fetchExists(EMPLOYEES, EMPLOYEES.EMPL_PK.eq(empl_pk))) {
-			context.update(EMPLOYEES).set((Map<? extends Field<?>, ?>) record).where(EMPLOYEES.EMPL_PK.eq(empl_pk)).execute();
+			context.update(EMPLOYEES).set(record).where(EMPLOYEES.EMPL_PK.eq(empl_pk)).execute();
 		} else {
 			record.put(EMPLOYEES.EMPL_PK, empl_pk);
-			context.insertInto(EMPLOYEES).set((Map<? extends Field<?>, ?>) record).execute();
+			context.insertInto(EMPLOYEES).set(record).execute();
 		}
 
 		return empl_pk;

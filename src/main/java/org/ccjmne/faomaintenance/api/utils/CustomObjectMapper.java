@@ -30,23 +30,26 @@ public class CustomObjectMapper extends ObjectMapper {
 
 	private class JOOQResultsSerialiserModule extends SimpleModule {
 
-		@SuppressWarnings("deprecation")
 		public JOOQResultsSerialiserModule() {
-			super("JOOQResultsSerialiserModule", new Version(1, 0, 0, null), Arrays.asList(new StdSerializer<Result<? extends Record>>(Result.class, false) {
+			super(
+					"JOOQResultsSerialiserModule",
+					new Version(1, 0, 0, null, null, null),
+					Arrays.asList(new StdSerializer<Result<? extends Record>>(Result.class, false) {
 
-				@Override
-				public void serialize(final Result<? extends Record> value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException,
-						JsonGenerationException {
-					jgen.writeObject(value.intoMaps());
-				}
-			}, new StdSerializer<Record>(Record.class, false) {
+						@Override
+						public void serialize(final Result<? extends Record> value, final JsonGenerator jgen, final SerializerProvider provider)
+								throws IOException,
+								JsonGenerationException {
+							jgen.writeObject(value.intoMaps());
+						}
+					}, new StdSerializer<Record>(Record.class, false) {
 
-				@Override
-				public void serialize(final Record value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException,
-						JsonGenerationException {
-					jgen.writeObject(value.intoMap());
-				}
-			}));
+						@Override
+						public void serialize(final Record value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException,
+								JsonGenerationException {
+							jgen.writeObject(value.intoMap());
+						}
+					}));
 		}
 	}
 }

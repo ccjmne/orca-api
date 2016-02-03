@@ -83,30 +83,23 @@ public class StatisticsEndpoint {
 		this.employeeStatisticsCache = CacheBuilder
 				.newBuilder()
 				.refreshAfterWrite(30, TimeUnit.MINUTES)
-				.expireAfterAccess(2, TimeUnit.HOURS)
-				.<String, Map.Entry<Date, EmployeeStatistics>> build(
-																		CacheLoader.asyncReloading(CacheLoader
-																				.<String, Map.Entry<Date, EmployeeStatistics>> from(empl_pk -> {
-																					try {
-																						return StatisticsEndpoint.this.buildLatestEmployeeStats(empl_pk);
-																					} catch (final Exception e) {
-																						throw new RuntimeException(e);
-																					}
-																				}), this.statisticsCalculationThreadPool));
+				.expireAfterAccess(2, TimeUnit.HOURS).<String, Map
+				.Entry<Date, EmployeeStatistics>> build(CacheLoader.asyncReloading(CacheLoader.<String, Map.Entry<Date, EmployeeStatistics>> from(empl_pk -> {
+					try {
+						return StatisticsEndpoint.this.buildLatestEmployeeStats(empl_pk);
+					} catch (final Exception e) {
+						throw new RuntimeException(e);
+					}
+				}), this.statisticsCalculationThreadPool));
 
-		this.siteStatisticsCache = CacheBuilder
-				.newBuilder()
-				.refreshAfterWrite(1, TimeUnit.HOURS)
-				.expireAfterAccess(8, TimeUnit.HOURS)
-				.<String, Map.Entry<Date, SiteStatistics>> build(
-																	CacheLoader.asyncReloading(CacheLoader
-																			.<String, Map.Entry<Date, SiteStatistics>> from(site_pk -> {
-																				try {
-																					return StatisticsEndpoint.this.calculateLatestSiteStats(site_pk);
-																				} catch (final Exception e) {
-																					throw new RuntimeException(e);
-																				}
-																			}), this.statisticsCalculationThreadPool));
+		this.siteStatisticsCache = CacheBuilder.newBuilder().refreshAfterWrite(1, TimeUnit.HOURS).expireAfterAccess(8, TimeUnit.HOURS).<String, Map
+				.Entry<Date, SiteStatistics>> build(CacheLoader.asyncReloading(CacheLoader.<String, Map.Entry<Date, SiteStatistics>> from(site_pk -> {
+					try {
+						return StatisticsEndpoint.this.calculateLatestSiteStats(site_pk);
+					} catch (final Exception e) {
+						throw new RuntimeException(e);
+					}
+				}), this.statisticsCalculationThreadPool));
 	}
 
 	public void invalidateSitesStats() {
@@ -124,7 +117,8 @@ public class StatisticsEndpoint {
 				.from(SITES_EMPLOYEES)
 				.where(
 						SITES_EMPLOYEES.SIEM_UPDT_FK.eq(this.ctx.selectFrom(UPDATES).orderBy(UPDATES.UPDT_DATE.desc()).fetchAny(UPDATES.UPDT_PK))
-								.and(SITES_EMPLOYEES.SIEM_EMPL_FK.in(employees))).fetch(SITES_EMPLOYEES.SIEM_SITE_FK));
+								.and(SITES_EMPLOYEES.SIEM_EMPL_FK.in(employees)))
+				.fetch(SITES_EMPLOYEES.SIEM_SITE_FK));
 
 	}
 
@@ -160,10 +154,11 @@ public class StatisticsEndpoint {
 	@Path("sites")
 	public Map<Date, Map<String, SiteStatistics>> getSitesStats(
 																@QueryParam("department") final Integer department,
+																@QueryParam("employee") final String employee,
 																@QueryParam("date") final String dateStr,
 																@QueryParam("from") final String fromStr,
 																@QueryParam("interval") final Integer interval) throws ParseException {
-		final List<String> sites = this.resources.listSites(department, dateStr, false).getValues(SITES.SITE_PK);
+		final List<String> sites = this.resources.listSites(department, employee, dateStr, false).getValues(SITES.SITE_PK);
 		if ((dateStr == null) && (fromStr == null) && (this.siteStatisticsCache.size() >= (sites.size() / 2))) {
 			final Builder<String, SiteStatistics> sitesStats = new ImmutableMap.Builder<>();
 			for (final String site_pk : sites) {
@@ -239,7 +234,7 @@ public class StatisticsEndpoint {
 					res.computeIfAbsent(date, unused -> new HashMap<>()).put(sitesEmployeesHistory.getKey(), stats);
 				}
 			} else {
-				res.put(date, Collections.EMPTY_MAP);
+				res.put(date, Collections.emptyMap());
 			}
 		}
 
@@ -266,7 +261,7 @@ public class StatisticsEndpoint {
 			final SiteStatistics stats = new SiteStatistics(this.certificates.get());
 			final Date mostAccurate = updates.floor(date);
 			if (mostAccurate != null) {
-				for (final String empl_pk : employeesHistory.getOrDefault(mostAccurate, Collections.EMPTY_LIST)) {
+				for (final String empl_pk : employeesHistory.getOrDefault(mostAccurate, Collections.emptyList())) {
 					stats.register(empl_pk, employeesContractTypes.get(empl_pk), employeesStats.get(empl_pk).get(date));
 				}
 			}
@@ -298,11 +293,12 @@ public class StatisticsEndpoint {
 		final Map<Date, EmployeeStatistics> res = new TreeMap<>();
 
 		// TODO: Only retrieve the Training Types that we care about
-		final Iterator<Record> trainings = this.resources.listTrainings(empl_pk, Collections.EMPTY_LIST, null, null, null).iterator();
-		Record training;
+		final Iterator<Record> trainings = this.resources.listTrainings(empl_pk, Collections.emptyList(), null, null, null).iterator();
+		Record training = trainings.hasNext() ? trainings.next() : null;
 		for (final Date nextStop : dates) {
-			while (trainings.hasNext() && !nextStop.before((training = trainings.next()).getValue(TRAININGS.TRNG_DATE))) {
+			if ((training != null) && !nextStop.before(training.getValue(TRAININGS.TRNG_DATE))) {
 				builder.accept(training);
+				training = trainings.hasNext() ? trainings.next() : null;
 			}
 
 			res.put(nextStop, builder.buildFor(nextStop));
@@ -314,7 +310,7 @@ public class StatisticsEndpoint {
 	private Map.Entry<Date, EmployeeStatistics> buildLatestEmployeeStats(final String empl_pk) throws ParseException {
 		final Date currentDate = new Date(new java.util.Date().getTime());
 		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(this.trainingTypes.get(), this.certificatesByTrainingTypes.get());
-		this.resources.listTrainings(empl_pk, Collections.EMPTY_LIST, null, null, currentDate.toString()).forEach(training -> builder.accept(training));
+		this.resources.listTrainings(empl_pk, Collections.emptyList(), null, null, currentDate.toString()).forEach(training -> builder.accept(training));
 		return new SimpleEntry<>(currentDate, builder.buildFor(currentDate));
 	}
 
