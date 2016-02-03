@@ -209,10 +209,10 @@ public class StatisticsEndpoint {
 																			final Integer interval) throws ParseException {
 		final List<Date> dates = computeDates(fromStr, dateStr, interval);
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStats = new HashMap<>();
-		final Map<String, Boolean> employees = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT).from(SITES_EMPLOYEES)
+		final Map<String, Boolean> employeesStatus = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT).from(SITES_EMPLOYEES)
 				.join(EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.in(sites))
 				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
-		for (final String empl_pk : employees.keySet()) {
+		for (final String empl_pk : employeesStatus.keySet()) {
 			employeesStats.put(empl_pk, buildEmployeeStats(empl_pk, dates));
 		}
 
@@ -230,7 +230,8 @@ public class StatisticsEndpoint {
 			if (mostAccurate != null) {
 				for (final Entry<String, List<String>> sitesEmployeesHistory : mostAccurate.getValue().entrySet()) {
 					final SiteStatistics stats = new SiteStatistics(this.certificates.get());
-					sitesEmployeesHistory.getValue().forEach(empl_pk -> stats.register(empl_pk, employees.get(empl_pk), employeesStats.get(empl_pk).get(date)));
+					sitesEmployeesHistory.getValue()
+							.forEach(empl_pk -> stats.register(empl_pk, employeesStatus.get(empl_pk), employeesStats.get(empl_pk).get(date)));
 					res.computeIfAbsent(date, unused -> new HashMap<>()).put(sitesEmployeesHistory.getKey(), stats);
 				}
 			} else {
@@ -296,7 +297,7 @@ public class StatisticsEndpoint {
 		final Iterator<Record> trainings = this.resources.listTrainings(empl_pk, Collections.emptyList(), null, null, null).iterator();
 		Record training = trainings.hasNext() ? trainings.next() : null;
 		for (final Date nextStop : dates) {
-			if ((training != null) && !nextStop.before(training.getValue(TRAININGS.TRNG_DATE))) {
+			while ((training != null) && !nextStop.before(training.getValue(TRAININGS.TRNG_DATE))) {
 				builder.accept(training);
 				training = trainings.hasNext() ? trainings.next() : null;
 			}
