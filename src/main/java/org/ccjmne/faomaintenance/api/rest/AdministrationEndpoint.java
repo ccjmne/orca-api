@@ -46,7 +46,7 @@ public class AdministrationEndpoint {
 	private static final Random RANDOM = new Random();
 
 	@Support({ SQLDialect.POSTGRES })
-	protected static <T> Field<T[]> arrayAgg(final Field<T> field) {
+	private static <T> Field<T[]> arrayAgg(final Field<T> field) {
 		return DSL.field("array_agg({0})", field.getDataType().getArrayDataType(), field);
 	}
 
@@ -73,7 +73,7 @@ public class AdministrationEndpoint {
 						EMPLOYEES.EMPL_SURNAME,
 						EMPLOYEES.EMPL_PERMANENT,
 						EMPLOYEES.EMPL_DOB,
-						DSL.function("array_agg", String[].class, EMPLOYEES_ROLES.EMRO_ROLE_FK).as("roles"))
+						arrayAgg(EMPLOYEES_ROLES.EMRO_ROLE_FK).as("roles"))
 				.from(EMPLOYEES).join(EMPLOYEES_ROLES).on(EMPLOYEES_ROLES.EMPL_PK.eq(EMPLOYEES.EMPL_PK))
 				.where(EMPLOYEES.EMPL_PK.ne("admin"))
 				.groupBy(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_SURNAME, EMPLOYEES.EMPL_PERMANENT, EMPLOYEES.EMPL_DOB).fetch();
