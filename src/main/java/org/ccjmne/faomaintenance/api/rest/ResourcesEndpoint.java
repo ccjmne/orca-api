@@ -69,6 +69,9 @@ public class ResourcesEndpoint {
 						EMPLOYEES.EMPL_SURNAME,
 						EMPLOYEES.EMPL_DOB,
 						EMPLOYEES.EMPL_PERMANENT,
+						EMPLOYEES.EMPL_GENDER,
+						EMPLOYEES.EMPL_NOTES,
+						EMPLOYEES.EMPL_SST_OPTOUT,
 						EMPLOYEES.EMPL_ADDR);
 		query.addSelect(SITES_EMPLOYEES.fields());
 		query.addFrom(EMPLOYEES);
@@ -107,6 +110,9 @@ public class ResourcesEndpoint {
 						EMPLOYEES.EMPL_SURNAME,
 						EMPLOYEES.EMPL_DOB,
 						EMPLOYEES.EMPL_PERMANENT,
+						EMPLOYEES.EMPL_GENDER,
+						EMPLOYEES.EMPL_NOTES,
+						EMPLOYEES.EMPL_SST_OPTOUT,
 						EMPLOYEES.EMPL_ADDR)
 				.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.equal(empl_pk)).fetchOne();
 	}

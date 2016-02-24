@@ -289,8 +289,8 @@ public class StatisticsEndpoint {
 	private Map<Date, EmployeeStatistics> buildEmployeeStats(
 																final String empl_pk,
 																final Iterable<Date> dates) throws ParseException {
-		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(this.trainingTypes.get(), this.certificatesByTrainingTypes.get());
-		dates.iterator();
+		final EmployeeStatisticsBuilder builder = EmployeeStatistics
+				.builder(this.trainingTypes.get(), this.certificatesByTrainingTypes.get(), buildCertificatesVoiding(empl_pk));
 		final Map<Date, EmployeeStatistics> res = new TreeMap<>();
 
 		// TODO: Only retrieve the Training Types that we care about
@@ -310,9 +310,26 @@ public class StatisticsEndpoint {
 
 	private Map.Entry<Date, EmployeeStatistics> buildLatestEmployeeStats(final String empl_pk) throws ParseException {
 		final Date currentDate = new Date(new java.util.Date().getTime());
-		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(this.trainingTypes.get(), this.certificatesByTrainingTypes.get());
+		final EmployeeStatisticsBuilder builder = EmployeeStatistics
+				.builder(this.trainingTypes.get(), this.certificatesByTrainingTypes.get(), buildCertificatesVoiding(empl_pk));
 		this.resources.listTrainings(empl_pk, Collections.emptyList(), null, null, currentDate.toString()).forEach(training -> builder.accept(training));
 		return new SimpleEntry<>(currentDate, builder.buildFor(currentDate));
+	}
+
+	private Map<Integer, java.util.Date> buildCertificatesVoiding(final String empl_pk) {
+		final Date sstOptOutDate = this.ctx.selectFrom(EMPLOYEES).where(EMPLOYEES.EMPL_PK.eq(empl_pk)).fetchOne(EMPLOYEES.EMPL_SST_OPTOUT);
+		if (sstOptOutDate == null) {
+			return Collections.EMPTY_MAP;
+		}
+
+		final Map<Integer, java.util.Date> res = new HashMap<>();
+		for (final CertificatesRecord cert : this.certificates.get().values()) {
+			if (cert.getCertShort().contains("SST")) {
+				res.put(cert.getCertPk(), new java.util.Date(sstOptOutDate.getTime()));
+			}
+		}
+
+		return res;
 	}
 
 	private List<Date> computeDates(final String fromStr, final String toStr, final Integer interval) throws ParseException {
