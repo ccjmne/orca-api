@@ -7,12 +7,15 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_TRAINERS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
+import java.sql.Date;
 import java.text.ParseException;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -26,9 +29,12 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.DepartmentsRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Result;
+import org.jooq.SQLDialect;
 import org.jooq.SelectQuery;
+import org.jooq.Support;
 import org.jooq.impl.DSL;
 
 @Path("resources")
@@ -43,6 +49,11 @@ public class ResourcesEndpoint {
 	public ResourcesEndpoint(final DSLContext ctx, final SQLDateFormat dateFormat) {
 		this.ctx = ctx;
 		this.dateFormat = dateFormat;
+	}
+
+	@Support({ SQLDialect.POSTGRES })
+	protected static <T> Field<T[]> arrayAgg(final Field<T> field) {
+		return DSL.field("array_agg({0})", field.getDataType().getArrayDataType(), field);
 	}
 
 	@GET
@@ -163,7 +174,10 @@ public class ResourcesEndpoint {
 		}
 
 		if (dateStr != null) {
-			query.addConditions(TRAININGS.TRNG_DATE.eq(this.dateFormat.parseSql(dateStr)));
+			final Date date = this.dateFormat.parseSql(dateStr);
+			query.addConditions(TRAININGS.TRNG_START.isNotNull()
+					.and(TRAININGS.TRNG_START.le(date).and(TRAININGS.TRNG_DATE.ge(date)))
+					.or(TRAININGS.TRNG_DATE.eq(date)));
 		}
 
 		if (fromStr != null) {
@@ -180,8 +194,14 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("trainings/{trng_pk}")
-	public Record lookupTraining(@PathParam("trng_pk") final Integer trng_pk) {
-		return this.ctx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).fetchOne();
+	public Map<String, Object> lookupTraining(@PathParam("trng_pk") final Integer trng_pk) {
+		final Map<String, Object> res = this.ctx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.eq(trng_pk)).fetchOneMap();
+		res.put(
+				"trainers",
+				this.ctx.select(arrayAgg(TRAININGS_TRAINERS.TRTR_EMPL_FK).as("trainers")).from(TRAININGS_TRAINERS)
+						.where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(trng_pk))
+						.fetchOne("trainers"));
+		return res;
 	}
 
 	@GET
