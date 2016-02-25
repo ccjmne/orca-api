@@ -80,13 +80,13 @@ public class ResourcesEndpoint {
 							SITES_EMPLOYEES,
 							SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
 							SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk),
-							SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)));
+							SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)));
 		} else {
 			query.addJoin(
 							SITES_EMPLOYEES,
 							SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
 							SITES_EMPLOYEES.SIEM_SITE_FK.ne(SITE_UNASSIGNED),
-							SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)));
+							SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)));
 		}
 
 		if (trng_pk != null) {
@@ -130,7 +130,7 @@ public class ResourcesEndpoint {
 		query.addFrom(SITES);
 		if (!unlisted) {
 			query.addConditions(SITES.SITE_PK.in(DSL.selectDistinct(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-					.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr)))));
+					.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)))));
 		}
 		query.addConditions(SITES.SITE_PK.notEqual(String.valueOf(0)));
 
@@ -140,7 +140,7 @@ public class ResourcesEndpoint {
 
 		if (empl_pk != null) {
 			query.addConditions(SITES.SITE_PK.eq(DSL.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-					.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdateFor(dateStr))))));
+					.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr))))));
 		}
 
 		return query.fetch();
@@ -152,13 +152,20 @@ public class ResourcesEndpoint {
 		return this.ctx.select().from(SITES).where(SITES.SITE_PK.equal(site_pk)).fetchOne();
 	}
 
-	private Integer getUpdateFor(final String dateStr) throws ParseException {
+	private Integer getUpdatePkFor(final String dateStr) throws ParseException {
+		return getUpdateFor(dateStr).getValue(UPDATES.UPDT_PK);
+	}
+
+	@GET
+	@Path("update")
+	public Record getUpdateFor(@QueryParam("date") final String dateStr) throws ParseException {
 		if (dateStr != null) {
 			return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_DATE.le(this.dateFormat.parseSql(dateStr))).orderBy(UPDATES.UPDT_DATE.desc())
-					.fetchAny(UPDATES.UPDT_PK);
+					.fetchAny();
 		}
 
-		return this.ctx.selectFrom(UPDATES).orderBy(UPDATES.UPDT_DATE.desc()).fetchAny(UPDATES.UPDT_PK);
+		return this.ctx.selectFrom(UPDATES).orderBy(UPDATES.UPDT_DATE.desc()).fetchAny();
+
 	}
 
 	@GET
