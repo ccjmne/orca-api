@@ -92,7 +92,7 @@ public class SiteStatistics {
 				return "success";
 			}
 
-			if (countPercentage > ((2 * this.targetPercentage) / 3)) {
+			if (countPercentage >= ((2 * this.targetPercentage) / 3)) {
 				return "warning";
 			}
 
