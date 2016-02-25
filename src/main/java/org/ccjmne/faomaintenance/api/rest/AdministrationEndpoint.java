@@ -24,7 +24,7 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.RolesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.InsertValuesStep2;
-import org.jooq.Record6;
+import org.jooq.Record10;
 import org.jooq.Result;
 import org.jooq.SQLDialect;
 import org.jooq.Support;
@@ -65,7 +65,7 @@ public class AdministrationEndpoint {
 
 	@GET
 	@Path("users")
-	public Result<Record6<String, String, String, Boolean, Date, String[]>> getUsers() {
+	public Result<Record10<String, String, String, Boolean, Date, Boolean, String, Date, String, String[]>> getUsers() {
 		return this.ctx
 				.select(
 						EMPLOYEES.EMPL_PK,
@@ -73,10 +73,24 @@ public class AdministrationEndpoint {
 						EMPLOYEES.EMPL_SURNAME,
 						EMPLOYEES.EMPL_PERMANENT,
 						EMPLOYEES.EMPL_DOB,
+						EMPLOYEES.EMPL_GENDER,
+						EMPLOYEES.EMPL_NOTES,
+						EMPLOYEES.EMPL_SST_OPTOUT,
+						EMPLOYEES.EMPL_ADDR,
 						arrayAgg(EMPLOYEES_ROLES.EMRO_ROLE_FK).as("roles"))
 				.from(EMPLOYEES).join(EMPLOYEES_ROLES).on(EMPLOYEES_ROLES.EMPL_PK.eq(EMPLOYEES.EMPL_PK))
 				.where(EMPLOYEES.EMPL_PK.ne("admin"))
-				.groupBy(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_SURNAME, EMPLOYEES.EMPL_PERMANENT, EMPLOYEES.EMPL_DOB).fetch();
+				.groupBy(
+							EMPLOYEES.EMPL_PK,
+							EMPLOYEES.EMPL_FIRSTNAME,
+							EMPLOYEES.EMPL_SURNAME,
+							EMPLOYEES.EMPL_PERMANENT,
+							EMPLOYEES.EMPL_DOB,
+							EMPLOYEES.EMPL_GENDER,
+							EMPLOYEES.EMPL_NOTES,
+							EMPLOYEES.EMPL_SST_OPTOUT,
+							EMPLOYEES.EMPL_ADDR)
+				.fetch();
 	}
 
 	@GET
