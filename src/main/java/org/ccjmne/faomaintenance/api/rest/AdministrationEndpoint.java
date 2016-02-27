@@ -22,12 +22,9 @@ import javax.ws.rs.core.MediaType;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRolesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.RolesRecord;
 import org.jooq.DSLContext;
-import org.jooq.Field;
 import org.jooq.InsertValuesStep2;
 import org.jooq.Record10;
 import org.jooq.Result;
-import org.jooq.SQLDialect;
-import org.jooq.Support;
 import org.jooq.impl.DSL;
 
 import com.google.common.base.Supplier;
@@ -44,11 +41,6 @@ public class AdministrationEndpoint {
 	private static final String GENERATED_PASSWORD_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	private static final String BASIC_USER_ROLENAME = "user";
 	private static final Random RANDOM = new Random();
-
-	@Support({ SQLDialect.POSTGRES })
-	private static <T> Field<T[]> arrayAgg(final Field<T> field) {
-		return DSL.field("array_agg({0})", field.getDataType().getArrayDataType(), field);
-	}
 
 	@Inject
 	public AdministrationEndpoint(final DSLContext ctx, final ResourcesEndpoint resources) {
@@ -77,7 +69,7 @@ public class AdministrationEndpoint {
 						EMPLOYEES.EMPL_NOTES,
 						EMPLOYEES.EMPL_SST_OPTOUT,
 						EMPLOYEES.EMPL_ADDR,
-						arrayAgg(EMPLOYEES_ROLES.EMRO_ROLE_FK).as("roles"))
+						DSL.arrayAgg(EMPLOYEES_ROLES.EMRO_ROLE_FK).as("roles"))
 				.from(EMPLOYEES).join(EMPLOYEES_ROLES).on(EMPLOYEES_ROLES.EMPL_PK.eq(EMPLOYEES.EMPL_PK))
 				.where(EMPLOYEES.EMPL_PK.ne("admin"))
 				.groupBy(
@@ -119,12 +111,11 @@ public class AdministrationEndpoint {
 		}
 
 		this.ctx.delete(EMPLOYEES_ROLES).where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk)).execute();
-		final InsertValuesStep2<EmployeesRolesRecord, String, String> query = this.ctx.insertInto(
-																									EMPLOYEES_ROLES,
-																									EMPLOYEES_ROLES.EMPL_PK,
-																									EMPLOYEES_ROLES.EMRO_ROLE_FK);
-		roles.forEach(role -> query.values(empl_pk, role));
-		query.execute();
+		try (final InsertValuesStep2<EmployeesRolesRecord, String, String> query = this.ctx
+				.insertInto(EMPLOYEES_ROLES, EMPLOYEES_ROLES.EMPL_PK, EMPLOYEES_ROLES.EMRO_ROLE_FK)) {
+			roles.forEach(role -> query.values(empl_pk, role));
+			query.execute();
+		}
 
 		final String password = this.ctx.selectFrom(EMPLOYEES).where(EMPLOYEES.EMPL_PK.eq(empl_pk)).fetchOne(EMPLOYEES.EMPL_PWD);
 		if ((password == null) || password.isEmpty()) {

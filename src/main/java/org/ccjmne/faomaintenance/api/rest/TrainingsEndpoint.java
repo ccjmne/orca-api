@@ -47,9 +47,10 @@ public class TrainingsEndpoint {
 	@Path("/bulk")
 	public void addTrainings(final List<Map<String, Object>> trainings) {
 		this.ctx.transaction(config -> {
-			final DSLContext transactionContext = DSL.using(config);
-			for (final Map<String, Object> training : trainings) {
-				insertTraining(new Integer(transactionContext.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transactionContext);
+			try (final DSLContext transactionContext = DSL.using(config)) {
+				for (final Map<String, Object> training : trainings) {
+					insertTraining(new Integer(transactionContext.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transactionContext);
+				}
 			}
 		});
 	}
@@ -58,10 +59,11 @@ public class TrainingsEndpoint {
 	@Path("{trng_pk}")
 	public Boolean updateTraining(@PathParam("trng_pk") final Integer trng_pk, final Map<String, Object> training) {
 		return this.ctx.transactionResult(config -> {
-			final DSLContext transactionCtx = DSL.using(config);
-			final boolean exists = deleteTrainingImpl(trng_pk, transactionCtx);
-			insertTraining(trng_pk, training, transactionCtx);
-			return Boolean.valueOf(exists);
+			try (final DSLContext transactionCtx = DSL.using(config)) {
+				final boolean exists = deleteTrainingImpl(trng_pk, transactionCtx);
+				insertTraining(trng_pk, training, transactionCtx);
+				return Boolean.valueOf(exists);
+			}
 		});
 	}
 

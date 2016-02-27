@@ -179,39 +179,41 @@ public class UpdateEndpoint {
 	public Response process(final List<Map<String, String>> employees) {
 		try {
 			this.ctx.transaction(config -> {
-				final DSLContext transactionCtx = DSL.using(config);
-				final Integer updt_pk = new Integer(transactionCtx.nextval(Sequences.UPDATES_UPDT_PK_SEQ).intValue());
-				transactionCtx.insertInto(UPDATES).set(UPDATES.UPDT_PK, updt_pk).set(UPDATES.UPDT_DATE, new java.sql.Date(new Date().getTime())).execute();
+				try (final DSLContext transactionCtx = DSL.using(config)) {
+					final Integer updt_pk = new Integer(transactionCtx.nextval(Sequences.UPDATES_UPDT_PK_SEQ).intValue());
+					transactionCtx.insertInto(UPDATES).set(UPDATES.UPDT_PK, updt_pk).set(UPDATES.UPDT_DATE, new java.sql.Date(new Date().getTime())).execute();
 
-				final InsertValuesStep3<SitesEmployeesRecord, Integer, String, String> query = transactionCtx
-						.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_UPDT_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_EMPL_FK);
-				for (final Map<String, String> employee : employees) {
-					query.values(updt_pk, employee.get(SITES_EMPLOYEES.SIEM_SITE_FK.getName()), updateEmployee(employee, transactionCtx));
+					try (final InsertValuesStep3<SitesEmployeesRecord, Integer, String, String> query = transactionCtx
+							.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_UPDT_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_EMPL_FK)) {
+						for (final Map<String, String> employee : employees) {
+							query.values(updt_pk, employee.get(SITES_EMPLOYEES.SIEM_SITE_FK.getName()), updateEmployee(employee, transactionCtx));
+						}
+
+						query.execute();
+					}
+
+					// Remove all privileges of the remaining employees
+					transactionCtx
+							.delete(EMPLOYEES_ROLES)
+							.where(
+									EMPLOYEES_ROLES.EMPL_PK.notIn(transactionCtx.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES)
+											.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk))))
+							.and(EMPLOYEES_ROLES.EMPL_PK.ne("admin"))
+							.execute();
+
+					// ... and set their site to #0 ('unassigned')
+					transactionCtx.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_UPDT_FK)
+							.select(
+									transactionCtx.select(
+															EMPLOYEES.EMPL_PK,
+															DSL.val("0"),
+															DSL.val(updt_pk))
+											.from(EMPLOYEES)
+											.where(EMPLOYEES.EMPL_PK
+													.notIn(transactionCtx.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES)
+															.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk)))))
+							.execute();
 				}
-
-				query.execute();
-
-				// Remove all privileges of the remaining employees
-				transactionCtx
-						.delete(EMPLOYEES_ROLES)
-						.where(
-								EMPLOYEES_ROLES.EMPL_PK.notIn(transactionCtx.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES)
-										.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk))))
-						.and(EMPLOYEES_ROLES.EMPL_PK.ne("admin"))
-						.execute();
-
-				// ... and set their site to #0 ('unassigned')
-				transactionCtx.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_UPDT_FK)
-						.select(
-								transactionCtx.select(
-														EMPLOYEES.EMPL_PK,
-														DSL.val("0"),
-														DSL.val(updt_pk))
-										.from(EMPLOYEES)
-										.where(EMPLOYEES.EMPL_PK
-												.notIn(transactionCtx.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES)
-														.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk)))))
-						.execute();
 			});
 		} catch (final Exception e) {
 			return Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();

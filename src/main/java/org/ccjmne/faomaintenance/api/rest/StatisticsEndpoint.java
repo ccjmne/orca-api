@@ -4,13 +4,14 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
 import java.text.ParseException;
+import java.time.LocalDate;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,6 +24,8 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -34,25 +37,30 @@ import javax.ws.rs.QueryParam;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeStatisticsBuilder;
 import org.ccjmne.faomaintenance.api.rest.resources.SiteStatistics;
+import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics;
+import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
 import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
+import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.Range;
 
 @Singleton
 @Path("statistics")
 public class StatisticsEndpoint {
+	private static final Integer DEFAULT_INTERVAL = Integer.valueOf(6);
 
-	private static final int DEFAULT_INTERVAL = 6;
 	private final ResourcesEndpoint resources;
 	private final ResourcesByKeysEndpoint resourcesByKeys;
 	private final SQLDateFormat dateFormat;
@@ -119,7 +127,90 @@ public class StatisticsEndpoint {
 						SITES_EMPLOYEES.SIEM_UPDT_FK.eq(this.ctx.selectFrom(UPDATES).orderBy(UPDATES.UPDT_DATE.desc()).fetchAny(UPDATES.UPDT_PK))
 								.and(SITES_EMPLOYEES.SIEM_EMPL_FK.in(employees)))
 				.fetch(SITES_EMPLOYEES.SIEM_SITE_FK));
+	}
 
+	@GET
+	@Path("trainings")
+	public Map<Integer, Iterable<TrainingsStatistics>> getTrainingsStats(
+																			@QueryParam("from") final String fromStr,
+																			@QueryParam("to") final String toStr,
+																			@QueryParam("interval") final List<Integer> intervals) throws ParseException {
+		final Iterable<? extends Record> trainings = this.ctx
+				.select(
+						TRAININGS.TRNG_DATE,
+						TRAININGS.TRNG_TRTY_FK,
+						TrainingsStatistics.EXPIRY_DATE,
+						TrainingsStatistics.AGENTS_REGISTERED,
+						TrainingsStatistics.AGENTS_VALIDATED)
+				.from(TRAININGS).join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
+				.groupBy(TRAININGS.TRNG_DATE, TRAININGS.TRNG_TRTY_FK, TrainingsStatistics.EXPIRY_DATE)
+				.orderBy(TRAININGS.TRNG_DATE).fetch();
+		final Iterable<? extends Record> trainingsByExpiry = this.ctx
+				.select(
+						TRAININGS.TRNG_DATE,
+						TRAININGS.TRNG_TRTY_FK,
+						TrainingsStatistics.EXPIRY_DATE,
+						TrainingsStatistics.AGENTS_REGISTERED,
+						TrainingsStatistics.AGENTS_VALIDATED)
+				.from(TRAININGS).join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
+				.groupBy(TRAININGS.TRNG_DATE, TRAININGS.TRNG_TRTY_FK, TrainingsStatistics.EXPIRY_DATE)
+				.orderBy(TrainingsStatistics.EXPIRY_DATE).fetch();
+
+		final Map<Integer, List<Integer>> certs = this.certificatesByTrainingTypes.get();
+		final Map<Integer, Iterable<TrainingsStatistics>> res = new HashMap<>();
+
+		for (final Integer interval : intervals) {
+			final List<TrainingsStatisticsBuilder> trainingsStatsBuilders = new ArrayList<>();
+
+			computeDates(fromStr, toStr, interval).stream().reduce((cur, next) -> {
+				trainingsStatsBuilders.add(TrainingsStatistics.builder(certs, Range.<Date> closedOpen(cur, next)));
+				return next;
+			});
+
+			// [from, from+i[,
+			// [from+i, from+2i[,
+			// [from+2i, from+3i[,
+			// ...
+			// [to-i, to] <- closed
+			trainingsStatsBuilders.get(trainingsStatsBuilders.size() - 1).closeRange();
+
+			populateTrainingsStatsBuilders(
+											trainingsStatsBuilders,
+											trainings,
+											(training) -> training.getValue(TRAININGS.TRNG_DATE),
+											(builder, training) -> builder.registerTraining(training));
+			populateTrainingsStatsBuilders(
+											trainingsStatsBuilders,
+											trainingsByExpiry,
+											(record) -> record.getValue(TrainingsStatistics.EXPIRY_DATE),
+											(builder, training) -> builder.registerExpiry(training));
+			res.put(interval, trainingsStatsBuilders.stream().map(TrainingsStatisticsBuilder::build).collect(Collectors.toList()));
+		}
+
+		return res;
+	}
+
+	private static void populateTrainingsStatsBuilders(
+														final List<TrainingsStatisticsBuilder> trainingsStatsBuilders,
+														final Iterable<? extends Record> trainings,
+														final Function<Record, Date> dateMapper,
+														final BiConsumer<TrainingsStatisticsBuilder, Record> populateFunction) {
+		final Iterator<TrainingsStatisticsBuilder> iterator = trainingsStatsBuilders.iterator();
+		TrainingsStatisticsBuilder next = iterator.next();
+		for (final Record training : trainings) {
+			final Date relevantDate = dateMapper.apply(training);
+			if (relevantDate.before(next.getBeginning())) {
+				continue;
+			}
+
+			while (!next.getDateRange().contains(relevantDate) && iterator.hasNext()) {
+				next = iterator.next();
+			}
+
+			if (next.getDateRange().contains(relevantDate)) {
+				populateFunction.accept(next, training);
+			}
+		}
 	}
 
 	@GET
@@ -332,19 +423,23 @@ public class StatisticsEndpoint {
 		return res;
 	}
 
-	private List<Date> computeDates(final String fromStr, final String toStr, final Integer interval) throws ParseException {
+	private List<Date> computeDates(final String fromStr, final String toStr, final Integer intervalRaw) throws ParseException {
 		final Date utmost = (toStr == null) ? new Date(new java.util.Date().getTime()) : this.dateFormat.parseSql(toStr);
 		if (fromStr == null) {
 			return Collections.singletonList(utmost);
 		}
 
-		final Calendar calendar = Calendar.getInstance();
-		final List<Date> res = new ArrayList<>();
-		calendar.setTime(this.dateFormat.parseSql(fromStr));
-		while (calendar.getTime().before(utmost)) {
-			res.add(new java.sql.Date(calendar.getTime().getTime()));
-			calendar.add(Calendar.MONTH, (interval != null) ? interval.intValue() : DEFAULT_INTERVAL);
+		final int interval = (intervalRaw != null ? intervalRaw : DEFAULT_INTERVAL).intValue();
+		LocalDate cur = this.dateFormat.parseSql(fromStr).toLocalDate();
+		if (interval == 0) {
+			return ImmutableList.<Date> of(Date.valueOf(cur), utmost);
 		}
+
+		final List<Date> res = new ArrayList<>();
+		do {
+			res.add(Date.valueOf(cur));
+			cur = cur.plusMonths(interval);
+		} while (cur.isBefore(utmost.toLocalDate()));
 
 		res.add(utmost);
 		return res;

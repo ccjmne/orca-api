@@ -29,12 +29,9 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.DepartmentsRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
-import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Result;
-import org.jooq.SQLDialect;
 import org.jooq.SelectQuery;
-import org.jooq.Support;
 import org.jooq.impl.DSL;
 
 @Path("resources")
@@ -51,53 +48,49 @@ public class ResourcesEndpoint {
 		this.dateFormat = dateFormat;
 	}
 
-	@Support({ SQLDialect.POSTGRES })
-	protected static <T> Field<T[]> arrayAgg(final Field<T> field) {
-		return DSL.field("array_agg({0})", field.getDataType().getArrayDataType(), field);
-	}
-
 	@GET
 	@Path("employees")
 	public Result<Record> listEmployees(
 										@QueryParam("site") final String site_pk,
 										@QueryParam("date") final String dateStr,
 										@QueryParam("training") final String trng_pk) throws ParseException {
-		final SelectQuery<Record> query = this.ctx.selectQuery();
-		query.addSelect(
-						EMPLOYEES.EMPL_PK,
-						EMPLOYEES.EMPL_FIRSTNAME,
-						EMPLOYEES.EMPL_SURNAME,
-						EMPLOYEES.EMPL_DOB,
-						EMPLOYEES.EMPL_PERMANENT,
-						EMPLOYEES.EMPL_GENDER,
-						EMPLOYEES.EMPL_NOTES,
-						EMPLOYEES.EMPL_SST_OPTOUT,
-						EMPLOYEES.EMPL_ADDR);
-		query.addSelect(SITES_EMPLOYEES.fields());
-		query.addFrom(EMPLOYEES);
-		if (site_pk != null) {
-			query.addJoin(
-							SITES_EMPLOYEES,
-							SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-							SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk),
-							SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)));
-		} else {
-			query.addJoin(
-							SITES_EMPLOYEES,
-							SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-							SITES_EMPLOYEES.SIEM_SITE_FK.ne(SITE_UNASSIGNED),
-							SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)));
-		}
+		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
+			query.addSelect(
+							EMPLOYEES.EMPL_PK,
+							EMPLOYEES.EMPL_FIRSTNAME,
+							EMPLOYEES.EMPL_SURNAME,
+							EMPLOYEES.EMPL_DOB,
+							EMPLOYEES.EMPL_PERMANENT,
+							EMPLOYEES.EMPL_GENDER,
+							EMPLOYEES.EMPL_NOTES,
+							EMPLOYEES.EMPL_SST_OPTOUT,
+							EMPLOYEES.EMPL_ADDR);
+			query.addSelect(SITES_EMPLOYEES.fields());
+			query.addFrom(EMPLOYEES);
+			if (site_pk != null) {
+				query.addJoin(
+								SITES_EMPLOYEES,
+								SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
+								SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk),
+								SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)));
+			} else {
+				query.addJoin(
+								SITES_EMPLOYEES,
+								SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
+								SITES_EMPLOYEES.SIEM_SITE_FK.ne(SITE_UNASSIGNED),
+								SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)));
+			}
 
-		if (trng_pk != null) {
-			query.addSelect(TRAININGS_EMPLOYEES.fields());
-			query.addJoin(
-							TRAININGS_EMPLOYEES,
-							TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(Integer.valueOf(trng_pk)),
-							TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK));
-		}
+			if (trng_pk != null) {
+				query.addSelect(TRAININGS_EMPLOYEES.fields());
+				query.addJoin(
+								TRAININGS_EMPLOYEES,
+								TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(Integer.valueOf(trng_pk)),
+								TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK));
+			}
 
-		return query.fetch();
+			return query.fetch();
+		}
 	}
 
 	@GET
@@ -125,25 +118,26 @@ public class ResourcesEndpoint {
 									@QueryParam("date") final String dateStr,
 									@QueryParam("unlisted") final boolean unlisted)
 											throws ParseException {
-		final SelectQuery<Record> query = this.ctx.selectQuery();
-		query.addSelect(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK);
-		query.addFrom(SITES);
-		if (!unlisted) {
-			query.addConditions(SITES.SITE_PK.in(DSL.selectDistinct(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-					.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)))));
-		}
-		query.addConditions(SITES.SITE_PK.notEqual(String.valueOf(0)));
+		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
+			query.addSelect(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK);
+			query.addFrom(SITES);
+			if (!unlisted) {
+				query.addConditions(SITES.SITE_PK.in(DSL.selectDistinct(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
+						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)))));
+			}
+			query.addConditions(SITES.SITE_PK.notEqual(String.valueOf(0)));
 
-		if (dept_pk != null) {
-			query.addConditions(SITES.SITE_DEPT_FK.eq(dept_pk));
-		}
+			if (dept_pk != null) {
+				query.addConditions(SITES.SITE_DEPT_FK.eq(dept_pk));
+			}
 
-		if (empl_pk != null) {
-			query.addConditions(SITES.SITE_PK.eq(DSL.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-					.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr))))));
-		}
+			if (empl_pk != null) {
+				query.addConditions(SITES.SITE_PK.eq(DSL.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
+						.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr))))));
+			}
 
-		return query.fetch();
+			return query.fetch();
+		}
 	}
 
 	@GET
@@ -176,33 +170,34 @@ public class ResourcesEndpoint {
 										@QueryParam("date") final String dateStr,
 										@QueryParam("from") final String fromStr,
 										@QueryParam("to") final String toStr) throws ParseException {
-		final SelectQuery<Record> query = this.ctx.selectQuery();
-		query.addFrom(TRAININGS);
-		if (empl_pk != null) {
-			query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK).and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk)));
-		}
+		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
+			query.addFrom(TRAININGS);
+			if (empl_pk != null) {
+				query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK).and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk)));
+			}
 
-		if (!types.isEmpty()) {
-			query.addJoin(TRAININGTYPES, TRAININGS.TRNG_TRTY_FK.eq(TRAININGTYPES.TRTY_PK).and(TRAININGTYPES.TRTY_PK.in(types)));
-		}
+			if (!types.isEmpty()) {
+				query.addJoin(TRAININGTYPES, TRAININGS.TRNG_TRTY_FK.eq(TRAININGTYPES.TRTY_PK).and(TRAININGTYPES.TRTY_PK.in(types)));
+			}
 
-		if (dateStr != null) {
-			final Date date = this.dateFormat.parseSql(dateStr);
-			query.addConditions(TRAININGS.TRNG_START.isNotNull()
-					.and(TRAININGS.TRNG_START.le(date).and(TRAININGS.TRNG_DATE.ge(date)))
-					.or(TRAININGS.TRNG_DATE.eq(date)));
-		}
+			if (dateStr != null) {
+				final Date date = this.dateFormat.parseSql(dateStr);
+				query.addConditions(TRAININGS.TRNG_START.isNotNull()
+						.and(TRAININGS.TRNG_START.le(date).and(TRAININGS.TRNG_DATE.ge(date)))
+						.or(TRAININGS.TRNG_DATE.eq(date)));
+			}
 
-		if (fromStr != null) {
-			query.addConditions(TRAININGS.TRNG_DATE.ge(this.dateFormat.parseSql(fromStr)));
-		}
+			if (fromStr != null) {
+				query.addConditions(TRAININGS.TRNG_DATE.ge(this.dateFormat.parseSql(fromStr)));
+			}
 
-		if (toStr != null) {
-			query.addConditions(TRAININGS.TRNG_DATE.le(this.dateFormat.parseSql(toStr)));
-		}
+			if (toStr != null) {
+				query.addConditions(TRAININGS.TRNG_DATE.le(this.dateFormat.parseSql(toStr)));
+			}
 
-		query.addOrderBy(TRAININGS.TRNG_DATE);
-		return query.fetch();
+			query.addOrderBy(TRAININGS.TRNG_DATE);
+			return query.fetch();
+		}
 	}
 
 	@GET
@@ -211,7 +206,7 @@ public class ResourcesEndpoint {
 		final Map<String, Object> res = this.ctx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.eq(trng_pk)).fetchOneMap();
 		res.put(
 				"trainers",
-				this.ctx.select(arrayAgg(TRAININGS_TRAINERS.TRTR_EMPL_FK).as("trainers")).from(TRAININGS_TRAINERS)
+				this.ctx.select(DSL.arrayAgg(TRAININGS_TRAINERS.TRTR_EMPL_FK).as("trainers")).from(TRAININGS_TRAINERS)
 						.where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(trng_pk))
 						.fetchOne("trainers"));
 		return res;
