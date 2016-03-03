@@ -79,7 +79,7 @@ public class TrainingsStatistics {
 		}
 
 		public void closeRange() {
-			this.dateRange = Range.<Date> closed(getBeginning(), getEnd());
+			this.dateRange = Range.<Date> closed(this.dateRange.lowerEndpoint(), this.dateRange.upperEndpoint());
 		}
 
 		public Range<Date> getDateRange() {
