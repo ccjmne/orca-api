@@ -22,12 +22,9 @@ import javax.ws.rs.core.MediaType;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRolesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.RolesRecord;
 import org.jooq.DSLContext;
-import org.jooq.Field;
 import org.jooq.InsertValuesStep2;
-import org.jooq.Record6;
+import org.jooq.Record10;
 import org.jooq.Result;
-import org.jooq.SQLDialect;
-import org.jooq.Support;
 import org.jooq.impl.DSL;
 
 import com.google.common.base.Supplier;
@@ -45,11 +42,6 @@ public class AdministrationEndpoint {
 	private static final String BASIC_USER_ROLENAME = "user";
 	private static final Random RANDOM = new Random();
 
-	@Support({ SQLDialect.POSTGRES })
-	protected static <T> Field<T[]> arrayAgg(final Field<T> field) {
-		return DSL.field("array_agg({0})", field.getDataType().getArrayDataType(), field);
-	}
-
 	@Inject
 	public AdministrationEndpoint(final DSLContext ctx, final ResourcesEndpoint resources) {
 		this.ctx = ctx;
@@ -65,7 +57,7 @@ public class AdministrationEndpoint {
 
 	@GET
 	@Path("users")
-	public Result<Record6<String, String, String, Boolean, Date, String[]>> getUsers() {
+	public Result<Record10<String, String, String, Boolean, Date, Boolean, String, Date, String, String[]>> getUsers() {
 		return this.ctx
 				.select(
 						EMPLOYEES.EMPL_PK,
@@ -73,10 +65,24 @@ public class AdministrationEndpoint {
 						EMPLOYEES.EMPL_SURNAME,
 						EMPLOYEES.EMPL_PERMANENT,
 						EMPLOYEES.EMPL_DOB,
-						DSL.function("array_agg", String[].class, EMPLOYEES_ROLES.EMRO_ROLE_FK).as("roles"))
+						EMPLOYEES.EMPL_GENDER,
+						EMPLOYEES.EMPL_NOTES,
+						EMPLOYEES.EMPL_SST_OPTOUT,
+						EMPLOYEES.EMPL_ADDR,
+						DSL.arrayAgg(EMPLOYEES_ROLES.EMRO_ROLE_FK).as("roles"))
 				.from(EMPLOYEES).join(EMPLOYEES_ROLES).on(EMPLOYEES_ROLES.EMPL_PK.eq(EMPLOYEES.EMPL_PK))
 				.where(EMPLOYEES.EMPL_PK.ne("admin"))
-				.groupBy(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_SURNAME, EMPLOYEES.EMPL_PERMANENT, EMPLOYEES.EMPL_DOB).fetch();
+				.groupBy(
+							EMPLOYEES.EMPL_PK,
+							EMPLOYEES.EMPL_FIRSTNAME,
+							EMPLOYEES.EMPL_SURNAME,
+							EMPLOYEES.EMPL_PERMANENT,
+							EMPLOYEES.EMPL_DOB,
+							EMPLOYEES.EMPL_GENDER,
+							EMPLOYEES.EMPL_NOTES,
+							EMPLOYEES.EMPL_SST_OPTOUT,
+							EMPLOYEES.EMPL_ADDR)
+				.fetch();
 	}
 
 	@GET
@@ -105,12 +111,11 @@ public class AdministrationEndpoint {
 		}
 
 		this.ctx.delete(EMPLOYEES_ROLES).where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk)).execute();
-		final InsertValuesStep2<EmployeesRolesRecord, String, String> query = this.ctx.insertInto(
-																									EMPLOYEES_ROLES,
-																									EMPLOYEES_ROLES.EMPL_PK,
-																									EMPLOYEES_ROLES.EMRO_ROLE_FK);
-		roles.forEach(role -> query.values(empl_pk, role));
-		query.execute();
+		try (final InsertValuesStep2<EmployeesRolesRecord, String, String> query = this.ctx
+				.insertInto(EMPLOYEES_ROLES, EMPLOYEES_ROLES.EMPL_PK, EMPLOYEES_ROLES.EMRO_ROLE_FK)) {
+			roles.forEach(role -> query.values(empl_pk, role));
+			query.execute();
+		}
 
 		final String password = this.ctx.selectFrom(EMPLOYEES).where(EMPLOYEES.EMPL_PK.eq(empl_pk)).fetchOne(EMPLOYEES.EMPL_PWD);
 		if ((password == null) || password.isEmpty()) {

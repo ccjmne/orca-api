@@ -27,25 +27,35 @@ public class EmployeeStatistics {
 		private final Map<Integer, java.util.Date> expiryDates;
 		private final Calendar calendar;
 		private final Map<Integer, List<Integer>> certificatesByTrainingType;
+		private final Map<Integer, java.util.Date> certificatesVoiding;
 
-		protected EmployeeStatisticsBuilder(final Map<Integer, TrainingtypesRecord> trainingTypes, final Map<Integer, List<Integer>> certificatesByTrainingType) {
+		protected EmployeeStatisticsBuilder(
+											final Map<Integer, TrainingtypesRecord> trainingTypes,
+											final Map<Integer, List<Integer>> certificatesByTrainingType,
+											final Map<Integer, Date> certificatesVoiding) {
 			this.trainingTypes = trainingTypes;
 			this.certificatesByTrainingType = certificatesByTrainingType;
 			this.calendar = Calendar.getInstance();
 			this.expiryDates = new HashMap<>();
+			this.certificatesVoiding = certificatesVoiding;
 		}
 
 		public EmployeeStatistics.EmployeeStatisticsBuilder accept(final Record training) {
 			if (OUTCOME_VALID.equals(training.getValue(TRAININGS_EMPLOYEES.TREM_OUTCOME))) {
 				final Record trainingType = this.trainingTypes.get(training.getValue(TRAININGS.TRNG_TRTY_FK));
-				this.calendar.setTime(training.getValue(TRAININGS.TRNG_DATE));
+				final java.sql.Date trainingDate = training.getValue(TRAININGS.TRNG_DATE);
+				this.calendar.setTime(trainingDate);
 				this.calendar.add(Calendar.MONTH, trainingType.getValue(TRAININGTYPES.TRTY_VALIDITY).intValue());
-				this.certificatesByTrainingType.get(training.getValue(TRAININGS.TRNG_TRTY_FK))
-						.forEach(
-									cert_pk -> this.expiryDates.merge(
-																		cert_pk,
-																		this.calendar.getTime(),
-																		(expiryDate, potential) -> (potential.after(expiryDate)) ? potential : expiryDate));
+				for (final Integer cert_pk : this.certificatesByTrainingType.get(training.getValue(TRAININGS.TRNG_TRTY_FK))) {
+					this.expiryDates.merge(cert_pk, this.calendar.getTime(), (expiryDate, potential) -> (potential.after(expiryDate)) ? potential : expiryDate);
+					if (this.certificatesVoiding.containsKey(cert_pk)) {
+						this.expiryDates.merge(
+												cert_pk,
+												this.certificatesVoiding.get(cert_pk),
+												(expiryDate, voidingDate) -> (voidingDate.after(expiryDate)) ? expiryDate : voidingDate);
+					}
+
+				}
 			}
 
 			return this;
@@ -58,8 +68,9 @@ public class EmployeeStatistics {
 
 	public static EmployeeStatistics.EmployeeStatisticsBuilder builder(
 																		final Map<Integer, TrainingtypesRecord> trainingTypes,
-																		final Map<Integer, List<Integer>> certificatesByTrainingTypes) {
-		return new EmployeeStatisticsBuilder(trainingTypes, certificatesByTrainingTypes);
+																		final Map<Integer, List<Integer>> certificatesByTrainingTypes,
+																		final Map<Integer, java.util.Date> certificatesVoiding) {
+		return new EmployeeStatisticsBuilder(trainingTypes, certificatesByTrainingTypes, certificatesVoiding);
 	}
 
 	private final Map<Integer, EmployeeCertificateStatistics> certificates;
