@@ -143,6 +143,7 @@ public class StatisticsEndpoint {
 						TrainingsStatistics.AGENTS_REGISTERED,
 						TrainingsStatistics.AGENTS_VALIDATED)
 				.from(TRAININGS).join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
+				.where(TRAININGS.TRNG_OUTCOME.eq("COMPLETED"))
 				.groupBy(TRAININGS.TRNG_DATE, TRAININGS.TRNG_TRTY_FK, TrainingsStatistics.EXPIRY_DATE)
 				.orderBy(TRAININGS.TRNG_DATE).fetch();
 		final Iterable<? extends Record> trainingsByExpiry = this.ctx
@@ -153,6 +154,7 @@ public class StatisticsEndpoint {
 						TrainingsStatistics.AGENTS_REGISTERED,
 						TrainingsStatistics.AGENTS_VALIDATED)
 				.from(TRAININGS).join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
+				.where(TRAININGS.TRNG_OUTCOME.eq("COMPLETED"))
 				.groupBy(TRAININGS.TRNG_DATE, TRAININGS.TRNG_TRTY_FK, TrainingsStatistics.EXPIRY_DATE)
 				.orderBy(TrainingsStatistics.EXPIRY_DATE).fetch();
 
