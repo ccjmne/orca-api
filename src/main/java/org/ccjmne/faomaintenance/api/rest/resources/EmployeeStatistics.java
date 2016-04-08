@@ -52,7 +52,6 @@ public class EmployeeStatistics {
 				this.calendar.setTime(trainingDate);
 				this.calendar.add(Calendar.MONTH, trainingType.getValue(TRAININGTYPES.TRTY_VALIDITY).intValue());
 				for (final Integer cert_pk : this.certificatesByTrainingType.get(training.getValue(TRAININGS.TRNG_TRTY_FK))) {
-					this.trainings.put(cert_pk, training);
 					this.expiryDates.merge(cert_pk, this.calendar.getTime(), (expiryDate, potential) -> (potential.after(expiryDate)) ? potential : expiryDate);
 					if (this.certificatesVoiding.containsKey(cert_pk)) {
 						this.expiryDates.merge(
@@ -62,6 +61,10 @@ public class EmployeeStatistics {
 					}
 
 				}
+			}
+
+			for (final Integer cert_pk : this.certificatesByTrainingType.get(training.getValue(TRAININGS.TRNG_TRTY_FK))) {
+				this.trainings.put(cert_pk, training);
 			}
 
 			return this;
