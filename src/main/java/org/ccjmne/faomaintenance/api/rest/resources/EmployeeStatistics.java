@@ -5,6 +5,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -14,8 +15,10 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord
 import org.jooq.Record;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.Multimap;
 
 public class EmployeeStatistics {
 
@@ -28,6 +31,7 @@ public class EmployeeStatistics {
 		private final Calendar calendar;
 		private final Map<Integer, List<Integer>> certificatesByTrainingType;
 		private final Map<Integer, java.util.Date> certificatesVoiding;
+		private final Multimap<Integer, Record> trainings;
 
 		protected EmployeeStatisticsBuilder(
 											final Map<Integer, TrainingtypesRecord> trainingTypes,
@@ -37,6 +41,7 @@ public class EmployeeStatistics {
 			this.certificatesByTrainingType = certificatesByTrainingType;
 			this.calendar = Calendar.getInstance();
 			this.expiryDates = new HashMap<>();
+			this.trainings = ArrayListMultimap.<Integer, Record> create();
 			this.certificatesVoiding = certificatesVoiding;
 		}
 
@@ -47,6 +52,7 @@ public class EmployeeStatistics {
 				this.calendar.setTime(trainingDate);
 				this.calendar.add(Calendar.MONTH, trainingType.getValue(TRAININGTYPES.TRTY_VALIDITY).intValue());
 				for (final Integer cert_pk : this.certificatesByTrainingType.get(training.getValue(TRAININGS.TRNG_TRTY_FK))) {
+					this.trainings.put(cert_pk, training);
 					this.expiryDates.merge(cert_pk, this.calendar.getTime(), (expiryDate, potential) -> (potential.after(expiryDate)) ? potential : expiryDate);
 					if (this.certificatesVoiding.containsKey(cert_pk)) {
 						this.expiryDates.merge(
@@ -62,7 +68,7 @@ public class EmployeeStatistics {
 		}
 
 		public EmployeeStatistics buildFor(final Date asOf) {
-			return new EmployeeStatistics(this.expiryDates, asOf);
+			return new EmployeeStatistics(this.expiryDates, this.trainings, asOf);
 		}
 	}
 
@@ -76,10 +82,10 @@ public class EmployeeStatistics {
 	private final Map<Integer, EmployeeCertificateStatistics> certificates;
 	private final Date asOf;
 
-	protected EmployeeStatistics(final Map<Integer, java.util.Date> expiryDates, final Date asOf) {
+	protected EmployeeStatistics(final Map<Integer, java.util.Date> expiryDates, final Multimap<Integer, Record> trainings, final Date asOf) {
 		this.asOf = asOf;
 		final Builder<Integer, EmployeeCertificateStatistics> builder = ImmutableMap.<Integer, EmployeeCertificateStatistics> builder();
-		expiryDates.forEach((certificate, expiryDate) -> builder.put(certificate, new EmployeeCertificateStatistics(expiryDate)));
+		expiryDates.forEach((certificate, expiryDate) -> builder.put(certificate, new EmployeeCertificateStatistics(expiryDate, trainings.get(certificate))));
 		this.certificates = builder.build();
 	}
 
@@ -97,14 +103,16 @@ public class EmployeeStatistics {
 		private final java.util.Date expiryDate;
 		private final boolean valid;
 		private final boolean validForAWhile;
+		private final Collection<Record> trainings;
 
-		protected EmployeeCertificateStatistics(final java.util.Date expiryDate) {
+		protected EmployeeCertificateStatistics(final java.util.Date expiryDate, final Collection<Record> trainings) {
 			this.expiryDate = expiryDate;
 			this.valid = this.expiryDate.after(getAsOf());
 			final Calendar instance = Calendar.getInstance();
 			instance.setTime(getAsOf());
 			instance.add(Calendar.MONTH, 6);
 			this.validForAWhile = this.expiryDate.after(instance.getTime());
+			this.trainings = trainings;
 		}
 
 		public java.util.Date getExpiryDate() {
@@ -129,6 +137,10 @@ public class EmployeeStatistics {
 			}
 
 			return "danger";
+		}
+
+		public Collection<Record> getTrainings() {
+			return this.trainings;
 		}
 	}
 }
