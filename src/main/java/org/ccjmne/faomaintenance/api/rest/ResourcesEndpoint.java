@@ -188,11 +188,13 @@ public class ResourcesEndpoint {
 			}
 
 			if (fromStr != null) {
-				query.addConditions(TRAININGS.TRNG_DATE.ge(this.dateFormat.parseSql(fromStr)));
+				final Date from = this.dateFormat.parseSql(fromStr);
+				query.addConditions(TRAININGS.TRNG_DATE.ge(from).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.ge(from))));
 			}
 
 			if (toStr != null) {
-				query.addConditions(TRAININGS.TRNG_DATE.le(this.dateFormat.parseSql(toStr)));
+				final Date to = this.dateFormat.parseSql(toStr);
+				query.addConditions(TRAININGS.TRNG_DATE.le(to).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.le(to))));
 			}
 
 			query.addOrderBy(TRAININGS.TRNG_DATE);
