@@ -15,7 +15,6 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 import java.sql.Date;
 import java.text.ParseException;
 import java.util.List;
-import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -23,6 +22,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
+import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.DepartmentsRecord;
@@ -171,8 +171,27 @@ public class ResourcesEndpoint {
 										@QueryParam("from") final String fromStr,
 										@QueryParam("to") final String toStr) throws ParseException {
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
+			query.addSelect(TRAININGS.fields());
 			query.addFrom(TRAININGS);
+			query.addGroupBy(TRAININGS.fields());
+
+			query.addSelect(DSL.select(TrainingsStatistics.AGENTS_REGISTERED).from(TRAININGS_EMPLOYEES)
+					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
+					.asField("registered"));
+			query.addSelect(DSL.select(TrainingsStatistics.AGENTS_VALIDATED).from(TRAININGS_EMPLOYEES)
+					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
+					.asField("validated"));
+			query.addSelect(DSL.select(DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
+					.filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq("FLUNKED"))).from(TRAININGS_EMPLOYEES)
+					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
+					.asField("flunked"));
+			query.addSelect(DSL.select(DSL.arrayAgg(TRAININGS_TRAINERS.TRTR_EMPL_FK)).from(TRAININGS_TRAINERS)
+					.where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK))
+					.asField("trainers"));
+
 			if (empl_pk != null) {
+				query.addSelect(TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS_EMPLOYEES.TREM_COMMENT);
+				query.addGroupBy(TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS_EMPLOYEES.TREM_COMMENT);
 				query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK).and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk)));
 			}
 
@@ -204,14 +223,27 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("trainings/{trng_pk}")
-	public Map<String, Object> lookupTraining(@PathParam("trng_pk") final Integer trng_pk) {
-		final Map<String, Object> res = this.ctx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.eq(trng_pk)).fetchOneMap();
-		res.put(
-				"trainers",
-				this.ctx.select(DSL.arrayAgg(TRAININGS_TRAINERS.TRTR_EMPL_FK).as("trainers")).from(TRAININGS_TRAINERS)
-						.where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(trng_pk))
-						.fetchOne("trainers"));
-		return res;
+	public Record lookupTraining(@PathParam("trng_pk") final Integer trng_pk) {
+		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
+			query.addSelect(TRAININGS.fields());
+			query.addSelect(DSL.select(TrainingsStatistics.AGENTS_REGISTERED).from(TRAININGS_EMPLOYEES)
+					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
+					.asField("registered"));
+			query.addSelect(DSL.select(TrainingsStatistics.AGENTS_VALIDATED).from(TRAININGS_EMPLOYEES)
+					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
+					.asField("validated"));
+			query.addSelect(DSL.select(DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
+					.filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq("FLUNKED"))).from(TRAININGS_EMPLOYEES)
+					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
+					.asField("flunked"));
+			query.addSelect(DSL.select(DSL.arrayAgg(TRAININGS_TRAINERS.TRTR_EMPL_FK)).from(TRAININGS_TRAINERS)
+					.where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK))
+					.asField("trainers"));
+			query.addFrom(TRAININGS);
+			query.addConditions(TRAININGS.TRNG_PK.eq(trng_pk));
+			query.addGroupBy(TRAININGS.fields());
+			return query.fetchOne();
+		}
 	}
 
 	@GET
