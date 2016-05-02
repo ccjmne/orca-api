@@ -27,6 +27,7 @@ import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.DepartmentsRecord;
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
@@ -64,12 +65,6 @@ public class ResourcesEndpoint {
 							EMPLOYEES.EMPL_PERMANENT,
 							EMPLOYEES.EMPL_GENDER,
 							EMPLOYEES.EMPL_NOTES,
-							DSL.select(DSL.arrayAgg(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK)).from(EMPLOYEES_CERTIFICATES_OPTOUT)
-									.where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(EMPLOYEES.EMPL_PK))
-									.asField("optout_certs"),
-							DSL.select(DSL.arrayAgg(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE)).from(EMPLOYEES_CERTIFICATES_OPTOUT)
-									.where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(EMPLOYEES.EMPL_PK))
-									.asField("optout_dates"),
 							EMPLOYEES.EMPL_ADDR);
 			query.addSelect(SITES_EMPLOYEES.fields());
 			query.addFrom(EMPLOYEES);
@@ -111,14 +106,16 @@ public class ResourcesEndpoint {
 						EMPLOYEES.EMPL_PERMANENT,
 						EMPLOYEES.EMPL_GENDER,
 						EMPLOYEES.EMPL_NOTES,
-						DSL.select(DSL.arrayAgg(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK)).from(EMPLOYEES_CERTIFICATES_OPTOUT)
-								.where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(EMPLOYEES.EMPL_PK))
-								.asField("optout_certs"),
-						DSL.select(DSL.arrayAgg(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE)).from(EMPLOYEES_CERTIFICATES_OPTOUT)
-								.where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(EMPLOYEES.EMPL_PK))
-								.asField("optout_dates"),
 						EMPLOYEES.EMPL_ADDR)
 				.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.equal(empl_pk)).fetchOne();
+
+	}
+
+	@GET
+	@Path("employees/{empl_pk}/voiding")
+	public Result<EmployeesCertificatesOptoutRecord> getEmployeeCertificatesVoiding(@PathParam("empl_pk") final String empl_pk) {
+		return this.ctx.selectFrom(EMPLOYEES_CERTIFICATES_OPTOUT).where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk))
+				.orderBy(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK).fetch();
 	}
 
 	@GET
