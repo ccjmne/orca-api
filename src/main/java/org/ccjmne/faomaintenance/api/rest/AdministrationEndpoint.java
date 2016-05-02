@@ -23,7 +23,7 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRolesRecor
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.RolesRecord;
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep2;
-import org.jooq.Record10;
+import org.jooq.Record9;
 import org.jooq.Result;
 import org.jooq.impl.DSL;
 
@@ -57,7 +57,7 @@ public class AdministrationEndpoint {
 
 	@GET
 	@Path("users")
-	public Result<Record10<String, String, String, Boolean, Date, Boolean, String, Date, String, String[]>> getUsers() {
+	public Result<Record9<String, String, String, Boolean, Date, Boolean, String, String, String[]>> getUsers() {
 		return this.ctx
 				.select(
 						EMPLOYEES.EMPL_PK,
@@ -67,7 +67,6 @@ public class AdministrationEndpoint {
 						EMPLOYEES.EMPL_DOB,
 						EMPLOYEES.EMPL_GENDER,
 						EMPLOYEES.EMPL_NOTES,
-						EMPLOYEES.EMPL_SST_OPTOUT,
 						EMPLOYEES.EMPL_ADDR,
 						DSL.arrayAgg(EMPLOYEES_ROLES.EMRO_ROLE_FK).as("roles"))
 				.from(EMPLOYEES).join(EMPLOYEES_ROLES).on(EMPLOYEES_ROLES.EMPL_PK.eq(EMPLOYEES.EMPL_PK))
@@ -80,7 +79,6 @@ public class AdministrationEndpoint {
 							EMPLOYEES.EMPL_DOB,
 							EMPLOYEES.EMPL_GENDER,
 							EMPLOYEES.EMPL_NOTES,
-							EMPLOYEES.EMPL_SST_OPTOUT,
 							EMPLOYEES.EMPL_ADDR)
 				.fetch();
 	}

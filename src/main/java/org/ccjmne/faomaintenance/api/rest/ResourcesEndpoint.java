@@ -3,6 +3,7 @@ package org.ccjmne.faomaintenance.api.rest;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
@@ -63,7 +64,12 @@ public class ResourcesEndpoint {
 							EMPLOYEES.EMPL_PERMANENT,
 							EMPLOYEES.EMPL_GENDER,
 							EMPLOYEES.EMPL_NOTES,
-							EMPLOYEES.EMPL_SST_OPTOUT,
+							DSL.select(DSL.arrayAgg(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK)).from(EMPLOYEES_CERTIFICATES_OPTOUT)
+									.where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(EMPLOYEES.EMPL_PK))
+									.asField("optout_certs"),
+							DSL.select(DSL.arrayAgg(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE)).from(EMPLOYEES_CERTIFICATES_OPTOUT)
+									.where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(EMPLOYEES.EMPL_PK))
+									.asField("optout_dates"),
 							EMPLOYEES.EMPL_ADDR);
 			query.addSelect(SITES_EMPLOYEES.fields());
 			query.addFrom(EMPLOYEES);
@@ -105,7 +111,12 @@ public class ResourcesEndpoint {
 						EMPLOYEES.EMPL_PERMANENT,
 						EMPLOYEES.EMPL_GENDER,
 						EMPLOYEES.EMPL_NOTES,
-						EMPLOYEES.EMPL_SST_OPTOUT,
+						DSL.select(DSL.arrayAgg(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK)).from(EMPLOYEES_CERTIFICATES_OPTOUT)
+								.where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(EMPLOYEES.EMPL_PK))
+								.asField("optout_certs"),
+						DSL.select(DSL.arrayAgg(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE)).from(EMPLOYEES_CERTIFICATES_OPTOUT)
+								.where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(EMPLOYEES.EMPL_PK))
+								.asField("optout_dates"),
 						EMPLOYEES.EMPL_ADDR)
 				.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.equal(empl_pk)).fetchOne();
 	}
