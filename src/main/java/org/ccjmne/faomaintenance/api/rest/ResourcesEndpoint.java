@@ -127,7 +127,7 @@ public class ResourcesEndpoint {
 									@QueryParam("unlisted") final boolean unlisted)
 											throws ParseException {
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
-			query.addSelect(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK);
+			query.addSelect(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES);
 			query.addFrom(SITES);
 			if (!unlisted) {
 				query.addConditions(SITES.SITE_PK.in(DSL.selectDistinct(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
