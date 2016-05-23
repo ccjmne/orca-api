@@ -98,15 +98,21 @@ public class UpdateEndpoint {
 	public boolean updateSite(@PathParam("site_pk") final String site_pk, final Map<String, String> site) {
 		if (this.ctx.fetchExists(SITES, SITES.SITE_PK.eq(site_pk))) {
 			this.ctx.update(SITES)
+					.set(SITES.SITE_PK, site.getOrDefault(SITES.SITE_PK.getName(), site_pk))
 					.set(SITES.SITE_NAME, site.get(SITES.SITE_NAME.getName()))
 					.set(SITES.SITE_DEPT_FK, Integer.valueOf(site.get(SITES.SITE_DEPT_FK.getName())))
-					.set(SITES.SITE_PK, site.getOrDefault(SITES.SITE_PK.getName(), site_pk))
+					.set(SITES.SITE_NOTES, site.getOrDefault(SITES.SITE_NOTES.getName(), site_pk))
 					.where(SITES.SITE_PK.eq(site_pk)).execute();
 			return false;
 		}
 
-		this.ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK)
-				.values(site_pk, site.get(SITES.SITE_NAME.getName()), Integer.valueOf(site.get(SITES.SITE_DEPT_FK.getName()))).execute();
+		this.ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES)
+				.values(
+						site_pk,
+						site.get(SITES.SITE_NAME.getName()),
+						Integer.valueOf(site.get(SITES.SITE_DEPT_FK.getName())),
+						site.get(SITES.SITE_NOTES.getName()))
+				.execute();
 		return true;
 	}
 

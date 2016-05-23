@@ -1,6 +1,7 @@
 package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
@@ -410,17 +411,9 @@ public class StatisticsEndpoint {
 	}
 
 	private Map<Integer, java.util.Date> buildCertificatesVoiding(final String empl_pk) {
-		final Date sstOptOutDate = this.ctx.selectFrom(EMPLOYEES).where(EMPLOYEES.EMPL_PK.eq(empl_pk)).fetchOne(EMPLOYEES.EMPL_SST_OPTOUT);
-		if (sstOptOutDate == null) {
-			return Collections.EMPTY_MAP;
-		}
-
 		final Map<Integer, java.util.Date> res = new HashMap<>();
-		for (final CertificatesRecord cert : this.certificates.get().values()) {
-			if (cert.getCertShort().contains("SST")) {
-				res.put(cert.getCertPk(), new java.util.Date(sstOptOutDate.getTime()));
-			}
-		}
+		this.ctx.selectFrom(EMPLOYEES_CERTIFICATES_OPTOUT).where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk)).fetch()
+				.forEach(record -> res.put(record.getEmceCertFk(), record.getEmceDate()));
 
 		return res;
 	}

@@ -30,9 +30,9 @@
 			<url-pattern>/statistics/*</url-pattern>
 			<url-pattern>/resources/*</url-pattern>
 			<url-pattern>/resources-by-keys/*</url-pattern>
-			<url-pattern>/auth/*</url-pattern>
 			<url-pattern>/account/*</url-pattern>
 			<http-method>GET</http-method>
+			<!-- PUT account password only -->
 			<http-method>PUT</http-method>
 		</web-resource-collection>
 
@@ -91,6 +91,15 @@
 			<url-pattern>/auth/*</url-pattern>
 
 			<http-method>OPTIONS</http-method>
+			<!-- No authentication constraints here -->
+		</web-resource-collection>
+	</security-constraint>
+
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>Authentication Endpoint</web-resource-name>
+			<url-pattern>/auth/*</url-pattern>
+			<http-method>POST</http-method>
 			<!-- No authentication constraints here -->
 		</web-resource-collection>
 	</security-constraint>
