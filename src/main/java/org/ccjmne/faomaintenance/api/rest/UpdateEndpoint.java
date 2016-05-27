@@ -1,10 +1,13 @@
 package org.ccjmne.faomaintenance.api.rest;
 
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_ROLES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.io.IOException;
@@ -49,6 +52,7 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep3;
+import org.jooq.Row1;
 import org.jooq.TableField;
 import org.jooq.impl.DSL;
 import org.jooq.tools.csv.CSVReader;
@@ -114,6 +118,91 @@ public class UpdateEndpoint {
 						site.get(SITES.SITE_NOTES.getName()))
 				.execute();
 		return true;
+	}
+
+	@PUT
+	@Path("certificates/{cert_pk}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public boolean updateCert(@PathParam("cert_pk") final Integer cert_pk, final Map<String, String> cert) {
+		final boolean exists = this.ctx.fetchExists(CERTIFICATES, CERTIFICATES.CERT_PK.eq(cert_pk));
+		if (exists) {
+			this.ctx.update(CERTIFICATES)
+					.set(CERTIFICATES.CERT_PK, Integer.valueOf(cert.getOrDefault(CERTIFICATES.CERT_PK.getName(), cert_pk.toString())))
+					.set(CERTIFICATES.CERT_NAME, cert.get(CERTIFICATES.CERT_NAME.getName()))
+					.set(CERTIFICATES.CERT_SHORT, cert.get(CERTIFICATES.CERT_SHORT.getName()))
+					.set(CERTIFICATES.CERT_TARGET, Integer.valueOf(cert.get(CERTIFICATES.CERT_TARGET.getName())))
+					.set(CERTIFICATES.CERT_PERMANENTONLY, Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())))
+					.where(CERTIFICATES.CERT_PK.eq(cert_pk)).execute();
+		} else {
+
+			this.ctx.insertInto(
+								CERTIFICATES,
+								CERTIFICATES.CERT_PK,
+								CERTIFICATES.CERT_NAME,
+								CERTIFICATES.CERT_SHORT,
+								CERTIFICATES.CERT_TARGET,
+								CERTIFICATES.CERT_PERMANENTONLY)
+					.values(
+							cert_pk,
+							cert.get(CERTIFICATES.CERT_NAME.getName()),
+							cert.get(CERTIFICATES.CERT_SHORT.getName()),
+							Integer.valueOf(cert.get(CERTIFICATES.CERT_TARGET.getName())),
+							Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())))
+					.execute();
+		}
+
+		this.statistics.refreshCertificates();
+		this.statistics.invalidateEmployeesStats();
+		this.statistics.invalidateSitesStats();
+		return exists;
+	}
+
+	@SuppressWarnings("unchecked")
+	@PUT
+	@Path("trainingtypes/{trty_pk}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public boolean updateTrty(@PathParam("trty_pk") final Integer trty_pk, final Map<String, Object> trty) {
+		final boolean exists = this.ctx.fetchExists(TRAININGTYPES, TRAININGTYPES.TRTY_PK.eq(trty_pk));
+		final Integer new_pk;
+		if (exists) {
+			new_pk = trty.containsKey(TRAININGTYPES.TRTY_PK.getName()) ? (Integer) trty.get(TRAININGTYPES.TRTY_PK.getName()) : trty_pk;
+			this.ctx.update(TRAININGTYPES)
+					.set(TRAININGTYPES.TRTY_PK, new_pk)
+					.set(TRAININGTYPES.TRTY_NAME, trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString())
+					.set(TRAININGTYPES.TRTY_VALIDITY, Integer.valueOf(trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()).toString()))
+					.where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
+		} else {
+			new_pk = trty_pk;
+			this.ctx.insertInto(
+								TRAININGTYPES,
+								TRAININGTYPES.TRTY_PK,
+								TRAININGTYPES.TRTY_NAME,
+								TRAININGTYPES.TRTY_VALIDITY)
+					.values(
+							new_pk,
+							trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString(),
+							(Integer) trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()))
+					.execute();
+		}
+
+		this.ctx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(new_pk)).execute();
+		final Row1<Integer>[] certificates = ((List<Integer>) trty.get("certificates")).stream().map(DSL::row).toArray(Row1[]::new);
+		if (certificates.length > 0) {
+			this.ctx.insertInto(
+								TRAININGTYPES_CERTIFICATES,
+								TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK,
+								TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)
+					.select(DSL.select(
+										DSL.val(new_pk),
+										DSL.field("cert_pk", Integer.class))
+							.from(DSL.values(certificates).as("unused", "cert_pk")))
+					.execute();
+		}
+
+		this.statistics.refreshCertificates();
+		this.statistics.invalidateEmployeesStats();
+		this.statistics.invalidateSitesStats();
+		return exists;
 	}
 
 	@DELETE
