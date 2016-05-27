@@ -134,7 +134,6 @@ public class UpdateEndpoint {
 					.set(CERTIFICATES.CERT_PERMANENTONLY, Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())))
 					.where(CERTIFICATES.CERT_PK.eq(cert_pk)).execute();
 		} else {
-
 			this.ctx.insertInto(
 								CERTIFICATES,
 								CERTIFICATES.CERT_PK,
@@ -163,45 +162,50 @@ public class UpdateEndpoint {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public boolean updateTrty(@PathParam("trty_pk") final Integer trty_pk, final Map<String, Object> trty) {
 		final boolean exists = this.ctx.fetchExists(TRAININGTYPES, TRAININGTYPES.TRTY_PK.eq(trty_pk));
-		final Integer new_pk;
-		if (exists) {
-			new_pk = trty.containsKey(TRAININGTYPES.TRTY_PK.getName()) ? (Integer) trty.get(TRAININGTYPES.TRTY_PK.getName()) : trty_pk;
-			this.ctx.update(TRAININGTYPES)
-					.set(TRAININGTYPES.TRTY_PK, new_pk)
-					.set(TRAININGTYPES.TRTY_NAME, trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString())
-					.set(TRAININGTYPES.TRTY_VALIDITY, Integer.valueOf(trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()).toString()))
-					.where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
-		} else {
-			new_pk = trty_pk;
-			this.ctx.insertInto(
-								TRAININGTYPES,
-								TRAININGTYPES.TRTY_PK,
-								TRAININGTYPES.TRTY_NAME,
-								TRAININGTYPES.TRTY_VALIDITY)
-					.values(
-							new_pk,
-							trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString(),
-							(Integer) trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()))
-					.execute();
-		}
+		this.ctx.transaction((config) -> {
+			try (final DSLContext transactionCtx = DSL.using(config)) {
+				final Integer new_pk;
+				if (exists) {
+					new_pk = trty.containsKey(TRAININGTYPES.TRTY_PK.getName()) ? (Integer) trty.get(TRAININGTYPES.TRTY_PK.getName()) : trty_pk;
+					transactionCtx.update(TRAININGTYPES)
+							.set(TRAININGTYPES.TRTY_PK, new_pk)
+							.set(TRAININGTYPES.TRTY_NAME, trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString())
+							.set(TRAININGTYPES.TRTY_VALIDITY, Integer.valueOf(trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()).toString()))
+							.where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
+				} else {
+					new_pk = trty_pk;
+					transactionCtx.insertInto(
+												TRAININGTYPES,
+												TRAININGTYPES.TRTY_PK,
+												TRAININGTYPES.TRTY_NAME,
+												TRAININGTYPES.TRTY_VALIDITY)
+							.values(
+									new_pk,
+									trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString(),
+									(Integer) trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()))
+							.execute();
+				}
 
-		this.ctx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(new_pk)).execute();
-		final Row1<Integer>[] certificates = ((List<Integer>) trty.get("certificates")).stream().map(DSL::row).toArray(Row1[]::new);
-		if (certificates.length > 0) {
-			this.ctx.insertInto(
-								TRAININGTYPES_CERTIFICATES,
-								TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK,
-								TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)
-					.select(DSL.select(
-										DSL.val(new_pk),
-										DSL.field("cert_pk", Integer.class))
-							.from(DSL.values(certificates).as("unused", "cert_pk")))
-					.execute();
-		}
+				transactionCtx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(new_pk)).execute();
+				final Row1<Integer>[] certificates = ((List<Integer>) trty.get("certificates")).stream().map(DSL::row).toArray(Row1[]::new);
+				if (certificates.length > 0) {
+					transactionCtx.insertInto(
+												TRAININGTYPES_CERTIFICATES,
+												TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK,
+												TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)
+							.select(DSL.select(
+												DSL.val(new_pk),
+												DSL.field("cert_pk", Integer.class))
+									.from(DSL.values(certificates).as("unused", "cert_pk")))
+							.execute();
+				}
 
-		this.statistics.refreshCertificates();
-		this.statistics.invalidateEmployeesStats();
-		this.statistics.invalidateSitesStats();
+				this.statistics.refreshCertificates();
+				this.statistics.invalidateEmployeesStats();
+				this.statistics.invalidateSitesStats();
+			}
+		});
+
 		return exists;
 	}
 
