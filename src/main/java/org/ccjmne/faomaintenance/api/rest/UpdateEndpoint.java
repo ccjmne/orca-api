@@ -70,14 +70,12 @@ public class UpdateEndpoint {
 	private final DSLContext ctx;
 	private final SQLDateFormat dateFormat;
 	private final StatisticsEndpoint statistics;
-	private final ResourcesEndpoint resources;
 
 	@Inject
 	public UpdateEndpoint(final DSLContext ctx, final SQLDateFormat dateFormat, final StatisticsEndpoint statistics, final ResourcesEndpoint resources) {
 		this.dateFormat = dateFormat;
 		this.ctx = ctx;
 		this.statistics = statistics;
-		this.resources = resources;
 	}
 
 	@PUT
@@ -246,19 +244,7 @@ public class UpdateEndpoint {
 	@DELETE
 	@Path("departments/{dept_pk}")
 	public boolean deleteDept(@PathParam("dept_pk") final Integer dept_pk) {
-		final boolean exists = this.ctx.selectFrom(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.equal(dept_pk)).fetch().isNotEmpty();
-		if (exists) {
-			try {
-				this.resources.listSites(dept_pk, null, null, false).forEach(site -> deleteSite(site.getValue(SITES.SITE_PK)));
-			} catch (IllegalArgumentException | ParseException e) {
-				// Should *never* happen
-				e.printStackTrace();
-			}
-
-			this.ctx.delete(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).execute();
-		}
-
-		return exists;
+		return this.ctx.delete(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).execute() == 1;
 	}
 
 	@DELETE
