@@ -53,6 +53,7 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep3;
 import org.jooq.Row1;
+import org.jooq.Row2;
 import org.jooq.TableField;
 import org.jooq.impl.DSL;
 import org.jooq.tools.csv.CSVReader;
@@ -207,6 +208,27 @@ public class UpdateEndpoint {
 		});
 
 		return exists;
+	}
+
+	@POST
+	@Path("trainingtypes/reorder")
+	@SuppressWarnings("unchecked")
+	public void reassignTrainingTypes(final Map<Integer, Integer> reassignmentMap) {
+		if (reassignmentMap.isEmpty()) {
+			return;
+		}
+
+		this.ctx.update(TRAININGTYPES)
+				.set(
+						TRAININGTYPES.TRTY_ORDER,
+						DSL.field("new_order", Integer.class))
+				.from(DSL.values(reassignmentMap.entrySet().stream().map((entry) -> DSL.row(entry.getKey(), entry.getValue())).toArray(Row2[]::new))
+						.as("unused", "pk", "new_order"))
+				.where(TRAININGTYPES.TRTY_PK.eq(DSL.field("pk", Integer.class)))
+				.execute();
+		this.statistics.refreshCertificates();
+		this.statistics.invalidateEmployeesStats();
+		this.statistics.invalidateSitesStats();
 	}
 
 	@DELETE
