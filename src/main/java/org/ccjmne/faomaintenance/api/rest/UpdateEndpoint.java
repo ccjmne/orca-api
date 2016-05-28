@@ -232,6 +232,18 @@ public class UpdateEndpoint {
 	}
 
 	@DELETE
+	@Path("certificates/{cert_pk}")
+	public boolean deleteCert(@PathParam("cert_pk") final Integer cert_pk) {
+		return this.ctx.delete(CERTIFICATES).where(CERTIFICATES.CERT_PK.eq(cert_pk)).execute() == 1;
+	}
+
+	@DELETE
+	@Path("trainingtypes/{trty_pk}")
+	public boolean deleteTrty(@PathParam("trty_pk") final Integer trty_pk) {
+		return this.ctx.delete(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute() == 1;
+	}
+
+	@DELETE
 	@Path("departments/{dept_pk}")
 	public boolean deleteDept(@PathParam("dept_pk") final Integer dept_pk) {
 		final boolean exists = this.ctx.selectFrom(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.equal(dept_pk)).fetch().isNotEmpty();
