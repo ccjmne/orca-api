@@ -161,13 +161,12 @@ public class UpdateEndpoint {
 									nextOrder)
 							.execute();
 				}
-
-				this.statistics.refreshCertificates();
-				this.statistics.invalidateEmployeesStats();
-				this.statistics.invalidateSitesStats();
 			}
 		});
 
+		this.statistics.refreshCertificates();
+		this.statistics.invalidateEmployeesStats();
+		this.statistics.invalidateSitesStats();
 		return exists;
 	}
 
@@ -223,13 +222,12 @@ public class UpdateEndpoint {
 									.from(DSL.values(certificates).as("unused", "cert_pk")))
 							.execute();
 				}
-
-				this.statistics.refreshCertificates();
-				this.statistics.invalidateEmployeesStats();
-				this.statistics.invalidateSitesStats();
 			}
 		});
 
+		this.statistics.refreshCertificates();
+		this.statistics.invalidateEmployeesStats();
+		this.statistics.invalidateSitesStats();
 		return exists;
 	}
 
