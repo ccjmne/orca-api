@@ -249,9 +249,8 @@ public class UpdateEndpoint {
 						.as("unused", "pk", "new_order"))
 				.where(CERTIFICATES.CERT_PK.eq(DSL.field("pk", Integer.class)))
 				.execute();
+
 		this.statistics.refreshCertificates();
-		this.statistics.invalidateEmployeesStats();
-		this.statistics.invalidateSitesStats();
 	}
 
 	@POST
@@ -270,9 +269,8 @@ public class UpdateEndpoint {
 						.as("unused", "pk", "new_order"))
 				.where(TRAININGTYPES.TRTY_PK.eq(DSL.field("pk", Integer.class)))
 				.execute();
+
 		this.statistics.refreshCertificates();
-		this.statistics.invalidateEmployeesStats();
-		this.statistics.invalidateSitesStats();
 	}
 
 	@DELETE
