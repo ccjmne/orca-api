@@ -135,7 +135,6 @@ public class UpdateEndpoint {
 		final boolean exists = this.ctx.fetchExists(CERTIFICATES, CERTIFICATES.CERT_PK.eq(cert_pk));
 		if (exists) {
 			this.ctx.update(CERTIFICATES)
-					.set(CERTIFICATES.CERT_PK, Integer.valueOf(cert.getOrDefault(CERTIFICATES.CERT_PK.getName(), cert_pk.toString())))
 					.set(CERTIFICATES.CERT_NAME, cert.get(CERTIFICATES.CERT_NAME.getName()))
 					.set(CERTIFICATES.CERT_SHORT, cert.get(CERTIFICATES.CERT_SHORT.getName()))
 					.set(CERTIFICATES.CERT_TARGET, Integer.valueOf(cert.get(CERTIFICATES.CERT_TARGET.getName())))
