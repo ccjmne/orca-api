@@ -133,33 +133,41 @@ public class UpdateEndpoint {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public boolean updateCert(@PathParam("cert_pk") final Integer cert_pk, final Map<String, String> cert) {
 		final boolean exists = this.ctx.fetchExists(CERTIFICATES, CERTIFICATES.CERT_PK.eq(cert_pk));
-		if (exists) {
-			this.ctx.update(CERTIFICATES)
-					.set(CERTIFICATES.CERT_NAME, cert.get(CERTIFICATES.CERT_NAME.getName()))
-					.set(CERTIFICATES.CERT_SHORT, cert.get(CERTIFICATES.CERT_SHORT.getName()))
-					.set(CERTIFICATES.CERT_TARGET, Integer.valueOf(cert.get(CERTIFICATES.CERT_TARGET.getName())))
-					.set(CERTIFICATES.CERT_PERMANENTONLY, Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())))
-					.where(CERTIFICATES.CERT_PK.eq(cert_pk)).execute();
-		} else {
-			this.ctx.insertInto(
-								CERTIFICATES,
-								CERTIFICATES.CERT_PK,
-								CERTIFICATES.CERT_NAME,
-								CERTIFICATES.CERT_SHORT,
-								CERTIFICATES.CERT_TARGET,
-								CERTIFICATES.CERT_PERMANENTONLY)
-					.values(
-							cert_pk,
-							cert.get(CERTIFICATES.CERT_NAME.getName()),
-							cert.get(CERTIFICATES.CERT_SHORT.getName()),
-							Integer.valueOf(cert.get(CERTIFICATES.CERT_TARGET.getName())),
-							Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())))
-					.execute();
-		}
+		this.ctx.transaction((config) -> {
+			try (final DSLContext transactionCtx = DSL.using(config)) {
+				if (exists) {
+					transactionCtx.update(CERTIFICATES)
+							.set(CERTIFICATES.CERT_NAME, cert.get(CERTIFICATES.CERT_NAME.getName()))
+							.set(CERTIFICATES.CERT_SHORT, cert.get(CERTIFICATES.CERT_SHORT.getName()))
+							.set(CERTIFICATES.CERT_TARGET, Integer.valueOf(cert.get(CERTIFICATES.CERT_TARGET.getName())))
+							.set(CERTIFICATES.CERT_PERMANENTONLY, Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())))
+							.where(CERTIFICATES.CERT_PK.eq(cert_pk)).execute();
+				} else {
+					final Integer nextOrder = Integer.valueOf(transactionCtx.selectCount().from(TRAININGTYPES).fetchOne(0, Integer.class).intValue() + 1);
+					transactionCtx.insertInto(
+												CERTIFICATES,
+												CERTIFICATES.CERT_PK,
+												CERTIFICATES.CERT_NAME,
+												CERTIFICATES.CERT_SHORT,
+												CERTIFICATES.CERT_TARGET,
+												CERTIFICATES.CERT_PERMANENTONLY,
+												CERTIFICATES.CERT_ORDER)
+							.values(
+									cert_pk,
+									cert.get(CERTIFICATES.CERT_NAME.getName()),
+									cert.get(CERTIFICATES.CERT_SHORT.getName()),
+									Integer.valueOf(cert.get(CERTIFICATES.CERT_TARGET.getName())),
+									Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())),
+									nextOrder)
+							.execute();
+				}
 
-		this.statistics.refreshCertificates();
-		this.statistics.invalidateEmployeesStats();
-		this.statistics.invalidateSitesStats();
+				this.statistics.refreshCertificates();
+				this.statistics.invalidateEmployeesStats();
+				this.statistics.invalidateSitesStats();
+			}
+		});
+
 		return exists;
 	}
 
@@ -187,15 +195,18 @@ public class UpdateEndpoint {
 							.set(TRAININGTYPES.TRTY_VALIDITY, Integer.valueOf(trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()).toString()))
 							.where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
 				} else {
+					final Integer nextOrder = Integer.valueOf(transactionCtx.selectCount().from(TRAININGTYPES).fetchOne(0, Integer.class).intValue() + 1);
 					transactionCtx.insertInto(
 												TRAININGTYPES,
 												TRAININGTYPES.TRTY_PK,
 												TRAININGTYPES.TRTY_NAME,
-												TRAININGTYPES.TRTY_VALIDITY)
+												TRAININGTYPES.TRTY_VALIDITY,
+												TRAININGTYPES.TRTY_ORDER)
 							.values(
 									trty_pk,
 									trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString(),
-									(Integer) trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()))
+									(Integer) trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()),
+									nextOrder)
 							.execute();
 				}
 
@@ -220,6 +231,27 @@ public class UpdateEndpoint {
 		});
 
 		return exists;
+	}
+
+	@POST
+	@Path("certificates/reorder")
+	@SuppressWarnings("unchecked")
+	public void reassignCertificates(final Map<Integer, Integer> reassignmentMap) {
+		if (reassignmentMap.isEmpty()) {
+			return;
+		}
+
+		this.ctx.update(CERTIFICATES)
+				.set(
+						CERTIFICATES.CERT_ORDER,
+						DSL.field("new_order", Integer.class))
+				.from(DSL.values(reassignmentMap.entrySet().stream().map((entry) -> DSL.row(entry.getKey(), entry.getValue())).toArray(Row2[]::new))
+						.as("unused", "pk", "new_order"))
+				.where(CERTIFICATES.CERT_PK.eq(DSL.field("pk", Integer.class)))
+				.execute();
+		this.statistics.refreshCertificates();
+		this.statistics.invalidateEmployeesStats();
+		this.statistics.invalidateSitesStats();
 	}
 
 	@POST

@@ -263,7 +263,7 @@ public class ResourcesEndpoint {
 	@GET
 	@Path("trainingtypes")
 	public Result<TrainingtypesRecord> listTrainingTypes() {
-		return this.ctx.selectFrom(TRAININGTYPES).fetch();
+		return this.ctx.selectFrom(TRAININGTYPES).orderBy(TRAININGTYPES.TRTY_ORDER).fetch();
 	}
 
 	@GET
@@ -275,6 +275,6 @@ public class ResourcesEndpoint {
 	@GET
 	@Path("certificates")
 	public Result<CertificatesRecord> listCertificates() {
-		return this.ctx.selectFrom(CERTIFICATES).fetch();
+		return this.ctx.selectFrom(CERTIFICATES).orderBy(CERTIFICATES.CERT_ORDER).fetch();
 	}
 }
