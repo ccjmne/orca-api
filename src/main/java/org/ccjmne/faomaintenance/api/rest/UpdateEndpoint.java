@@ -119,6 +119,15 @@ public class UpdateEndpoint {
 		return true;
 	}
 
+	@POST
+	@Path("certificates")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Integer createCert(final Map<String, String> cert) {
+		final Integer cert_pk = new Integer(this.ctx.nextval(Sequences.CERTIFICATES_CERT_PK_SEQ).intValue());
+		updateCert(cert_pk, cert);
+		return cert_pk;
+	}
+
 	@PUT
 	@Path("certificates/{cert_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -153,6 +162,15 @@ public class UpdateEndpoint {
 		this.statistics.invalidateEmployeesStats();
 		this.statistics.invalidateSitesStats();
 		return exists;
+	}
+
+	@POST
+	@Path("trainingtypes")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Integer createTrty(final Map<String, Object> trty) {
+		final Integer trty_pk = new Integer(this.ctx.nextval(Sequences.TRAININGTYPES_TRTY_PK_SEQ).intValue());
+		updateTrty(trty_pk, trty);
+		return trty_pk;
 	}
 
 	@SuppressWarnings("unchecked")
