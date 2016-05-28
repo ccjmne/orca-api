@@ -89,10 +89,8 @@ public class StatisticsEndpoint {
 		this.certificates = Suppliers.memoizeWithExpiration(() -> this.resourcesByKeys.listCertificates(), 1, TimeUnit.DAYS);
 		this.certificatesByTrainingTypes = Suppliers.memoizeWithExpiration(() -> this.resourcesByKeys.listTrainingtypesCertificates(), 1, TimeUnit.DAYS);
 
-		this.employeeStatisticsCache = CacheBuilder
-				.newBuilder()
-				.refreshAfterWrite(30, TimeUnit.MINUTES)
-				.expireAfterAccess(2, TimeUnit.HOURS).<String, Map
+		this.employeeStatisticsCache = CacheBuilder.newBuilder()
+				.refreshAfterWrite(30, TimeUnit.MINUTES).<String, Map
 				.Entry<Date, EmployeeStatistics>> build(CacheLoader.asyncReloading(CacheLoader.<String, Map.Entry<Date, EmployeeStatistics>> from(empl_pk -> {
 					try {
 						return StatisticsEndpoint.this.buildLatestEmployeeStats(empl_pk);
@@ -101,7 +99,8 @@ public class StatisticsEndpoint {
 					}
 				}), this.statisticsCalculationThreadPool));
 
-		this.siteStatisticsCache = CacheBuilder.newBuilder().refreshAfterWrite(1, TimeUnit.HOURS).expireAfterAccess(8, TimeUnit.HOURS).<String, Map
+		this.siteStatisticsCache = CacheBuilder.newBuilder()
+				.refreshAfterWrite(1, TimeUnit.HOURS).<String, Map
 				.Entry<Date, SiteStatistics>> build(CacheLoader.asyncReloading(CacheLoader.<String, Map.Entry<Date, SiteStatistics>> from(site_pk -> {
 					try {
 						return StatisticsEndpoint.this.calculateLatestSiteStats(site_pk);
