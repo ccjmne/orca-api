@@ -104,7 +104,7 @@ public class UpdateEndpoint {
 					.set(SITES.SITE_PK, site.getOrDefault(SITES.SITE_PK.getName(), site_pk))
 					.set(SITES.SITE_NAME, site.get(SITES.SITE_NAME.getName()))
 					.set(SITES.SITE_DEPT_FK, Integer.valueOf(site.get(SITES.SITE_DEPT_FK.getName())))
-					.set(SITES.SITE_NOTES, site.getOrDefault(SITES.SITE_NOTES.getName(), site_pk))
+					.set(SITES.SITE_NOTES, site.get(SITES.SITE_NOTES.getName()))
 					.where(SITES.SITE_PK.eq(site_pk)).execute();
 			return false;
 		}
