@@ -1,11 +1,13 @@
 package org.ccjmne.faomaintenance.api.rest;
 
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
@@ -47,8 +49,7 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 
 import com.google.common.base.Function;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
+import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -70,9 +71,9 @@ public class StatisticsEndpoint {
 	private final LoadingCache<String, Map.Entry<Date, EmployeeStatistics>> employeeStatisticsCache;
 	private final LoadingCache<String, Map.Entry<Date, SiteStatistics>> siteStatisticsCache;
 	private final ExecutorService statisticsCalculationThreadPool;
-	private Supplier<Map<Integer, TrainingtypesRecord>> trainingTypes;
-	private Supplier<Map<Integer, List<Integer>>> certificatesByTrainingTypes;
-	private Supplier<Map<Integer, CertificatesRecord>> certificates;
+	private Cache<Integer, TrainingtypesRecord> trainingTypes;
+	private Cache<Integer, List<Integer>> certificatesByTrainingTypes;
+	private Cache<Integer, CertificatesRecord> certificates;
 
 	@Inject
 	public StatisticsEndpoint(
@@ -85,14 +86,16 @@ public class StatisticsEndpoint {
 		this.resources = resources;
 		this.resourcesByKeys = resourcesByKeys;
 		this.statisticsCalculationThreadPool = Executors.newCachedThreadPool();
-		this.trainingTypes = Suppliers.memoizeWithExpiration(() -> this.resourcesByKeys.listTrainingTypes(), 1, TimeUnit.DAYS);
-		this.certificates = Suppliers.memoizeWithExpiration(() -> this.resourcesByKeys.listCertificates(), 1, TimeUnit.DAYS);
-		this.certificatesByTrainingTypes = Suppliers.memoizeWithExpiration(() -> this.resourcesByKeys.listTrainingtypesCertificates(), 1, TimeUnit.DAYS);
+		this.trainingTypes = CacheBuilder.newBuilder().refreshAfterWrite(30, TimeUnit.MINUTES)
+				.build(CacheLoader.<Integer, TrainingtypesRecord> from((key) -> this.ctx.fetchOne(TRAININGTYPES, TRAININGTYPES.TRTY_PK.eq(key))));
+		this.certificatesByTrainingTypes = CacheBuilder.newBuilder().refreshAfterWrite(30, TimeUnit.MINUTES)
+				.build(CacheLoader.<Integer, List<Integer>> from((key) -> this.resourcesByKeys.listTrainingtypesCertificates().get(key)));
+		this.certificates = CacheBuilder.newBuilder().refreshAfterWrite(30, TimeUnit.MINUTES)
+				.build(CacheLoader.<Integer, CertificatesRecord> from((key) -> this.ctx.fetchOne(CERTIFICATES, CERTIFICATES.CERT_PK.eq(key))));
+		refreshCertificates();
 
-		this.employeeStatisticsCache = CacheBuilder
-				.newBuilder()
-				.refreshAfterWrite(30, TimeUnit.MINUTES)
-				.expireAfterAccess(2, TimeUnit.HOURS).<String, Map
+		this.employeeStatisticsCache = CacheBuilder.newBuilder()
+				.refreshAfterWrite(30, TimeUnit.MINUTES).<String, Map
 				.Entry<Date, EmployeeStatistics>> build(CacheLoader.asyncReloading(CacheLoader.<String, Map.Entry<Date, EmployeeStatistics>> from(empl_pk -> {
 					try {
 						return StatisticsEndpoint.this.buildLatestEmployeeStats(empl_pk);
@@ -101,7 +104,8 @@ public class StatisticsEndpoint {
 					}
 				}), this.statisticsCalculationThreadPool));
 
-		this.siteStatisticsCache = CacheBuilder.newBuilder().refreshAfterWrite(1, TimeUnit.HOURS).expireAfterAccess(8, TimeUnit.HOURS).<String, Map
+		this.siteStatisticsCache = CacheBuilder.newBuilder()
+				.refreshAfterWrite(1, TimeUnit.HOURS).<String, Map
 				.Entry<Date, SiteStatistics>> build(CacheLoader.asyncReloading(CacheLoader.<String, Map.Entry<Date, SiteStatistics>> from(site_pk -> {
 					try {
 						return StatisticsEndpoint.this.calculateLatestSiteStats(site_pk);
@@ -111,12 +115,26 @@ public class StatisticsEndpoint {
 				}), this.statisticsCalculationThreadPool));
 	}
 
+	public void refreshCertificates() {
+		this.trainingTypes.invalidateAll();
+		this.trainingTypes.putAll(this.resourcesByKeys.listTrainingTypes());
+		this.certificates.invalidateAll();
+		this.certificates.putAll(this.resourcesByKeys.listCertificates());
+		this.certificatesByTrainingTypes.invalidateAll();
+		this.certificatesByTrainingTypes.putAll(this.resourcesByKeys.listTrainingtypesCertificates());
+	}
+
 	public void invalidateSitesStats() {
 		this.siteStatisticsCache.invalidateAll();
 	}
 
 	public void invalidateSitesStats(final Collection<String> sites) {
 		this.siteStatisticsCache.invalidateAll(sites);
+	}
+
+	public void invalidateEmployeesStats() {
+		this.employeeStatisticsCache.invalidateAll();
+		this.siteStatisticsCache.invalidateAll();
 	}
 
 	public void invalidateEmployeesStats(final Collection<String> employees) {
@@ -159,7 +177,7 @@ public class StatisticsEndpoint {
 				.groupBy(TRAININGS.TRNG_DATE, TRAININGS.TRNG_TRTY_FK, TrainingsStatistics.EXPIRY_DATE)
 				.orderBy(TrainingsStatistics.EXPIRY_DATE).fetch();
 
-		final Map<Integer, List<Integer>> certs = this.certificatesByTrainingTypes.get();
+		final Map<Integer, List<Integer>> certs = this.certificatesByTrainingTypes.asMap();
 		final Map<Integer, Iterable<TrainingsStatistics>> res = new HashMap<>();
 
 		for (final Integer interval : intervals) {
@@ -323,7 +341,7 @@ public class StatisticsEndpoint {
 			final Entry<Date, Map<String, List<String>>> mostAccurate = employeesHistory.floorEntry(date);
 			if (mostAccurate != null) {
 				for (final Entry<String, List<String>> sitesEmployeesHistory : mostAccurate.getValue().entrySet()) {
-					final SiteStatistics stats = new SiteStatistics(this.certificates.get());
+					final SiteStatistics stats = new SiteStatistics(this.certificates.asMap());
 					sitesEmployeesHistory.getValue()
 							.forEach(empl_pk -> stats.register(empl_pk, employeesStatus.get(empl_pk), employeesStats.get(empl_pk).get(date)));
 					res.computeIfAbsent(date, unused -> new HashMap<>()).put(sitesEmployeesHistory.getKey(), stats);
@@ -353,7 +371,7 @@ public class StatisticsEndpoint {
 
 		final Map<Date, SiteStatistics> res = new TreeMap<>();
 		for (final Date date : dates) {
-			final SiteStatistics stats = new SiteStatistics(this.certificates.get());
+			final SiteStatistics stats = new SiteStatistics(this.certificates.asMap());
 			final Date mostAccurate = updates.floor(date);
 			if (mostAccurate != null) {
 				for (final String empl_pk : employeesHistory.getOrDefault(mostAccurate, Collections.emptyList())) {
@@ -373,7 +391,7 @@ public class StatisticsEndpoint {
 				.from(SITES_EMPLOYEES)
 				.join(EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
 				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
-		final SiteStatistics stats = new SiteStatistics(this.certificates.get());
+		final SiteStatistics stats = new SiteStatistics(this.certificates.asMap());
 		getEmployeesStats(site_pk, null, null, null).values().iterator().next()
 				.forEach(
 							(empl_pk, empl_stats) -> stats.register(empl_pk, employeesContractTypes.get(empl_pk), empl_stats));
@@ -384,7 +402,7 @@ public class StatisticsEndpoint {
 																final String empl_pk,
 																final Iterable<Date> dates) throws ParseException {
 		final EmployeeStatisticsBuilder builder = EmployeeStatistics
-				.builder(this.trainingTypes.get(), this.certificatesByTrainingTypes.get(), buildCertificatesVoiding(empl_pk));
+				.builder(this.trainingTypes.asMap(), this.certificatesByTrainingTypes.asMap(), buildCertificatesVoiding(empl_pk));
 		final Map<Date, EmployeeStatistics> res = new TreeMap<>();
 
 		// TODO: Only retrieve the Training Types that we care about
@@ -405,7 +423,7 @@ public class StatisticsEndpoint {
 	private Map.Entry<Date, EmployeeStatistics> buildLatestEmployeeStats(final String empl_pk) throws ParseException {
 		final Date currentDate = new Date(new java.util.Date().getTime());
 		final EmployeeStatisticsBuilder builder = EmployeeStatistics
-				.builder(this.trainingTypes.get(), this.certificatesByTrainingTypes.get(), buildCertificatesVoiding(empl_pk));
+				.builder(this.trainingTypes.asMap(), this.certificatesByTrainingTypes.asMap(), buildCertificatesVoiding(empl_pk));
 		this.resources.listTrainings(empl_pk, Collections.emptyList(), null, null, currentDate.toString()).forEach(training -> builder.accept(training));
 		return new SimpleEntry<>(currentDate, builder.buildFor(currentDate));
 	}
