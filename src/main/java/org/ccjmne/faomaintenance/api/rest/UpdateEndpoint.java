@@ -164,7 +164,6 @@ public class UpdateEndpoint {
 			}
 		});
 
-		this.statistics.refreshCertificates();
 		this.statistics.invalidateEmployeesStats();
 		this.statistics.invalidateSitesStats();
 		return exists;
@@ -225,7 +224,6 @@ public class UpdateEndpoint {
 			}
 		});
 
-		this.statistics.refreshCertificates();
 		this.statistics.invalidateEmployeesStats();
 		this.statistics.invalidateSitesStats();
 		return exists;
@@ -247,8 +245,6 @@ public class UpdateEndpoint {
 						.as("unused", "pk", "new_order"))
 				.where(CERTIFICATES.CERT_PK.eq(DSL.field("pk", Integer.class)))
 				.execute();
-
-		this.statistics.refreshCertificates();
 	}
 
 	@POST
@@ -267,8 +263,6 @@ public class UpdateEndpoint {
 						.as("unused", "pk", "new_order"))
 				.where(TRAININGTYPES.TRTY_PK.eq(DSL.field("pk", Integer.class)))
 				.execute();
-
-		this.statistics.refreshCertificates();
 	}
 
 	@DELETE
