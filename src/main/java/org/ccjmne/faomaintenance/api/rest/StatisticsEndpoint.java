@@ -222,9 +222,8 @@ public class StatisticsEndpoint {
 													@QueryParam("from") final String fromStr,
 													@QueryParam("interval") final Integer interval) throws ParseException {
 		if ((dateStr == null) && (fromStr == null)) {
-			final Entry<Date, SiteStatistics> res = calculateLatestSiteStats(site_pk);
-			this.siteStatisticsCache.put(site_pk, res);
-			return new ImmutableMap.Builder<Date, SiteStatistics>().put(res).build();
+			this.siteStatisticsCache.refresh(site_pk);
+			return new ImmutableMap.Builder<Date, SiteStatistics>().put(this.siteStatisticsCache.getUnchecked(site_pk)).build();
 		}
 
 		return calculateSiteStats(site_pk, computeDates(fromStr, dateStr, interval));
@@ -238,12 +237,8 @@ public class StatisticsEndpoint {
 															@QueryParam("from") final String fromStr,
 															@QueryParam("interval") final Integer interval) throws ParseException {
 		if ((dateStr == null) && (fromStr == null)) {
-			final Entry<Date, EmployeeStatistics> res = buildLatestEmployeeStats(
-																					empl_pk,
-																					this.resourcesByKeys.listTrainingTypes(),
-																					this.resourcesByKeys.listTrainingtypesCertificates());
-			this.employeeStatisticsCache.put(empl_pk, res);
-			return new ImmutableMap.Builder<Date, EmployeeStatistics>().put(res).build();
+			this.employeeStatisticsCache.refresh(empl_pk);
+			return new ImmutableMap.Builder<Date, EmployeeStatistics>().put(this.employeeStatisticsCache.getUnchecked(empl_pk)).build();
 		}
 
 		return buildEmployeeStats(
