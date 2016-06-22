@@ -93,18 +93,6 @@
 			<version>3.7.2</version>
 		</dependency>
 
-		<!-- XLS(X) PARSING -->
-		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi</artifactId>
-			<version>3.13</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi-ooxml</artifactId>
-			<version>3.13</version>
-		</dependency>
-
 		<!-- JSON -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.jaxrs</groupId>

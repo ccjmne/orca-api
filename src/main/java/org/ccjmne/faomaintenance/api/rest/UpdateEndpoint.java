@@ -10,13 +10,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.text.DecimalFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,41 +26,24 @@ import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DateUtil;
-import org.apache.poi.ss.usermodel.FormulaEvaluator;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesEmployeesRecord;
-import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
-import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep3;
 import org.jooq.Row1;
 import org.jooq.Row2;
 import org.jooq.TableField;
 import org.jooq.impl.DSL;
-import org.jooq.tools.csv.CSVReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Path("update")
 public class UpdateEndpoint {
 
 	private static final Pattern FIRST_LETTER = Pattern.compile("\\b(\\w)");
-	private static final Logger LOGGER = LoggerFactory.getLogger(UpdateEndpoint.class);
-	private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
 
 	private final DSLContext ctx;
 	private final StatisticsEndpoint statistics;
@@ -296,39 +273,6 @@ public class UpdateEndpoint {
 	}
 
 	@POST
-	@Consumes(MediaType.MULTIPART_FORM_DATA)
-	@Produces(MediaType.APPLICATION_JSON)
-	@Path("parse")
-	public Response parse(
-							@QueryParam("pageNumber") final int pageNumber,
-							@QueryParam("pageName") final String pageName,
-							@FormDataParam("file") final InputStream file,
-							@FormDataParam("file") final FormDataContentDisposition fileDisposition) {
-		try {
-			switch (fileDisposition.getFileName().substring(fileDisposition.getFileName().lastIndexOf(".") + 1)) {
-				case "csv":
-					try (final CSVReader reader = new CSVReader(new InputStreamReader(file))) {
-						final List<String[]> list = reader.readAll();
-						return Response.status(Status.OK).entity(list.toArray(new String[list.size()][])).build();
-					}
-				case "xls":
-					try (final Workbook workbook = new HSSFWorkbook(file)) {
-						return Response.status(Status.OK).entity(readSheet(workbook, pageNumber, pageName)).build();
-					}
-				case "xlsx":
-					try (final Workbook workbook = new XSSFWorkbook(file)) {
-						return Response.status(Status.OK).entity(readSheet(workbook, pageNumber, pageName)).build();
-					}
-				default:
-					return Response.status(Status.BAD_REQUEST).entity("Uploaded file was neither a .xls nor a .xlsx file.").build();
-			}
-		} catch (final IOException e) {
-			UpdateEndpoint.LOGGER.error(String.format("Could not parse file '%s'.", fileDisposition.getFileName()), e);
-			return Response.status(Status.BAD_REQUEST).entity(String.format("Could not parse file '%s'.", fileDisposition.getFileName())).build();
-		}
-	}
-
-	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response process(final List<Map<String, String>> employees) {
 		try {
@@ -405,52 +349,5 @@ public class UpdateEndpoint {
 		}
 
 		return empl_pk;
-	}
-
-	private static List<List<String>> readSheet(final Workbook workbook, final int pageNumber, final String pageName) {
-		final FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
-		final Sheet sheet = ((pageName != null) && !pageName.isEmpty()) ? workbook.getSheet(pageName) : workbook.getSheetAt(pageNumber);
-
-		final List<List<String>> res = new ArrayList<>();
-		final int lastColNum = sheet.getRow(sheet.getFirstRowNum()).getLastCellNum();
-		for (final Row row : sheet) {
-			final List<String> line = new ArrayList<>(lastColNum);
-			for (int col = 0; col < lastColNum; col++) {
-				line.add(getStringValue(row.getCell(col), evaluator));
-			}
-
-			if (!line.stream().allMatch(entry -> entry.isEmpty())) {
-				res.add(line);
-			}
-		}
-
-		return res;
-	}
-
-	private static String getStringValue(final Cell cell, final FormulaEvaluator evaluator) {
-		if (cell == null) {
-			return "";
-		}
-
-		switch (cell.getCellType()) {
-			case Cell.CELL_TYPE_NUMERIC:
-				if (DateUtil.isCellDateFormatted(cell)) {
-					// TODO: rework (probably remove the entire file parsing and
-					// having it done in the client's browser
-					return new SimpleDateFormat("yyyy-MM-dd").format(cell.getDateCellValue());
-				}
-
-				return DECIMAL_FORMAT.format(cell.getNumericCellValue());
-
-			case Cell.CELL_TYPE_ERROR:
-			case Cell.CELL_TYPE_BLANK:
-				return "";
-
-			case Cell.CELL_TYPE_FORMULA:
-				return evaluator.evaluate(cell).getStringValue();
-
-			default:
-				return cell.getStringCellValue();
-		}
 	}
 }
