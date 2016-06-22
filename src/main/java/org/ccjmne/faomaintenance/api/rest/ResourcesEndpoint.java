@@ -24,7 +24,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
 import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics;
-import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
+import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.DepartmentsRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
@@ -42,12 +42,10 @@ public class ResourcesEndpoint {
 	private static final String SITE_UNASSIGNED = "0";
 
 	private final DSLContext ctx;
-	private final SQLDateFormat dateFormat;
 
 	@Inject
-	public ResourcesEndpoint(final DSLContext ctx, final SQLDateFormat dateFormat) {
+	public ResourcesEndpoint(final DSLContext ctx) {
 		this.ctx = ctx;
-		this.dateFormat = dateFormat;
 	}
 
 	@GET
@@ -162,7 +160,7 @@ public class ResourcesEndpoint {
 	@Path("update")
 	public Record getUpdateFor(@QueryParam("date") final String dateStr) throws ParseException {
 		if (dateStr != null) {
-			return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_DATE.le(this.dateFormat.parseSql(dateStr))).orderBy(UPDATES.UPDT_DATE.desc())
+			return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_DATE.le(SafeDateFormat.parseAsSql(dateStr))).orderBy(UPDATES.UPDT_DATE.desc())
 					.fetchAny();
 		}
 
@@ -208,24 +206,30 @@ public class ResourcesEndpoint {
 			}
 
 			if (dateStr != null) {
-				final Date date = this.dateFormat.parseSql(dateStr);
+				final Date date = SafeDateFormat.parseAsSql(dateStr);
 				query.addConditions(TRAININGS.TRNG_START.isNotNull()
 						.and(TRAININGS.TRNG_START.le(date).and(TRAININGS.TRNG_DATE.ge(date)))
 						.or(TRAININGS.TRNG_DATE.eq(date)));
 			}
 
 			if (fromStr != null) {
-				final Date from = this.dateFormat.parseSql(fromStr);
+				final Date from = SafeDateFormat.parseAsSql(fromStr);
 				query.addConditions(TRAININGS.TRNG_DATE.ge(from).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.ge(from))));
 			}
 
 			if (toStr != null) {
-				final Date to = this.dateFormat.parseSql(toStr);
+				final Date to = SafeDateFormat.parseAsSql(toStr);
 				query.addConditions(TRAININGS.TRNG_DATE.le(to).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.le(to))));
 			}
 
 			query.addOrderBy(TRAININGS.TRNG_DATE);
 			return query.fetch();
+		} catch (final Throwable t) {
+			t.printStackTrace();
+			System.out.println(dateStr);
+			System.out.println(fromStr);
+			System.out.println(toStr);
+			throw t;
 		}
 	}
 

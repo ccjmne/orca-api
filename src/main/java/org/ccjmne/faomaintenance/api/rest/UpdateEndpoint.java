@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.DecimalFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -45,7 +46,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
+import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesEmployeesRecord;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
@@ -68,12 +69,10 @@ public class UpdateEndpoint {
 	private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
 
 	private final DSLContext ctx;
-	private final SQLDateFormat dateFormat;
 	private final StatisticsEndpoint statistics;
 
 	@Inject
-	public UpdateEndpoint(final DSLContext ctx, final SQLDateFormat dateFormat, final StatisticsEndpoint statistics, final ResourcesEndpoint resources) {
-		this.dateFormat = dateFormat;
+	public UpdateEndpoint(final DSLContext ctx, final StatisticsEndpoint statistics, final ResourcesEndpoint resources) {
 		this.ctx = ctx;
 		this.statistics = statistics;
 	}
@@ -388,12 +387,12 @@ public class UpdateEndpoint {
 		return res.toString();
 	}
 
-	private String updateEmployee(final Map<String, String> employee, final DSLContext context) throws ParseException {
+	private static String updateEmployee(final Map<String, String> employee, final DSLContext context) throws ParseException {
 		final String empl_pk = employee.get(EMPLOYEES.EMPL_PK.getName());
 		final Map<TableField<?, ?>, Object> record = new HashMap<>();
 		record.put(EMPLOYEES.EMPL_FIRSTNAME, capitalise(employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName())));
 		record.put(EMPLOYEES.EMPL_SURNAME, employee.get(EMPLOYEES.EMPL_SURNAME.getName()));
-		record.put(EMPLOYEES.EMPL_DOB, this.dateFormat.parseSql(employee.get(EMPLOYEES.EMPL_DOB.getName())));
+		record.put(EMPLOYEES.EMPL_DOB, SafeDateFormat.parseAsSql(employee.get(EMPLOYEES.EMPL_DOB.getName())));
 		record.put(EMPLOYEES.EMPL_PERMANENT, Boolean.valueOf("CDI".equalsIgnoreCase(employee.get(EMPLOYEES.EMPL_PERMANENT.getName()))));
 		record.put(EMPLOYEES.EMPL_GENDER, Boolean.valueOf("Masculin".equalsIgnoreCase(employee.get(EMPLOYEES.EMPL_GENDER.getName()))));
 		record.put(EMPLOYEES.EMPL_ADDR, employee.get(EMPLOYEES.EMPL_ADDR.getName()));
@@ -408,7 +407,7 @@ public class UpdateEndpoint {
 		return empl_pk;
 	}
 
-	private List<List<String>> readSheet(final Workbook workbook, final int pageNumber, final String pageName) {
+	private static List<List<String>> readSheet(final Workbook workbook, final int pageNumber, final String pageName) {
 		final FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
 		final Sheet sheet = ((pageName != null) && !pageName.isEmpty()) ? workbook.getSheet(pageName) : workbook.getSheetAt(pageNumber);
 
@@ -428,7 +427,7 @@ public class UpdateEndpoint {
 		return res;
 	}
 
-	private String getStringValue(final Cell cell, final FormulaEvaluator evaluator) {
+	private static String getStringValue(final Cell cell, final FormulaEvaluator evaluator) {
 		if (cell == null) {
 			return "";
 		}
@@ -436,7 +435,9 @@ public class UpdateEndpoint {
 		switch (cell.getCellType()) {
 			case Cell.CELL_TYPE_NUMERIC:
 				if (DateUtil.isCellDateFormatted(cell)) {
-					return this.dateFormat.format(cell.getDateCellValue());
+					// TODO: rework (probably remove the entire file parsing and
+					// having it done in the client's browser
+					return new SimpleDateFormat("yyyy-MM-dd").format(cell.getDateCellValue());
 				}
 
 				return DECIMAL_FORMAT.format(cell.getNumericCellValue());

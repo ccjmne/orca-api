@@ -17,7 +17,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
-import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
+import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -26,14 +26,12 @@ import org.jooq.impl.DSL;
 public class TrainingsEndpoint {
 
 	private final DSLContext ctx;
-	private final SQLDateFormat dateFormat;
 	private final ResourcesEndpoint resources;
 	private final StatisticsEndpoint statistics;
 
 	@Inject
-	public TrainingsEndpoint(final DSLContext ctx, final SQLDateFormat dateFormat, final ResourcesEndpoint resources, final StatisticsEndpoint statistics) {
+	public TrainingsEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final StatisticsEndpoint statistics) {
 		this.ctx = ctx;
-		this.dateFormat = dateFormat;
 		this.resources = resources;
 		this.statistics = statistics;
 	}
@@ -98,8 +96,8 @@ public class TrainingsEndpoint {
 				.values(
 						trng_pk,
 						(Integer) map.get("trng_trty_fk"),
-						map.get("trng_start") != null ? this.dateFormat.parseSql(map.get("trng_start").toString()) : null,
-						this.dateFormat.parseSql(map.get("trng_date").toString()),
+						map.get("trng_start") != null ? SafeDateFormat.parseAsSql(map.get("trng_start").toString()) : null,
+						SafeDateFormat.parseAsSql(map.get("trng_date").toString()),
 						(String) map.get("trng_outcome"),
 						(String) map.get("trng_comment"))
 				.execute();

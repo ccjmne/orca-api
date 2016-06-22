@@ -40,7 +40,7 @@ import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeS
 import org.ccjmne.faomaintenance.api.rest.resources.SiteStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
-import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
+import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
@@ -61,7 +61,6 @@ public class StatisticsEndpoint {
 	private static final Integer DEFAULT_INTERVAL = Integer.valueOf(6);
 
 	private final ResourcesEndpoint resources;
-	private final SQLDateFormat dateFormat;
 	private final DSLContext ctx;
 
 	private final LoadingCache<String, Map.Entry<Date, EmployeeStatistics>> employeeStatisticsCache;
@@ -73,14 +72,12 @@ public class StatisticsEndpoint {
 	@Inject
 	public StatisticsEndpoint(
 								final DSLContext ctx,
-								final SQLDateFormat dateFormat,
 								final ResourcesEndpoint resources,
 								final ResourcesByKeysEndpoint resourcesByKeys) {
 		this.ctx = ctx;
-		this.dateFormat = dateFormat;
 		this.resources = resources;
 		this.resourcesByKeys = resourcesByKeys;
-		this.statisticsCalculationThreadPool = Executors.newCachedThreadPool();
+		this.statisticsCalculationThreadPool = Executors.newFixedThreadPool(16);
 
 		this.employeeStatisticsCache = CacheBuilder.newBuilder()
 				.refreshAfterWrite(30, TimeUnit.MINUTES).<String, Map
@@ -445,14 +442,14 @@ public class StatisticsEndpoint {
 		return res;
 	}
 
-	private List<Date> computeDates(final String fromStr, final String toStr, final Integer intervalRaw) throws ParseException {
-		final Date utmost = (toStr == null) ? new Date(new java.util.Date().getTime()) : this.dateFormat.parseSql(toStr);
+	private static List<Date> computeDates(final String fromStr, final String toStr, final Integer intervalRaw) throws ParseException {
+		final Date utmost = (toStr == null) ? new Date(new java.util.Date().getTime()) : SafeDateFormat.parseAsSql(toStr);
 		if (fromStr == null) {
 			return Collections.singletonList(utmost);
 		}
 
 		final int interval = (intervalRaw != null ? intervalRaw : DEFAULT_INTERVAL).intValue();
-		LocalDate cur = this.dateFormat.parseSql(fromStr).toLocalDate();
+		LocalDate cur = SafeDateFormat.parseAsSql(fromStr).toLocalDate();
 		if (interval == 0) {
 			return ImmutableList.<Date> of(Date.valueOf(cur), utmost);
 		}
