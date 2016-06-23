@@ -18,7 +18,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.DepartmentsRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.Record;
 
@@ -64,7 +63,7 @@ public class ResourcesByKeysEndpoint {
 
 	@GET
 	@Path("departments")
-	public Map<Integer, DepartmentsRecord> listDepartments() {
+	public Map<Integer, ? extends Record> listDepartments() {
 		return this.resources.listDepartments().intoMap(DEPARTMENTS.DEPT_PK);
 	}
 
