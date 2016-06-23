@@ -119,7 +119,6 @@ public class UpdateEndpoint {
 							.set(CERTIFICATES.CERT_PERMANENTONLY, Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())))
 							.where(CERTIFICATES.CERT_PK.eq(cert_pk)).execute();
 				} else {
-					final Integer nextOrder = Integer.valueOf(transactionCtx.selectCount().from(TRAININGTYPES).fetchOne(0, Integer.class).intValue() + 1);
 					transactionCtx.insertInto(
 												CERTIFICATES,
 												CERTIFICATES.CERT_PK,
@@ -134,7 +133,9 @@ public class UpdateEndpoint {
 									cert.get(CERTIFICATES.CERT_SHORT.getName()),
 									Integer.valueOf(cert.get(CERTIFICATES.CERT_TARGET.getName())),
 									Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())),
-									nextOrder)
+									transactionCtx.select(DSL.max(CERTIFICATES.CERT_ORDER).add(Integer.valueOf(1)).as("order"))
+											.from(CERTIFICATES)
+											.fetchOne("order", Integer.class))
 							.execute();
 				}
 			}
@@ -169,7 +170,6 @@ public class UpdateEndpoint {
 							.set(TRAININGTYPES.TRTY_VALIDITY, Integer.valueOf(trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()).toString()))
 							.where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
 				} else {
-					final Integer nextOrder = Integer.valueOf(transactionCtx.selectCount().from(TRAININGTYPES).fetchOne(0, Integer.class).intValue() + 1);
 					transactionCtx.insertInto(
 												TRAININGTYPES,
 												TRAININGTYPES.TRTY_PK,
@@ -180,7 +180,9 @@ public class UpdateEndpoint {
 									trty_pk,
 									trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString(),
 									(Integer) trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()),
-									nextOrder)
+									transactionCtx.select(DSL.max(TRAININGTYPES.TRTY_ORDER).add(Integer.valueOf(1)).as("order"))
+											.from(TRAININGTYPES)
+											.fetchOne("order", Integer.class))
 							.execute();
 				}
 
