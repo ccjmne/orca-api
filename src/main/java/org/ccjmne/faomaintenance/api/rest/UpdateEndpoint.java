@@ -44,6 +44,7 @@ import org.jooq.impl.DSL;
 public class UpdateEndpoint {
 
 	private static final Pattern FIRST_LETTER = Pattern.compile("\\b(\\w)");
+	private static final String SITE_UNASSIGNED = "0";
 
 	private final DSLContext ctx;
 	private final StatisticsEndpoint statistics;
@@ -52,6 +53,15 @@ public class UpdateEndpoint {
 	public UpdateEndpoint(final DSLContext ctx, final StatisticsEndpoint statistics, final ResourcesEndpoint resources) {
 		this.ctx = ctx;
 		this.statistics = statistics;
+	}
+
+	@POST
+	@Path("departments")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Integer createDept(final Map<String, String> dept) {
+		final Integer dept_pk = new Integer(this.ctx.nextval(Sequences.DEPARTMENTS_DEPT_PK_SEQ).intValue());
+		updateDepartment(dept_pk, dept);
+		return dept_pk;
 	}
 
 	@PUT
@@ -292,7 +302,7 @@ public class UpdateEndpoint {
 						query.execute();
 					}
 
-					// Remove all privileges of the remaining employees
+					// Remove all privileges of the unassigned employees
 					transactionCtx
 							.delete(EMPLOYEES_ROLES)
 							.where(
@@ -306,7 +316,7 @@ public class UpdateEndpoint {
 							.select(
 									transactionCtx.select(
 															EMPLOYEES.EMPL_PK,
-															DSL.val("0"),
+															DSL.val(SITE_UNASSIGNED),
 															DSL.val(updt_pk))
 											.from(EMPLOYEES)
 											.where(EMPLOYEES.EMPL_PK
