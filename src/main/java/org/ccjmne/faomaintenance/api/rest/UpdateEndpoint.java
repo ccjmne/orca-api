@@ -36,7 +36,7 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesEmployeesRecor
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep3;
 import org.jooq.Row1;
-import org.jooq.Row2;
+import org.jooq.RowN;
 import org.jooq.TableField;
 import org.jooq.impl.DSL;
 
@@ -219,7 +219,6 @@ public class UpdateEndpoint {
 
 	@POST
 	@Path("certificates/reorder")
-	@SuppressWarnings("unchecked")
 	public void reassignCertificates(final Map<Integer, Integer> reassignmentMap) {
 		if (reassignmentMap.isEmpty()) {
 			return;
@@ -229,7 +228,7 @@ public class UpdateEndpoint {
 				.set(
 						CERTIFICATES.CERT_ORDER,
 						DSL.field("new_order", Integer.class))
-				.from(DSL.values(reassignmentMap.entrySet().stream().map((entry) -> DSL.row(entry.getKey(), entry.getValue())).toArray(Row2[]::new))
+				.from(DSL.values((RowN[]) reassignmentMap.entrySet().stream().map((entry) -> DSL.row(entry.getKey(), entry.getValue())).toArray())
 						.as("unused", "pk", "new_order"))
 				.where(CERTIFICATES.CERT_PK.eq(DSL.field("pk", Integer.class)))
 				.execute();
@@ -237,7 +236,6 @@ public class UpdateEndpoint {
 
 	@POST
 	@Path("trainingtypes/reorder")
-	@SuppressWarnings("unchecked")
 	public void reassignTrainingTypes(final Map<Integer, Integer> reassignmentMap) {
 		if (reassignmentMap.isEmpty()) {
 			return;
@@ -247,7 +245,7 @@ public class UpdateEndpoint {
 				.set(
 						TRAININGTYPES.TRTY_ORDER,
 						DSL.field("new_order", Integer.class))
-				.from(DSL.values(reassignmentMap.entrySet().stream().map((entry) -> DSL.row(entry.getKey(), entry.getValue())).toArray(Row2[]::new))
+				.from(DSL.values((RowN[]) reassignmentMap.entrySet().stream().map((entry) -> DSL.row(entry.getKey(), entry.getValue())).toArray())
 						.as("unused", "pk", "new_order"))
 				.where(TRAININGTYPES.TRTY_PK.eq(DSL.field("pk", Integer.class)))
 				.execute();
