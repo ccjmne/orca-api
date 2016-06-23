@@ -5,7 +5,7 @@
 
 	<groupId>org.ccjmne.faomaintenance</groupId>
 	<artifactId>foamainteance_api</artifactId>
-	<version>1.4.1</version>
+	<version>1.4.2</version>
 	<packaging>war</packaging>
 	<name>api</name>
 
@@ -91,18 +91,6 @@
 			<groupId>org.jooq</groupId>
 			<artifactId>jooq</artifactId>
 			<version>3.7.2</version>
-		</dependency>
-
-		<!-- XLS(X) PARSING -->
-		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi</artifactId>
-			<version>3.13</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi-ooxml</artifactId>
-			<version>3.13</version>
 		</dependency>
 
 		<!-- JSON -->

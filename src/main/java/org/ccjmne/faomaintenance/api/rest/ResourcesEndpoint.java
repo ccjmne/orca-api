@@ -24,15 +24,16 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
 import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics;
-import org.ccjmne.faomaintenance.api.utils.SQLDateFormat;
+import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.DepartmentsRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
+import org.jooq.JoinType;
 import org.jooq.Record;
 import org.jooq.Result;
+import org.jooq.Select;
 import org.jooq.SelectQuery;
 import org.jooq.impl.DSL;
 
@@ -40,14 +41,13 @@ import org.jooq.impl.DSL;
 public class ResourcesEndpoint {
 
 	private static final String SITE_UNASSIGNED = "0";
+	private static final Integer DEPT_UNASSIGNED = Integer.valueOf(0);
 
 	private final DSLContext ctx;
-	private final SQLDateFormat dateFormat;
 
 	@Inject
-	public ResourcesEndpoint(final DSLContext ctx, final SQLDateFormat dateFormat) {
+	public ResourcesEndpoint(final DSLContext ctx) {
 		this.ctx = ctx;
-		this.dateFormat = dateFormat;
 	}
 
 	@GET
@@ -126,14 +126,19 @@ public class ResourcesEndpoint {
 									@QueryParam("date") final String dateStr,
 									@QueryParam("unlisted") final boolean unlisted)
 											throws ParseException {
-		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
-			query.addSelect(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES);
+		final Integer update = getUpdatePkFor(dateStr);
+		try (
+				final SelectQuery<Record> query = this.ctx.selectQuery();
+				final Select<? extends Record> employees = DSL.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
+						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(update))) {
+			query.addSelect(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES, DSL.count(employees.field(SITES_EMPLOYEES.SIEM_SITE_FK)));
+			query.addGroupBy(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES);
 			query.addFrom(SITES);
-			if (!unlisted) {
-				query.addConditions(SITES.SITE_PK.in(DSL.selectDistinct(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)))));
-			}
-			query.addConditions(SITES.SITE_PK.notEqual(String.valueOf(0)));
+			query.addJoin(
+							employees,
+							unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
+							employees.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(SITES.SITE_PK));
+			query.addConditions(SITES.SITE_PK.ne(SITE_UNASSIGNED));
 
 			if (dept_pk != null) {
 				query.addConditions(SITES.SITE_DEPT_FK.eq(dept_pk));
@@ -141,7 +146,7 @@ public class ResourcesEndpoint {
 
 			if (empl_pk != null) {
 				query.addConditions(SITES.SITE_PK.eq(DSL.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-						.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr))))));
+						.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(update)))));
 			}
 
 			return query.fetch();
@@ -162,7 +167,7 @@ public class ResourcesEndpoint {
 	@Path("update")
 	public Record getUpdateFor(@QueryParam("date") final String dateStr) throws ParseException {
 		if (dateStr != null) {
-			return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_DATE.le(this.dateFormat.parseSql(dateStr))).orderBy(UPDATES.UPDT_DATE.desc())
+			return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_DATE.le(SafeDateFormat.parseAsSql(dateStr))).orderBy(UPDATES.UPDT_DATE.desc())
 					.fetchAny();
 		}
 
@@ -208,19 +213,19 @@ public class ResourcesEndpoint {
 			}
 
 			if (dateStr != null) {
-				final Date date = this.dateFormat.parseSql(dateStr);
+				final Date date = SafeDateFormat.parseAsSql(dateStr);
 				query.addConditions(TRAININGS.TRNG_START.isNotNull()
 						.and(TRAININGS.TRNG_START.le(date).and(TRAININGS.TRNG_DATE.ge(date)))
 						.or(TRAININGS.TRNG_DATE.eq(date)));
 			}
 
 			if (fromStr != null) {
-				final Date from = this.dateFormat.parseSql(fromStr);
+				final Date from = SafeDateFormat.parseAsSql(fromStr);
 				query.addConditions(TRAININGS.TRNG_DATE.ge(from).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.ge(from))));
 			}
 
 			if (toStr != null) {
-				final Date to = this.dateFormat.parseSql(toStr);
+				final Date to = SafeDateFormat.parseAsSql(toStr);
 				query.addConditions(TRAININGS.TRNG_DATE.le(to).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.le(to))));
 			}
 
@@ -256,8 +261,13 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("departments")
-	public Result<DepartmentsRecord> listDepartments() {
-		return this.ctx.selectFrom(DEPARTMENTS).fetch();
+	public Result<? extends Record> listDepartments() {
+		return this.ctx
+				.select(DEPARTMENTS.DEPT_PK, DEPARTMENTS.DEPT_ID, DEPARTMENTS.DEPT_NAME, DSL.count(SITES.SITE_PK)).from(DEPARTMENTS)
+				.leftOuterJoin(SITES).on(SITES.SITE_DEPT_FK.eq(DEPARTMENTS.DEPT_PK))
+				.where(DEPARTMENTS.DEPT_PK.ne(DSL.val(DEPT_UNASSIGNED)))
+				.groupBy(DEPARTMENTS.fields())
+				.fetch();
 	}
 
 	@GET
