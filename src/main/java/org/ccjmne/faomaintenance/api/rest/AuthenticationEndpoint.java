@@ -11,6 +11,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.ccjmne.faomaintenance.api.utils.AdministrationEndpoint;
 import org.jooq.DSLContext;
 
 @Singleton
