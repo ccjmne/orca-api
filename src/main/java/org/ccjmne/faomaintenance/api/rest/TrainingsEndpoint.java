@@ -95,21 +95,27 @@ public class TrainingsEndpoint {
 							TRAININGS.TRNG_COMMENT)
 				.values(
 						trng_pk,
-						(Integer) map.get("trng_trty_fk"),
-						map.get("trng_start") != null ? SafeDateFormat.parseAsSql(map.get("trng_start").toString()) : null,
-						SafeDateFormat.parseAsSql(map.get("trng_date").toString()),
-						(String) map.get("trng_outcome"),
-						(String) map.get("trng_comment"))
+						(Integer) map.get(TRAININGS.TRNG_TRTY_FK.getName()),
+						map.get(TRAININGS.TRNG_START.getName()) != null ? SafeDateFormat.parseAsSql(map.get(TRAININGS.TRNG_START.getName()).toString()) : null,
+						SafeDateFormat.parseAsSql(map.get(TRAININGS.TRNG_DATE.getName()).toString()),
+						(String) map.get(TRAININGS.TRNG_OUTCOME.getName()),
+						(String) map.get(TRAININGS.TRNG_COMMENT.getName()))
 				.execute();
 		final Map<String, Map<String, String>> trainees = (Map<String, Map<String, String>>) map.getOrDefault("trainees", Collections.EMPTY_MAP);
 		this.statistics.invalidateEmployeesStats(trainees.keySet());
-		trainees.forEach((trem_empl_fk, data) -> transactionContext.insertInto(
-																				TRAININGS_EMPLOYEES,
-																				TRAININGS_EMPLOYEES.TREM_TRNG_FK,
-																				TRAININGS_EMPLOYEES.TREM_EMPL_FK,
-																				TRAININGS_EMPLOYEES.TREM_OUTCOME,
-																				TRAININGS_EMPLOYEES.TREM_COMMENT)
-				.values(trng_pk, trem_empl_fk, data.get("trem_outcome"), data.get("trem_comment")).execute());
+		trainees.forEach((trem_empl_fk, data) -> transactionContext
+				.insertInto(
+							TRAININGS_EMPLOYEES,
+							TRAININGS_EMPLOYEES.TREM_TRNG_FK,
+							TRAININGS_EMPLOYEES.TREM_EMPL_FK,
+							TRAININGS_EMPLOYEES.TREM_OUTCOME,
+							TRAININGS_EMPLOYEES.TREM_COMMENT)
+				.values(
+						trng_pk,
+						trem_empl_fk,
+						data.get(TRAININGS_EMPLOYEES.TREM_OUTCOME.getName()),
+						data.get(TRAININGS_EMPLOYEES.TREM_COMMENT.getName()))
+				.execute());
 		((List<String>) map.getOrDefault("trainers", Collections.EMPTY_LIST))
 				.forEach(trainer -> transactionContext.insertInto(
 																	TRAININGS_TRAINERS,
