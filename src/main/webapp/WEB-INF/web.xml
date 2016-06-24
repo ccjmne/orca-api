@@ -25,20 +25,32 @@
 
 	<security-constraint>
 		<web-resource-collection>
-			<web-resource-name>Data fetching API</web-resource-name>
+			<web-resource-name>Account management API</web-resource-name>
 
-			<url-pattern>/statistics/*</url-pattern>
-			<url-pattern>/resources/*</url-pattern>
-			<url-pattern>/resources-by-keys/*</url-pattern>
 			<url-pattern>/account/*</url-pattern>
 			<http-method>GET</http-method>
 			<!-- PUT account password only -->
 			<http-method>PUT</http-method>
 		</web-resource-collection>
+		<auth-constraint>
+			<description>Any user can access this API</description>
+			<role-name>user</role-name>
+		</auth-constraint>
+	</security-constraint>
+
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>Data fetching API</web-resource-name>
+
+			<url-pattern>/statistics/*</url-pattern>
+			<url-pattern>/resources/*</url-pattern>
+			<url-pattern>/resources-by-keys/*</url-pattern>
+			<http-method>GET</http-method>
+		</web-resource-collection>
 
 		<auth-constraint>
-			<description>Any basic user can access that API</description>
-			<role-name>user</role-name>
+			<description>Only users with data access can use this API</description>
+			<role-name>access</role-name>
 		</auth-constraint>
 	</security-constraint>
 
@@ -47,14 +59,13 @@
 			<web-resource-name>Trainers-only Management API</web-resource-name>
 
 			<url-pattern>/trainings/*</url-pattern>
-			<url-pattern>/employees-notes/*</url-pattern>
 			<http-method>POST</http-method>
 			<http-method>PUT</http-method>
 			<http-method>DELETE</http-method>
 		</web-resource-collection>
 
 		<auth-constraint>
-			<description>Only trainers can access that API</description>
+			<description>Only trainers can access this API</description>
 			<role-name>trainer</role-name>
 		</auth-constraint>
 	</security-constraint>
@@ -65,6 +76,7 @@
 
 			<url-pattern>/admin/*</url-pattern>
 			<url-pattern>/update/*</url-pattern>
+			<url-pattern>/employees-notes/*</url-pattern>
 			<http-method>GET</http-method>
 			<http-method>DELETE</http-method>
 			<http-method>POST</http-method>
@@ -72,7 +84,7 @@
 		</web-resource-collection>
 
 		<auth-constraint>
-			<description>Only administrators can access that API</description>
+			<description>Only administrators can access this API</description>
 			<role-name>admin</role-name>
 		</auth-constraint>
 	</security-constraint>
@@ -106,6 +118,9 @@
 
 	<security-role>
 		<role-name>user</role-name>
+	</security-role>
+	<security-role>
+		<role-name>access</role-name>
 	</security-role>
 	<security-role>
 		<role-name>trainer</role-name>
