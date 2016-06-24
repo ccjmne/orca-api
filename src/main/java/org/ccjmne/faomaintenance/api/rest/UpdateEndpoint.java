@@ -11,6 +11,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIF
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -36,7 +37,7 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesEmployeesRecor
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep3;
 import org.jooq.Row1;
-import org.jooq.RowN;
+import org.jooq.Row2;
 import org.jooq.TableField;
 import org.jooq.impl.DSL;
 
@@ -218,35 +219,35 @@ public class UpdateEndpoint {
 	}
 
 	@POST
+	@SuppressWarnings("unchecked")
 	@Path("certificates/reorder")
 	public void reassignCertificates(final Map<Integer, Integer> reassignmentMap) {
 		if (reassignmentMap.isEmpty()) {
 			return;
 		}
 
+		final List<Row2<Integer, Integer>> rows = new ArrayList<>(reassignmentMap.size());
+		reassignmentMap.entrySet().forEach(entry -> rows.add(DSL.row(entry.getKey(), entry.getValue())));
 		this.ctx.update(CERTIFICATES)
-				.set(
-						CERTIFICATES.CERT_ORDER,
-						DSL.field("new_order", Integer.class))
-				.from(DSL.values((RowN[]) reassignmentMap.entrySet().stream().map((entry) -> DSL.row(entry.getKey(), entry.getValue())).toArray())
-						.as("unused", "pk", "new_order"))
+				.set(CERTIFICATES.CERT_ORDER, DSL.field("new_order", Integer.class))
+				.from(DSL.values(rows.toArray(new Row2[0])).as("unused", "pk", "new_order"))
 				.where(CERTIFICATES.CERT_PK.eq(DSL.field("pk", Integer.class)))
 				.execute();
 	}
 
 	@POST
+	@SuppressWarnings("unchecked")
 	@Path("trainingtypes/reorder")
 	public void reassignTrainingTypes(final Map<Integer, Integer> reassignmentMap) {
 		if (reassignmentMap.isEmpty()) {
 			return;
 		}
 
+		final List<Row2<Integer, Integer>> rows = new ArrayList<>(reassignmentMap.size());
+		reassignmentMap.entrySet().forEach(entry -> rows.add(DSL.row(entry.getKey(), entry.getValue())));
 		this.ctx.update(TRAININGTYPES)
-				.set(
-						TRAININGTYPES.TRTY_ORDER,
-						DSL.field("new_order", Integer.class))
-				.from(DSL.values((RowN[]) reassignmentMap.entrySet().stream().map((entry) -> DSL.row(entry.getKey(), entry.getValue())).toArray())
-						.as("unused", "pk", "new_order"))
+				.set(TRAININGTYPES.TRTY_ORDER, DSL.field("new_order", Integer.class))
+				.from(DSL.values(rows.toArray(new Row2[0])).as("unused", "pk", "new_order"))
 				.where(TRAININGTYPES.TRTY_PK.eq(DSL.field("pk", Integer.class)))
 				.execute();
 	}
