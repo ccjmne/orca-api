@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeCertificateStatistics;
+import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 
 import com.google.common.collect.ImmutableMap;
@@ -89,14 +90,14 @@ public class SiteStatistics {
 		public String getTargetStatus() {
 			final int countPercentage = getCountPercentage();
 			if (countPercentage >= this.targetPercentage) {
-				return "success";
+				return Constants.STATUS_SUCCESS;
 			}
 
 			if (countPercentage >= ((2 * this.targetPercentage) / 3)) {
-				return "warning";
+				return Constants.STATUS_WARNING;
 			}
 
-			return "danger";
+			return Constants.STATUS_DANGER;
 		}
 	}
 }

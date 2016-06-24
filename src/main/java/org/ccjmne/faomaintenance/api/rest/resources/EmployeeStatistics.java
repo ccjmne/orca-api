@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.Record;
 
@@ -21,8 +22,6 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Multimap;
 
 public class EmployeeStatistics {
-
-	private static final String OUTCOME_VALID = "VALIDATED";
 
 	public static class EmployeeStatisticsBuilder {
 
@@ -46,7 +45,7 @@ public class EmployeeStatistics {
 		}
 
 		public EmployeeStatistics.EmployeeStatisticsBuilder accept(final Record training) {
-			if (OUTCOME_VALID.equals(training.getValue(TRAININGS_EMPLOYEES.TREM_OUTCOME))) {
+			if (Constants.EMPL_OUTCOME_VALIDATED.equals(training.getValue(TRAININGS_EMPLOYEES.TREM_OUTCOME))) {
 				final Record trainingType = this.trainingTypes.get(training.getValue(TRAININGS.TRNG_TRTY_FK));
 				final java.sql.Date trainingDate = training.getValue(TRAININGS.TRNG_DATE);
 				this.calendar.setTime(trainingDate);
@@ -132,14 +131,14 @@ public class EmployeeStatistics {
 
 		public String getValidityStatus() {
 			if (isValidForAWhile()) {
-				return "success";
+				return Constants.STATUS_SUCCESS;
 			}
 
 			if (isValid()) {
-				return "warning";
+				return Constants.STATUS_WARNING;
 			}
 
-			return "danger";
+			return Constants.STATUS_DANGER;
 		}
 
 		public Collection<Record> getTrainings() {

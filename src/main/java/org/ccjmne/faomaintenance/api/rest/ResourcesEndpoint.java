@@ -23,7 +23,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
-import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics;
+import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
@@ -39,9 +39,6 @@ import org.jooq.impl.DSL;
 
 @Path("resources")
 public class ResourcesEndpoint {
-
-	private static final String SITE_UNASSIGNED = "0";
-	private static final Integer DEPT_UNASSIGNED = Integer.valueOf(0);
 
 	private final DSLContext ctx;
 
@@ -78,7 +75,7 @@ public class ResourcesEndpoint {
 				query.addJoin(
 								SITES_EMPLOYEES,
 								SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-								SITES_EMPLOYEES.SIEM_SITE_FK.ne(SITE_UNASSIGNED),
+								SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.SITE_UNASSIGNED),
 								SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)));
 			}
 
@@ -138,7 +135,7 @@ public class ResourcesEndpoint {
 							employees,
 							unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
 							employees.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(SITES.SITE_PK));
-			query.addConditions(SITES.SITE_PK.ne(SITE_UNASSIGNED));
+			query.addConditions(SITES.SITE_PK.ne(Constants.SITE_UNASSIGNED));
 
 			if (dept_pk != null) {
 				query.addConditions(SITES.SITE_DEPT_FK.eq(dept_pk));
@@ -188,10 +185,10 @@ public class ResourcesEndpoint {
 			query.addFrom(TRAININGS);
 			query.addGroupBy(TRAININGS.fields());
 
-			query.addSelect(DSL.select(TrainingsStatistics.AGENTS_REGISTERED).from(TRAININGS_EMPLOYEES)
+			query.addSelect(DSL.select(Constants.AGENTS_REGISTERED).from(TRAININGS_EMPLOYEES)
 					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
 					.asField("registered"));
-			query.addSelect(DSL.select(TrainingsStatistics.AGENTS_VALIDATED).from(TRAININGS_EMPLOYEES)
+			query.addSelect(DSL.select(Constants.AGENTS_VALIDATED).from(TRAININGS_EMPLOYEES)
 					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
 					.asField("validated"));
 			query.addSelect(DSL.select(DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
@@ -239,10 +236,10 @@ public class ResourcesEndpoint {
 	public Record lookupTraining(@PathParam("trng_pk") final Integer trng_pk) {
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
 			query.addSelect(TRAININGS.fields());
-			query.addSelect(DSL.select(TrainingsStatistics.AGENTS_REGISTERED).from(TRAININGS_EMPLOYEES)
+			query.addSelect(DSL.select(Constants.AGENTS_REGISTERED).from(TRAININGS_EMPLOYEES)
 					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
 					.asField("registered"));
-			query.addSelect(DSL.select(TrainingsStatistics.AGENTS_VALIDATED).from(TRAININGS_EMPLOYEES)
+			query.addSelect(DSL.select(Constants.AGENTS_VALIDATED).from(TRAININGS_EMPLOYEES)
 					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
 					.asField("validated"));
 			query.addSelect(DSL.select(DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
@@ -265,7 +262,7 @@ public class ResourcesEndpoint {
 		return this.ctx
 				.select(DEPARTMENTS.DEPT_PK, DEPARTMENTS.DEPT_ID, DEPARTMENTS.DEPT_NAME, DSL.count(SITES.SITE_PK)).from(DEPARTMENTS)
 				.leftOuterJoin(SITES).on(SITES.SITE_DEPT_FK.eq(DEPARTMENTS.DEPT_PK))
-				.where(DEPARTMENTS.DEPT_PK.ne(DSL.val(DEPT_UNASSIGNED)))
+				.where(DEPARTMENTS.DEPT_PK.ne(DSL.val(Constants.DEPT_UNASSIGNED)))
 				.groupBy(DEPARTMENTS.fields())
 				.fetch();
 	}

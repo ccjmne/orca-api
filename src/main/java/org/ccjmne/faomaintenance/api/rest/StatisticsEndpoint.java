@@ -40,6 +40,7 @@ import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeS
 import org.ccjmne.faomaintenance.api.rest.resources.SiteStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
+import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
@@ -117,6 +118,13 @@ public class StatisticsEndpoint {
 		this.siteStatisticsCache.invalidateAll();
 	}
 
+	/**
+	 * Allowed to directly use the {@link DSLContext} with no access
+	 * restriction.<br />
+	 * Reason: <b>Cache management</b>.
+	 *
+	 * @param employees
+	 */
 	public void invalidateEmployeesStats(final Collection<String> employees) {
 		this.employeeStatisticsCache.invalidateAll(employees);
 		invalidateSitesStats(this.ctx
@@ -138,24 +146,24 @@ public class StatisticsEndpoint {
 				.select(
 						TRAININGS.TRNG_DATE,
 						TRAININGS.TRNG_TRTY_FK,
-						TrainingsStatistics.EXPIRY_DATE,
-						TrainingsStatistics.AGENTS_REGISTERED,
-						TrainingsStatistics.AGENTS_VALIDATED)
+						Constants.EXPIRY_DATE,
+						Constants.AGENTS_REGISTERED,
+						Constants.AGENTS_VALIDATED)
 				.from(TRAININGS).join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
-				.where(TRAININGS.TRNG_OUTCOME.eq("COMPLETED"))
-				.groupBy(TRAININGS.TRNG_DATE, TRAININGS.TRNG_TRTY_FK, TrainingsStatistics.EXPIRY_DATE)
+				.where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_COMPLETED))
+				.groupBy(TRAININGS.TRNG_DATE, TRAININGS.TRNG_TRTY_FK, Constants.EXPIRY_DATE)
 				.orderBy(TRAININGS.TRNG_DATE).fetch();
 		final Iterable<? extends Record> trainingsByExpiry = this.ctx
 				.select(
 						TRAININGS.TRNG_DATE,
 						TRAININGS.TRNG_TRTY_FK,
-						TrainingsStatistics.EXPIRY_DATE,
-						TrainingsStatistics.AGENTS_REGISTERED,
-						TrainingsStatistics.AGENTS_VALIDATED)
+						Constants.EXPIRY_DATE,
+						Constants.AGENTS_REGISTERED,
+						Constants.AGENTS_VALIDATED)
 				.from(TRAININGS).join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
-				.where(TRAININGS.TRNG_OUTCOME.eq("COMPLETED"))
-				.groupBy(TRAININGS.TRNG_DATE, TRAININGS.TRNG_TRTY_FK, TrainingsStatistics.EXPIRY_DATE)
-				.orderBy(TrainingsStatistics.EXPIRY_DATE).fetch();
+				.where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_COMPLETED))
+				.groupBy(TRAININGS.TRNG_DATE, TRAININGS.TRNG_TRTY_FK, Constants.EXPIRY_DATE)
+				.orderBy(Constants.EXPIRY_DATE).fetch();
 
 		final Map<Integer, List<Integer>> certs = this.resourcesByKeys.listTrainingtypesCertificates();
 		final Map<Integer, Iterable<TrainingsStatistics>> res = new HashMap<>();
@@ -183,7 +191,7 @@ public class StatisticsEndpoint {
 			populateTrainingsStatsBuilders(
 											trainingsStatsBuilders,
 											trainingsByExpiry,
-											(record) -> record.getValue(TrainingsStatistics.EXPIRY_DATE),
+											(record) -> record.getValue(Constants.EXPIRY_DATE),
 											(builder, training) -> builder.registerExpiry(training));
 			res.put(interval, trainingsStatsBuilders.stream().map(TrainingsStatisticsBuilder::build).collect(Collectors.toList()));
 		}

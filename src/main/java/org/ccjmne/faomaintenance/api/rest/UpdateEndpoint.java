@@ -31,6 +31,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesEmployeesRecord;
@@ -45,7 +46,6 @@ import org.jooq.impl.DSL;
 public class UpdateEndpoint {
 
 	private static final Pattern FIRST_LETTER = Pattern.compile("\\b(\\w)");
-	private static final String SITE_UNASSIGNED = "0";
 
 	private final DSLContext ctx;
 	private final StatisticsEndpoint statistics;
@@ -307,7 +307,7 @@ public class UpdateEndpoint {
 							.where(
 									EMPLOYEES_ROLES.EMPL_PK.notIn(transactionCtx.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES)
 											.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk))))
-							.and(EMPLOYEES_ROLES.EMPL_PK.ne("admin"))
+							.and(EMPLOYEES_ROLES.EMPL_PK.ne(Constants.USER_ROOT))
 							.execute();
 
 					// ... and set their site to #0 ('unassigned')
@@ -315,7 +315,7 @@ public class UpdateEndpoint {
 							.select(
 									transactionCtx.select(
 															EMPLOYEES.EMPL_PK,
-															DSL.val(SITE_UNASSIGNED),
+															DSL.val(Constants.SITE_UNASSIGNED),
 															DSL.val(updt_pk))
 											.from(EMPLOYEES)
 											.where(EMPLOYEES.EMPL_PK
