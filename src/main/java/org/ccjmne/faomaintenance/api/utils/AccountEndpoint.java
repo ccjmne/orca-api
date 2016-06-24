@@ -1,4 +1,4 @@
-package org.ccjmne.faomaintenance.api.rest;
+package org.ccjmne.faomaintenance.api.utils;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 

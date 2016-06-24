@@ -1,4 +1,4 @@
-package org.ccjmne.faomaintenance.api.rest;
+package org.ccjmne.faomaintenance.api.utils;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_ROLES;
@@ -19,6 +19,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 
+import org.ccjmne.faomaintenance.api.rest.ResourcesEndpoint;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRolesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.RolesRecord;
 import org.jooq.DSLContext;
