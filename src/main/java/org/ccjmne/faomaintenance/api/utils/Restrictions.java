@@ -18,54 +18,71 @@ import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
 public class Restrictions {
+	private final DSLContext ctx;
+
 	private final boolean accessTrainings;
 	private final boolean accessAllSites;
 	private final List<String> accessibleSites;
 	private final List<Integer> manageableTypes;
+	private final Integer accessibleDepartment;
 
 	@Inject
 	public Restrictions(@Context final HttpServletRequest request, final DSLContext ctx) {
+		// TODO: Administration restrictions management?
+		this.ctx = ctx;
 		final Map<String, EmployeesRolesRecord> roles = ctx.selectFrom(EMPLOYEES_ROLES)
 				.where(EMPLOYEES_ROLES.EMPL_PK.eq(request.getRemoteUser())).fetchMap(EMPLOYEES_ROLES.EMRO_TYPE);
-		this.accessTrainings = Constants.TRAININGS_ACCESS.equals(roles.get(Constants.ROLE_ACCESS).getEmroLevel());
-		this.accessAllSites = Constants.ALL_SITES_ACCESS.compareTo(roles.get(Constants.ROLE_ACCESS).getEmroLevel()) <= 0;
-		this.accessibleSites = listAccessibleSites(request.getRemoteUser(), roles.get(Constants.ROLE_ACCESS), ctx);
-		this.manageableTypes = listManageableTypes(roles.get(Constants.ROLE_TRAINER), ctx);
+		this.accessTrainings = roles.containsKey(Constants.ROLE_ACCESS)
+				&& Constants.ACCESS_LEVEL_TRAININGS.equals(roles.get(Constants.ROLE_ACCESS).getEmroLevel());
+		this.accessAllSites = roles.containsKey(Constants.ROLE_ACCESS)
+				&& (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(roles.get(Constants.ROLE_ACCESS).getEmroLevel()) <= 0);
+		this.accessibleDepartment = getAccessibleDepartment(request.getRemoteUser(), roles.get(Constants.ROLE_ACCESS));
+		this.accessibleSites = listAccessibleSites(request.getRemoteUser(), roles.get(Constants.ROLE_ACCESS));
+		this.manageableTypes = listManageableTypes(roles.get(Constants.ROLE_TRAINER));
 	}
 
-	private static List<Integer> listManageableTypes(final EmployeesRolesRecord role, final DSLContext ctx) {
+	private Integer getAccessibleDepartment(final String empl_pk, final EmployeesRolesRecord role) {
+		if ((role == null) || (Constants.ACCESS_LEVEL_ONE_DEPT.compareTo(role.getEmroLevel()) < 0)) {
+			return null;
+		}
+
+		return this.ctx.selectFrom(SITES)
+				.where(SITES.SITE_PK.eq(DSL
+						.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
+						.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk)
+								.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE))
+								.and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE)))
+						.asField()))
+				.fetchOne(SITES.SITE_DEPT_FK);
+	}
+
+	private List<Integer> listManageableTypes(final EmployeesRolesRecord role) {
 		if (role == null) {
 			return Collections.EMPTY_LIST;
 		}
 
-		return ctx.selectFrom(TRAINERLEVELS_TRAININGTYPES)
+		return this.ctx.selectFrom(TRAINERLEVELS_TRAININGTYPES)
 				.where(TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK.eq(role.getEmroTrlvFk()))
 				.fetch(TRAINERLEVELS_TRAININGTYPES.TLTR_TRTY_FK);
 	}
 
-	public List<String> initSites(final String site) {
-		return Collections.EMPTY_LIST;
-	}
-
-	public static List<String> listAccessibleSites(final String empl_pk, final EmployeesRolesRecord role, final DSLContext ctx) {
-		if ((role == null) || (Constants.ALL_SITES_ACCESS.compareTo(role.getEmroLevel()) <= 0)) {
+	private List<String> listAccessibleSites(final String empl_pk, final EmployeesRolesRecord role) {
+		if ((role == null) || (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(role.getEmroLevel()) <= 0)) {
 			return Collections.EMPTY_LIST;
 		}
 
-		final String site = ctx.select(SITES_EMPLOYEES.SIEM_SITE_FK)
-				.from(SITES_EMPLOYEES)
+		final String site = this.ctx.selectFrom(SITES_EMPLOYEES)
 				.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk)
 						.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE))
-						.and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.SITE_UNASSIGNED)))
+						.and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE)))
 				.fetchOne(SITES_EMPLOYEES.SIEM_SITE_FK);
 
 		if (site == null) {
 			return Collections.EMPTY_LIST;
 		}
 
-		if (Constants.ONLY_DEPT_ACCESS.equals(role.getEmroLevel())) {
-			return ctx.select(SITES.SITE_PK)
-					.from(SITES)
+		if (Constants.ACCESS_LEVEL_ONE_DEPT.equals(role.getEmroLevel())) {
+			return this.ctx.selectFrom(SITES)
 					.where(SITES.SITE_DEPT_FK.eq(DSL.select(SITES.SITE_DEPT_FK).from(SITES).where(SITES.SITE_PK.eq(site))))
 					.fetch(SITES.SITE_PK);
 		}
@@ -73,14 +90,54 @@ public class Restrictions {
 		return Collections.singletonList(site);
 	}
 
-	public boolean isAccessTrainings() {
+	public boolean canAccessDepartment(final Integer dept_pk) {
+		return this.accessAllSites || ((this.accessibleDepartment != null) && this.accessibleDepartment.equals(dept_pk));
+	}
+
+	public boolean canAccessEmployee(final String empl_pk) {
+		return this.accessAllSites || this.ctx.fetchExists(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk)
+				.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE))
+				.and(SITES_EMPLOYEES.SIEM_SITE_FK.in(this.accessibleSites)));
+	}
+
+	public boolean canAccessTrainings() {
 		return this.accessTrainings;
 	}
 
-	public boolean isAccessAllSites() {
+	/**
+	 * Checks whether the current {@link HttpServletRequest} can access all
+	 * existing sites.<br />
+	 * Should this method return <code>true</code>, both
+	 * {@link Restrictions#getAccessibleDepartment()} and
+	 * {@link Restrictions#getAccessibleSites()} return <code>null</code> and an
+	 * empty <code>List</code> respectively.
+	 *
+	 * @return <code>true</code> if all sites are accessible to the injected
+	 *         request.
+	 */
+	public boolean canAccessAllSites() {
 		return this.accessAllSites;
 	}
 
+	/**
+	 * Get the department the current {@link HttpServletRequest}'s scope should
+	 * be restricted to, if relevant.
+	 *
+	 * @return The only department accessible or <code>null</code> if there is
+	 *         no such department.
+	 * @see {@link Restrictions#canAccessAllSites()}
+	 */
+	public Integer getAccessibleDepartment() {
+		return this.accessibleDepartment;
+	}
+
+	/**
+	 * Get the sites the current {@link HttpServletRequest}'s scope should be
+	 * restricted to or an <b>empty list</b> if all sites are accessible.
+	 *
+	 * @return The list of accessible sites if relevant.
+	 * @see {@link Restrictions#canAccessAllSites()}
+	 */
 	public List<String> getAccessibleSites() {
 		return this.accessibleSites;
 	}
