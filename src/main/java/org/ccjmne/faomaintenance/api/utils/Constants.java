@@ -19,6 +19,7 @@ public class Constants {
 	// ---- DATABASE CONSTANTS
 	public static final String TRNG_OUTCOME_COMPLETED = "COMPLETED";
 	public static final String EMPL_OUTCOME_VALIDATED = "VALIDATED";
+	private static final String EMPL_OUTCOME_FLUNKED = "FLUNKED";
 
 	public static final String USER_ROOT = "admin";
 
@@ -40,11 +41,14 @@ public class Constants {
 
 	public static final Field<Integer> AGENTS_REGISTERED = DSL.count(TRAININGS_EMPLOYEES.TREM_PK).as("registered");
 	public static final Field<Integer> AGENTS_VALIDATED = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
-			.filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq("VALIDATED")).as("validated");
+			.filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(EMPL_OUTCOME_VALIDATED)).as("validated");
+	public static final Field<Integer> AGENTS_FLUNKED = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
+			.filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(EMPL_OUTCOME_FLUNKED)).as("flunked");
 	public static final Field<Date> EXPIRY_DATE = DSL
 			.dateAdd(
 						TRAININGS.TRNG_DATE,
 						DSL.field(DSL.select(TRAININGTYPES.TRTY_VALIDITY).from(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(TRAININGS.TRNG_TRTY_FK))),
-						DatePart.MONTH);
+						DatePart.MONTH)
+			.as("expiry");
 	// SUBQUERIES AND FIELDS ----
 }

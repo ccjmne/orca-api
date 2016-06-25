@@ -14,6 +14,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.ccjmne.faomaintenance.api.rest.AdministrationEndpoint;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.RolesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Result;

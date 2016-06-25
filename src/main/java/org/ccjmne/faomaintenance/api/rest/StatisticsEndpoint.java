@@ -5,7 +5,6 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICAT
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
@@ -122,17 +121,14 @@ public class StatisticsEndpoint {
 	 * Allowed to directly use the {@link DSLContext} with no access
 	 * restriction.<br />
 	 * Reason: <b>Cache management</b>.
-	 *
-	 * @param employees
 	 */
 	public void invalidateEmployeesStats(final Collection<String> employees) {
 		this.employeeStatisticsCache.invalidateAll(employees);
 		invalidateSitesStats(this.ctx
 				.selectDistinct(SITES_EMPLOYEES.SIEM_SITE_FK)
 				.from(SITES_EMPLOYEES)
-				.where(
-						SITES_EMPLOYEES.SIEM_UPDT_FK.eq(this.ctx.selectFrom(UPDATES).orderBy(UPDATES.UPDT_DATE.desc()).fetchAny(UPDATES.UPDT_PK))
-								.and(SITES_EMPLOYEES.SIEM_EMPL_FK.in(employees)))
+				.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE)
+						.and(SITES_EMPLOYEES.SIEM_EMPL_FK.in(employees)))
 				.fetch(SITES_EMPLOYEES.SIEM_SITE_FK));
 	}
 
@@ -142,28 +138,11 @@ public class StatisticsEndpoint {
 																			@QueryParam("from") final String fromStr,
 																			@QueryParam("to") final String toStr,
 																			@QueryParam("interval") final List<Integer> intervals) throws ParseException {
-		final Iterable<? extends Record> trainings = this.ctx
-				.select(
-						TRAININGS.TRNG_DATE,
-						TRAININGS.TRNG_TRTY_FK,
-						Constants.EXPIRY_DATE,
-						Constants.AGENTS_REGISTERED,
-						Constants.AGENTS_VALIDATED)
-				.from(TRAININGS).join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
-				.where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_COMPLETED))
-				.groupBy(TRAININGS.TRNG_DATE, TRAININGS.TRNG_TRTY_FK, Constants.EXPIRY_DATE)
-				.orderBy(TRAININGS.TRNG_DATE).fetch();
-		final Iterable<? extends Record> trainingsByExpiry = this.ctx
-				.select(
-						TRAININGS.TRNG_DATE,
-						TRAININGS.TRNG_TRTY_FK,
-						Constants.EXPIRY_DATE,
-						Constants.AGENTS_REGISTERED,
-						Constants.AGENTS_VALIDATED)
-				.from(TRAININGS).join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
-				.where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_COMPLETED))
-				.groupBy(TRAININGS.TRNG_DATE, TRAININGS.TRNG_TRTY_FK, Constants.EXPIRY_DATE)
-				.orderBy(Constants.EXPIRY_DATE).fetch();
+		final List<Record> trainings = this.resources.listTrainings(null, Collections.EMPTY_LIST, null, null, null).stream()
+				.filter(trng -> Constants.TRNG_OUTCOME_COMPLETED.equals(trng.getValue(TRAININGS.TRNG_OUTCOME))).collect(Collectors.toList());
+		final List<Record> trainingsByExpiry = this.resources
+				.listTrainings(null, Collections.EMPTY_LIST, null, null, null).sortAsc(Constants.EXPIRY_DATE).stream()
+				.filter(trng -> Constants.TRNG_OUTCOME_COMPLETED.equals(trng.getValue(TRAININGS.TRNG_OUTCOME))).collect(Collectors.toList());
 
 		final Map<Integer, List<Integer>> certs = this.resourcesByKeys.listTrainingtypesCertificates();
 		final Map<Integer, Iterable<TrainingsStatistics>> res = new HashMap<>();
@@ -201,7 +180,7 @@ public class StatisticsEndpoint {
 
 	private static void populateTrainingsStatsBuilders(
 														final List<TrainingsStatisticsBuilder> trainingsStatsBuilders,
-														final Iterable<? extends Record> trainings,
+														final Iterable<Record> trainings,
 														final Function<Record, Date> dateMapper,
 														final BiConsumer<TrainingsStatisticsBuilder, Record> populateFunction) {
 		final Iterator<TrainingsStatisticsBuilder> iterator = trainingsStatsBuilders.iterator();
@@ -290,6 +269,8 @@ public class StatisticsEndpoint {
 																		@QueryParam("from") final String fromStr,
 																		@QueryParam("interval") final Integer interval) throws ParseException {
 		final List<String> employees = this.resources.listEmployees(site_pk, dateStr, null).getValues(EMPLOYEES.EMPL_PK);
+		// TODO: Bulk employees stats computing when cache isn't reasonably full
+		// + store in cache. Like it's done for SitesStatistics
 		if ((dateStr == null) && (fromStr == null)) {
 			final Builder<String, EmployeeStatistics> employeesStats = new ImmutableMap.Builder<>();
 			for (final String empl_pk : employees) {
@@ -320,18 +301,14 @@ public class StatisticsEndpoint {
 		final Map<Integer, List<Integer>> trainingtypesCertificates = this.resourcesByKeys.listTrainingtypesCertificates();
 		final List<Date> dates = computeDates(fromStr, dateStr, interval);
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStats = new HashMap<>();
-		final Map<String, Boolean> employeesStatus = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT).from(SITES_EMPLOYEES)
-				.join(EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.in(sites))
-				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
+		final Map<String, Boolean> employeesStatus = allEmployeesEverForSites(sites);
 		for (final String empl_pk : employeesStatus.keySet()) {
 			employeesStats.put(empl_pk, buildEmployeeStats(empl_pk, dates, trainingTypes, trainingtypesCertificates));
 		}
 
 		final TreeMap<Date, Map<String, List<String>>> employeesHistory = new TreeMap<>();
 		for (final String site_pk : sites) {
-			this.ctx.select(SITES_EMPLOYEES.SIEM_EMPL_FK, UPDATES.UPDT_DATE).from(SITES_EMPLOYEES).join(UPDATES)
-					.on(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(UPDATES.UPDT_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
-					.fetchGroups(UPDATES.UPDT_DATE, SITES_EMPLOYEES.SIEM_EMPL_FK)
+			employeesHistoryForSite(site_pk)
 					.forEach((date, siteEmployees) -> employeesHistory.computeIfAbsent(date, unused -> new HashMap<>()).put(site_pk, siteEmployees));
 		}
 
@@ -358,18 +335,13 @@ public class StatisticsEndpoint {
 		final Map<Integer, TrainingtypesRecord> trainingTypes = this.resourcesByKeys.listTrainingTypes();
 		final Map<Integer, List<Integer>> trainingtypesCertificates = this.resourcesByKeys.listTrainingtypesCertificates();
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStats = new HashMap<>();
-		final Map<String, Boolean> employeesContractTypes = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT)
-				.from(SITES_EMPLOYEES)
-				.join(EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
-				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
+		final Map<String, Boolean> employeesContractTypes = allEmployeesEverForSites(Collections.singletonList(site_pk));
 		for (final String empl_pk : employeesContractTypes.keySet()) {
 			employeesStats.put(empl_pk, buildEmployeeStats(empl_pk, dates, trainingTypes, trainingtypesCertificates));
 		}
 
-		final TreeSet<Date> updates = new TreeSet<>(this.ctx.select(UPDATES.UPDT_DATE).from(UPDATES).fetchSet(UPDATES.UPDT_DATE));
-		final Map<Date, List<String>> employeesHistory = this.ctx.select(SITES_EMPLOYEES.SIEM_EMPL_FK, UPDATES.UPDT_DATE)
-				.from(SITES_EMPLOYEES).join(UPDATES).on(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(UPDATES.UPDT_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
-				.fetchGroups(UPDATES.UPDT_DATE, SITES_EMPLOYEES.SIEM_EMPL_FK);
+		final TreeSet<Date> updates = new TreeSet<>(this.resources.listUpdates().getValues(UPDATES.UPDT_DATE));
+		final Map<Date, List<String>> employeesHistory = employeesHistoryForSite(site_pk);
 
 		final Map<Integer, CertificatesRecord> certificates = this.resourcesByKeys.listCertificates();
 		final Map<Date, SiteStatistics> res = new TreeMap<>();
@@ -390,14 +362,10 @@ public class StatisticsEndpoint {
 
 	private Map.Entry<Date, SiteStatistics> calculateLatestSiteStats(final String site_pk) throws ParseException {
 		final Date currentDate = new Date(new java.util.Date().getTime());
-		final Map<String, Boolean> employeesContractTypes = this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT)
-				.from(SITES_EMPLOYEES)
-				.join(EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
-				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
+		final Map<String, Boolean> employeesContractTypes = allEmployeesEverForSites(Collections.singletonList(site_pk));
 		final SiteStatistics stats = new SiteStatistics(this.resourcesByKeys.listCertificates());
 		getEmployeesStats(site_pk, null, null, null).values().iterator().next()
-				.forEach(
-							(empl_pk, empl_stats) -> stats.register(empl_pk, employeesContractTypes.get(empl_pk), empl_stats));
+				.forEach((empl_pk, empl_stats) -> stats.register(empl_pk, employeesContractTypes.get(empl_pk), empl_stats));
 		return new SimpleEntry<>(currentDate, stats);
 	}
 
@@ -437,6 +405,35 @@ public class StatisticsEndpoint {
 		return new SimpleEntry<>(currentDate, builder.buildFor(currentDate));
 	}
 
+	/**
+	 * Allowed to directly use the {@link DSLContext} with no access
+	 * restriction.<br />
+	 * Reason: <b>statistics building</b>.
+	 */
+	private Map<Date, List<String>> employeesHistoryForSite(final String site_pk) {
+		return this.ctx.select(SITES_EMPLOYEES.SIEM_EMPL_FK, UPDATES.UPDT_DATE).from(SITES_EMPLOYEES)
+				.join(UPDATES).on(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(UPDATES.UPDT_PK))
+				.where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
+				.fetchGroups(UPDATES.UPDT_DATE, SITES_EMPLOYEES.SIEM_EMPL_FK);
+	}
+
+	/**
+	 * Allowed to directly use the {@link DSLContext} with no access
+	 * restriction.<br />
+	 * Reason: <b>statistics building</b>.
+	 */
+	private Map<String, Boolean> allEmployeesEverForSites(final List<String> sites) {
+		return this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT)
+				.from(SITES_EMPLOYEES)
+				.join(EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.in(sites))
+				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
+	}
+
+	/**
+	 * Allowed to directly use the {@link DSLContext} with no access
+	 * restriction.<br />
+	 * Reason: <b>non-filtered data</b> (certificates related).
+	 */
 	private Map<Integer, java.util.Date> buildCertificatesVoiding(final String empl_pk) {
 		final Map<Integer, java.util.Date> res = new HashMap<>();
 		this.ctx.selectFrom(EMPLOYEES_CERTIFICATES_OPTOUT).where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk)).fetch()
