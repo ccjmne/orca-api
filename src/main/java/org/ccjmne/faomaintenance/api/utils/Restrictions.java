@@ -17,6 +17,8 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRolesRecor
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+
 public class Restrictions {
 	private final DSLContext ctx;
 
@@ -28,16 +30,24 @@ public class Restrictions {
 
 	@Inject
 	public Restrictions(@Context final HttpServletRequest request, final DSLContext ctx) {
+		this(request.getRemoteUser(), ctx);
+	}
+
+	public static Restrictions forEmployee(final String empl_pk, final DSLContext ctx) {
+		return new Restrictions(empl_pk, ctx);
+	}
+
+	private Restrictions(final String empl_pk, final DSLContext ctx) {
 		// TODO: Administration restrictions management?
 		this.ctx = ctx;
 		final Map<String, EmployeesRolesRecord> roles = ctx.selectFrom(EMPLOYEES_ROLES)
-				.where(EMPLOYEES_ROLES.EMPL_PK.eq(request.getRemoteUser())).fetchMap(EMPLOYEES_ROLES.EMRO_TYPE);
+				.where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk)).fetchMap(EMPLOYEES_ROLES.EMRO_TYPE);
 		this.accessTrainings = roles.containsKey(Constants.ROLE_ACCESS)
 				&& Constants.ACCESS_LEVEL_TRAININGS.equals(roles.get(Constants.ROLE_ACCESS).getEmroLevel());
 		this.accessAllSites = roles.containsKey(Constants.ROLE_ACCESS)
 				&& (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(roles.get(Constants.ROLE_ACCESS).getEmroLevel()) <= 0);
-		this.accessibleDepartment = getAccessibleDepartment(request.getRemoteUser(), roles.get(Constants.ROLE_ACCESS));
-		this.accessibleSites = listAccessibleSites(request.getRemoteUser(), roles.get(Constants.ROLE_ACCESS));
+		this.accessibleDepartment = getAccessibleDepartment(empl_pk, roles.get(Constants.ROLE_ACCESS));
+		this.accessibleSites = listAccessibleSites(empl_pk, roles.get(Constants.ROLE_ACCESS));
 		this.manageableTypes = listManageableTypes(roles.get(Constants.ROLE_TRAINER));
 	}
 
@@ -100,6 +110,7 @@ public class Restrictions {
 				.and(SITES_EMPLOYEES.SIEM_SITE_FK.in(this.accessibleSites)));
 	}
 
+	@JsonGetter
 	public boolean canAccessTrainings() {
 		return this.accessTrainings;
 	}
@@ -115,6 +126,7 @@ public class Restrictions {
 	 * @return <code>true</code> if all sites are accessible to the injected
 	 *         request.
 	 */
+	@JsonGetter
 	public boolean canAccessAllSites() {
 		return this.accessAllSites;
 	}
