@@ -27,7 +27,7 @@ import javax.ws.rs.QueryParam;
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.Restrictions;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
-import org.ccjmne.faomaintenance.api.utils.UnauthorizedException;
+import org.ccjmne.faomaintenance.api.utils.ForbiddenException;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
@@ -67,7 +67,7 @@ public class ResourcesEndpoint {
 										@QueryParam("date") final String dateStr,
 										@QueryParam("training") final String trng_pk) throws ParseException {
 		if ((site_pk != null) && !this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
-			throw new UnauthorizedException();
+			throw new ForbiddenException();
 		}
 
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
@@ -116,7 +116,7 @@ public class ResourcesEndpoint {
 	@Path("employees/{empl_pk}")
 	public Record lookupEmployee(@PathParam("empl_pk") final String empl_pk) {
 		if (!this.restrictions.canAccessEmployee(empl_pk)) {
-			throw new UnauthorizedException();
+			throw new ForbiddenException();
 		}
 
 		return this.ctx
@@ -137,7 +137,7 @@ public class ResourcesEndpoint {
 	@Path("employees/{empl_pk}/voiding")
 	public Result<EmployeesCertificatesOptoutRecord> getEmployeeCertificatesVoiding(@PathParam("empl_pk") final String empl_pk) {
 		if (!this.restrictions.canAccessEmployee(empl_pk)) {
-			throw new UnauthorizedException();
+			throw new ForbiddenException();
 		}
 
 		return this.ctx.selectFrom(EMPLOYEES_CERTIFICATES_OPTOUT)
@@ -153,11 +153,11 @@ public class ResourcesEndpoint {
 									@QueryParam("date") final String dateStr,
 									@QueryParam("unlisted") final boolean unlisted) throws ParseException {
 		if ((empl_pk != null) && !this.restrictions.canAccessEmployee(empl_pk)) {
-			throw new UnauthorizedException();
+			throw new ForbiddenException();
 		}
 
 		if ((dept_pk != null) && !this.restrictions.canAccessDepartment(dept_pk)) {
-			throw new UnauthorizedException();
+			throw new ForbiddenException();
 		}
 
 		final Integer update = getUpdatePkFor(dateStr);
@@ -196,7 +196,7 @@ public class ResourcesEndpoint {
 	@Path("sites/{site_pk}")
 	public Record lookupSite(@PathParam("site_pk") final String site_pk) {
 		if (!this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
-			throw new UnauthorizedException();
+			throw new ForbiddenException();
 		}
 
 		return this.ctx.selectFrom(SITES).where(SITES.SITE_PK.eq(site_pk)).fetchOne();
@@ -226,7 +226,7 @@ public class ResourcesEndpoint {
 										@QueryParam("from") final String fromStr,
 										@QueryParam("to") final String toStr) throws ParseException {
 		if (!this.restrictions.canAccessTrainings()) {
-			throw new UnauthorizedException();
+			throw new ForbiddenException();
 		}
 
 		return listTrainingsUnrestricted(empl_pk, types, dateStr, fromStr, toStr);
@@ -236,7 +236,7 @@ public class ResourcesEndpoint {
 	@Path("trainings/{trng_pk}")
 	public Record lookupTraining(@PathParam("trng_pk") final Integer trng_pk) {
 		if (!this.restrictions.canAccessTrainings()) {
-			throw new UnauthorizedException();
+			throw new ForbiddenException();
 		}
 
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
@@ -265,7 +265,7 @@ public class ResourcesEndpoint {
 	@Path("departments")
 	public Result<? extends Record> listDepartments(@QueryParam("unlisted") final boolean unlisted) {
 		if (!this.restrictions.canAccessAllSites() && (this.restrictions.getAccessibleDepartment() == null)) {
-			throw new UnauthorizedException();
+			throw new ForbiddenException();
 		}
 
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
