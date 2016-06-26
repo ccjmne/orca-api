@@ -52,7 +52,7 @@ public class Restrictions {
 	}
 
 	private Integer getAccessibleDepartment(final String empl_pk, final EmployeesRolesRecord role) {
-		if ((role == null) || (Constants.ACCESS_LEVEL_ONE_DEPT.compareTo(role.getEmroLevel()) < 0)) {
+		if ((role == null) || !Constants.ACCESS_LEVEL_ONE_DEPT.equals(role.getEmroLevel())) {
 			return null;
 		}
 
