@@ -266,7 +266,7 @@ public class StatisticsEndpoint {
 		return res;
 	}
 
-	private Map<Date, SiteStatistics> calculateSiteStats(final String site_pk, final List<Date> dates) {
+	private Map<Date, SiteStatistics> calculateSiteStats(final String site_pk, final List<Date> dates) throws ParseException {
 		final Map<Integer, TrainingtypesRecord> trainingTypes = this.resourcesByKeys.listTrainingTypes();
 		final Map<Integer, List<Integer>> trainingtypesCertificates = this.resourcesByKeys.listTrainingtypesCertificates();
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStats = new HashMap<>();
@@ -299,10 +299,10 @@ public class StatisticsEndpoint {
 																final String empl_pk,
 																final Iterable<Date> dates,
 																final Map<Integer, TrainingtypesRecord> trainingTypes,
-																final Map<Integer, List<Integer>> certificatesByTrainingTypes) {
+																final Map<Integer, List<Integer>> certificatesByTrainingTypes) throws ParseException {
 		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(certificatesByTrainingTypes, this.statistics.buildCertificatesVoiding(empl_pk));
 		final Map<Date, EmployeeStatistics> res = new TreeMap<>();
-		final Iterator<Record> trainings = this.resources.listTrainingsUnrestricted(empl_pk, Collections.EMPTY_LIST, null, null, null).iterator();
+		final Iterator<Record> trainings = this.resources.listTrainings(empl_pk, Collections.EMPTY_LIST, null, null, null).iterator();
 		Record training = trainings.hasNext() ? trainings.next() : null;
 		for (final Date nextStop : dates) {
 			while ((training != null) && !nextStop.before(training.getValue(TRAININGS.TRNG_DATE))) {

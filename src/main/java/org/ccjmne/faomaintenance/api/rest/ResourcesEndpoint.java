@@ -1,6 +1,5 @@
 package org.ccjmne.faomaintenance.api.rest;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
@@ -9,7 +8,6 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
@@ -17,7 +15,6 @@ import java.text.ParseException;
 import java.util.List;
 
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -25,9 +22,9 @@ import javax.ws.rs.QueryParam;
 
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.ForbiddenException;
+import org.ccjmne.faomaintenance.api.utils.ResourcesUnrestricted;
 import org.ccjmne.faomaintenance.api.utils.Restrictions;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
-import org.ccjmne.faomaintenance.api.utils.StatisticsCaches;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
@@ -45,11 +42,13 @@ import org.jooq.impl.DSL;
 public class ResourcesEndpoint {
 
 	private final DSLContext ctx;
+	private final ResourcesUnrestricted unrestrictedResources;
 	private final Restrictions restrictions;
 
 	@Inject
-	public ResourcesEndpoint(final DSLContext ctx, final Restrictions restrictions) {
+	public ResourcesEndpoint(final DSLContext ctx, final ResourcesUnrestricted unrestrictedResources, final Restrictions restrictions) {
 		this.ctx = ctx;
+		this.unrestrictedResources = unrestrictedResources;
 		this.restrictions = restrictions;
 	}
 
@@ -229,12 +228,50 @@ public class ResourcesEndpoint {
 			throw new ForbiddenException();
 		}
 
-		return listTrainingsUnrestricted(
-											empl_pk,
-											types,
-											dateStr == null ? null : SafeDateFormat.parseAsSql(dateStr),
-											fromStr == null ? null : SafeDateFormat.parseAsSql(fromStr),
-											toStr == null ? null : SafeDateFormat.parseAsSql(toStr));
+		final Date date = dateStr == null ? null : SafeDateFormat.parseAsSql(dateStr);
+		final Date from = fromStr == null ? null : SafeDateFormat.parseAsSql(fromStr);
+		final Date to = toStr == null ? null : SafeDateFormat.parseAsSql(toStr);
+
+		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
+			query.addSelect(TRAININGS.fields());
+			query.addFrom(TRAININGS);
+			query.addGroupBy(TRAININGS.fields());
+			query.addJoin(TRAININGS_EMPLOYEES, JoinType.LEFT_OUTER_JOIN, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK));
+
+			query.addSelect(Constants.TRAINING_REGISTERED);
+			query.addSelect(Constants.TRAINING_VALIDATED);
+			query.addSelect(Constants.TRAINING_FLUNKED);
+			query.addSelect(Constants.TRAINING_EXPIRY);
+			query.addSelect(Constants.TRAINING_TRAINERS);
+
+			if (empl_pk != null) {
+				query.addSelect(TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS_EMPLOYEES.TREM_COMMENT);
+				query.addGroupBy(TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS_EMPLOYEES.TREM_COMMENT);
+				query.addConditions(TRAININGS_EMPLOYEES.TREM_PK
+						.in(DSL.select(TRAININGS_EMPLOYEES.TREM_PK).from(TRAININGS_EMPLOYEES).where(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk))));
+			}
+
+			if (!types.isEmpty()) {
+				query.addJoin(TRAININGTYPES, TRAININGS.TRNG_TRTY_FK.eq(TRAININGTYPES.TRTY_PK).and(TRAININGTYPES.TRTY_PK.in(types)));
+			}
+
+			if (date != null) {
+				query.addConditions(TRAININGS.TRNG_START.isNotNull()
+						.and(TRAININGS.TRNG_START.le(date).and(TRAININGS.TRNG_DATE.ge(date)))
+						.or(TRAININGS.TRNG_DATE.eq(date)));
+			}
+
+			if (from != null) {
+				query.addConditions(TRAININGS.TRNG_DATE.ge(from).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.ge(from))));
+			}
+
+			if (to != null) {
+				query.addConditions(TRAININGS.TRNG_DATE.le(to).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.le(to))));
+			}
+
+			query.addOrderBy(TRAININGS.TRNG_DATE);
+			return query.fetch();
+		}
 	}
 
 	@GET
@@ -282,36 +319,32 @@ public class ResourcesEndpoint {
 	@GET
 	@Path("trainingtypes")
 	public Result<TrainingtypesRecord> listTrainingTypes() {
-		return this.ctx.selectFrom(TRAININGTYPES).orderBy(TRAININGTYPES.TRTY_ORDER).fetch();
+		return this.unrestrictedResources.listTrainingTypes();
 	}
 
 	@GET
 	@Path("trainingtypes_certificates")
 	public Result<TrainingtypesCertificatesRecord> listTrainingTypesCertificates() {
-		return this.ctx.selectFrom(TRAININGTYPES_CERTIFICATES).fetch();
+		return this.unrestrictedResources.listTrainingTypesCertificates();
 	}
 
 	@GET
 	@Path("certificates")
 	public Result<CertificatesRecord> listCertificates() {
-		return this.ctx.selectFrom(CERTIFICATES).orderBy(CERTIFICATES.CERT_ORDER).fetch();
+		return this.unrestrictedResources.listCertificates();
 	}
 
-	/**
-	 * Not part of the exposed API.<br />
-	 * Lists trainings according to a lot of parameters just like
-	 * {@link ResourcesEndpoint#listTrainings(String, List, String, String, String)}
-	 * , except that this implementation <b>does not filter out results</b>
-	 * based off of the current {@link HttpServletRequest}'s restrictions.<br />
-	 * Used solely by the {@link StatisticsCaches} to build statistics for
-	 * employees or sites.
-	 */
-	public Result<Record> listTrainingsUnrestricted(
-													final String empl_pk,
-													final List<Integer> types,
-													final Date date,
-													final Date from,
-													final Date to) {
+	private Integer getUpdatePkFor(final String dateStr) throws ParseException {
+		return getUpdateFor(dateStr).getValue(UPDATES.UPDT_PK);
+	}
+
+	// TODO: remove
+	public Result<Record> listTrainingsREMOVED(
+												final String empl_pk,
+												final List<Integer> types,
+												final Date date,
+												final Date from,
+												final Date to) {
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
 			query.addSelect(TRAININGS.fields());
 			query.addFrom(TRAININGS);
@@ -354,7 +387,4 @@ public class ResourcesEndpoint {
 		}
 	}
 
-	private Integer getUpdatePkFor(final String dateStr) throws ParseException {
-		return getUpdateFor(dateStr).getValue(UPDATES.UPDT_PK);
-	}
 }

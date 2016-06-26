@@ -1,11 +1,12 @@
 package org.ccjmne.faomaintenance.api.utils;
 
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
 import java.sql.Date;
-import java.text.ParseException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Collection;
 import java.util.Collections;
@@ -19,12 +20,11 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
 
-import org.ccjmne.faomaintenance.api.rest.ResourcesByKeysEndpoint;
-import org.ccjmne.faomaintenance.api.rest.ResourcesEndpoint;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeStatisticsBuilder;
 import org.ccjmne.faomaintenance.api.rest.resources.SiteStatistics;
 import org.jooq.DSLContext;
+import org.jooq.Record;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -38,17 +38,14 @@ public class StatisticsCaches {
 	private final LoadingCache<String, Map.Entry<Date, EmployeeStatistics>> employeeStatisticsCache;
 	private final LoadingCache<String, Map.Entry<Date, SiteStatistics>> siteStatisticsCache;
 
-	private final ResourcesByKeysEndpoint resourcesByKeys;
-	private final ResourcesEndpoint resources;
+	private final ResourcesUnrestricted unrestrictedResources;
 
 	@Inject
 	public StatisticsCaches(
 							final DSLContext ctx,
-							final ResourcesEndpoint resources,
-							final ResourcesByKeysEndpoint resourcesByKeys) {
+							final ResourcesUnrestricted unrestrictedResources) {
 		this.ctx = ctx;
-		this.resources = resources;
-		this.resourcesByKeys = resourcesByKeys;
+		this.unrestrictedResources = unrestrictedResources;
 		final ExecutorService computingExecutor = Executors.newFixedThreadPool(16);
 
 		this.employeeStatisticsCache = CacheBuilder.newBuilder()
@@ -107,21 +104,27 @@ public class StatisticsCaches {
 
 	private Map.Entry<Date, SiteStatistics> calculateLatestSiteStats(final String site_pk) {
 		final Date currentDate = new Date(new java.util.Date().getTime());
-		final Map<String, Boolean> employeesContractTypes = allEmployeesEverForSites(Collections.singletonList(site_pk));
-		final SiteStatistics stats = new SiteStatistics(this.resourcesByKeys.listCertificates());
-		getEmployeesStats(site_pk).values().iterator().next()
-				.forEach((empl_pk, empl_stats) -> stats.register(empl_pk, employeesContractTypes.get(empl_pk), empl_stats));
+		final SiteStatistics stats = new SiteStatistics(this.unrestrictedResources.listCertificates().intoMap(CERTIFICATES.CERT_PK));
+		// TODO: Bulk employees stats computing when cache isn't reasonably full
+		// + store in cache. Just like SitesStatistics.
+		for (final Record empl : this.unrestrictedResources.listEmployees(site_pk)) {
+			stats.register(
+							empl.getValue(EMPLOYEES.EMPL_PK),
+							empl.getValue(EMPLOYEES.EMPL_PERMANENT),
+							this.employeeStatisticsCache.getUnchecked(empl.getValue(EMPLOYEES.EMPL_PK)).getValue());
+		}
 		return new SimpleEntry<>(currentDate, stats);
 	}
 
 	private Map.Entry<Date, EmployeeStatistics> buildLatestEmployeeStats(final String empl_pk) {
-		final Date currentDate = new Date(new java.util.Date().getTime());
-		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(
-																				StatisticsCaches.this.resourcesByKeys.listTrainingtypesCertificates(),
-																				buildCertificatesVoiding(empl_pk));
-		this.resources.listTrainingsUnrestricted(empl_pk, Collections.EMPTY_LIST, null, null, currentDate)
-				.forEach(training -> builder.accept(training));
-		return new SimpleEntry<>(currentDate, builder.buildFor(currentDate));
+		final Date now = new Date(new java.util.Date().getTime());
+		final EmployeeStatisticsBuilder builder = EmployeeStatistics
+				.builder(
+							this.unrestrictedResources.listTrainingTypesCertificates()
+									.intoGroups(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK, TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK),
+							buildCertificatesVoiding(empl_pk));
+		this.unrestrictedResources.listTrainings(empl_pk).forEach(training -> builder.accept(training));
+		return new SimpleEntry<>(now, builder.buildFor(now));
 	}
 
 	/**
@@ -146,28 +149,15 @@ public class StatisticsCaches {
 	public Map<Integer, Date> buildCertificatesVoiding(final String empl_pk) {
 		return this.ctx.selectFrom(EMPLOYEES_CERTIFICATES_OPTOUT).where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk))
 				.fetchMap(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK, EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE);
-		// TODO: delete legacy code below - after testing
-		// final Map<Integer, java.util.Date> res = new HashMap<>();
-		// this.ctx.selectFrom(EMPLOYEES_CERTIFICATES_OPTOUT).where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk)).fetch()
-		// .forEach(record -> res.put(record.getEmceCertFk(),
-		// record.getEmceDate()));
-		// return res;
 	}
 
 	// TODO: inline
 	public Map<Date, Map<String, EmployeeStatistics>> getEmployeesStats(
 																		@QueryParam("site") final String site_pk) {
-		List<String> employees;
-		try {
-			employees = this.resources.listEmployees(site_pk, null, null).getValues(EMPLOYEES.EMPL_PK);
-		} catch (IllegalArgumentException | ParseException e) {
-			// TODO: list employees UNRESTRICTED, without ParseException
-			throw new RuntimeException();
-		}
 		// TODO: Bulk employees stats computing when cache isn't reasonably full
 		// + store in cache. Just like SitesStatistics.
 		final Builder<String, EmployeeStatistics> employeesStats = new ImmutableMap.Builder<>();
-		for (final String empl_pk : employees) {
+		for (final String empl_pk : this.unrestrictedResources.listEmployees(site_pk).getValues(EMPLOYEES.EMPL_PK)) {
 			employeesStats.put(empl_pk, this.employeeStatisticsCache.getUnchecked(empl_pk).getValue());
 		}
 
