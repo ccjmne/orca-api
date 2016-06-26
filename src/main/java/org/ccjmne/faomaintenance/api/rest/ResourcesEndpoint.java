@@ -155,6 +155,11 @@ public class ResourcesEndpoint {
 		if ((empl_pk != null) && !this.restrictions.canAccessEmployee(empl_pk)) {
 			throw new UnauthorizedException();
 		}
+
+		if ((dept_pk != null) && !this.restrictions.canAccessDepartment(dept_pk)) {
+			throw new UnauthorizedException();
+		}
+
 		final Integer update = getUpdatePkFor(dateStr);
 		try (
 				final SelectQuery<Record> query = this.ctx.selectQuery();
