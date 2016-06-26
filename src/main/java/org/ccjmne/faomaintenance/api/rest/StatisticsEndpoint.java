@@ -324,7 +324,7 @@ public class StatisticsEndpoint {
 					res.computeIfAbsent(date, unused -> new HashMap<>()).put(sitesEmployeesHistory.getKey(), stats);
 				}
 			} else {
-				res.put(date, Collections.emptyMap());
+				res.put(date, Collections.EMPTY_MAP);
 			}
 		}
 
@@ -349,7 +349,7 @@ public class StatisticsEndpoint {
 			final SiteStatistics stats = new SiteStatistics(certificates);
 			final Date mostAccurate = updates.floor(date);
 			if (mostAccurate != null) {
-				for (final String empl_pk : employeesHistory.getOrDefault(mostAccurate, Collections.emptyList())) {
+				for (final String empl_pk : employeesHistory.getOrDefault(mostAccurate, Collections.EMPTY_LIST)) {
 					stats.register(empl_pk, employeesContractTypes.get(empl_pk), employeesStats.get(empl_pk).get(date));
 				}
 			}
@@ -376,7 +376,7 @@ public class StatisticsEndpoint {
 																final Map<Integer, List<Integer>> certificatesByTrainingTypes) throws ParseException {
 		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(trainingTypes, certificatesByTrainingTypes, buildCertificatesVoiding(empl_pk));
 		final Map<Date, EmployeeStatistics> res = new TreeMap<>();
-		final Iterator<Record> trainings = this.resources.listTrainingsUnrestricted(empl_pk, Collections.emptyList(), null, null, null).iterator();
+		final Iterator<Record> trainings = this.resources.listTrainingsUnrestricted(empl_pk, Collections.EMPTY_LIST, null, null, null).iterator();
 		Record training = trainings.hasNext() ? trainings.next() : null;
 		for (final Date nextStop : dates) {
 			while ((training != null) && !nextStop.before(training.getValue(TRAININGS.TRNG_DATE))) {
@@ -398,7 +398,7 @@ public class StatisticsEndpoint {
 		final Date currentDate = new Date(new java.util.Date().getTime());
 		final EmployeeStatisticsBuilder builder = EmployeeStatistics
 				.builder(trainingTypes, certificatesByTrainingTypes, buildCertificatesVoiding(empl_pk));
-		this.resources.listTrainingsUnrestricted(empl_pk, Collections.emptyList(), null, null, currentDate.toString())
+		this.resources.listTrainingsUnrestricted(empl_pk, Collections.EMPTY_LIST, null, null, currentDate.toString())
 				.forEach(training -> builder.accept(training));
 		return new SimpleEntry<>(currentDate, builder.buildFor(currentDate));
 	}
