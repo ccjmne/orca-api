@@ -23,16 +23,16 @@ public class Constants {
 
 	public static final String USER_ROOT = "admin";
 
-	public static final String SITE_UNASSIGNED = "0";
-	public static final Integer DEPT_UNASSIGNED = Integer.valueOf(0);
+	public static final String UNASSIGNED_SITE = "0";
+	public static final Integer UNASSIGNED_DEPT = Integer.valueOf(0);
 
 	public static final String ROLE_ACCESS = "access";
 	public static final String ROLE_TRAINER = "trainer";
 	public static final String ROLE_ADMIN = "admin";
 
-	public static final Integer TRAININGS_ACCESS = Integer.valueOf(4);
-	public static final Integer ALL_SITES_ACCESS = Integer.valueOf(3);
-	public static final Integer ONLY_DEPT_ACCESS = Integer.valueOf(2);
+	public static final Integer ACCESS_LEVEL_TRAININGS = Integer.valueOf(4);
+	public static final Integer ACCESS_LEVEL_ALL_SITES = Integer.valueOf(3);
+	public static final Integer ACCESS_LEVEL_ONE_DEPT = Integer.valueOf(2);
 	// DATABASE CONSTANTS ----
 
 	// ---- SUBQUERIES AND FIELDS

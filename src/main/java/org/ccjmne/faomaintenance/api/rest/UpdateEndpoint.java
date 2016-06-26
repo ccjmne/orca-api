@@ -315,7 +315,7 @@ public class UpdateEndpoint {
 							.select(
 									transactionCtx.select(
 															EMPLOYEES.EMPL_PK,
-															DSL.val(Constants.SITE_UNASSIGNED),
+															DSL.val(Constants.UNASSIGNED_SITE),
 															DSL.val(updt_pk))
 											.from(EMPLOYEES)
 											.where(EMPLOYEES.EMPL_PK

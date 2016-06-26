@@ -63,8 +63,8 @@ public class ResourcesByKeysEndpoint {
 
 	@GET
 	@Path("departments")
-	public Map<Integer, ? extends Record> listDepartments() {
-		return this.resources.listDepartments().intoMap(DEPARTMENTS.DEPT_PK);
+	public Map<Integer, ? extends Record> listDepartments(@QueryParam("unlisted") final boolean unlisted) {
+		return this.resources.listDepartments(unlisted).intoMap(DEPARTMENTS.DEPT_PK);
 	}
 
 	@GET

@@ -270,7 +270,7 @@ public class StatisticsEndpoint {
 																		@QueryParam("interval") final Integer interval) throws ParseException {
 		final List<String> employees = this.resources.listEmployees(site_pk, dateStr, null).getValues(EMPLOYEES.EMPL_PK);
 		// TODO: Bulk employees stats computing when cache isn't reasonably full
-		// + store in cache. Like it's done for SitesStatistics
+		// + store in cache. Just like SitesStatistics.
 		if ((dateStr == null) && (fromStr == null)) {
 			final Builder<String, EmployeeStatistics> employeesStats = new ImmutableMap.Builder<>();
 			for (final String empl_pk : employees) {
@@ -374,12 +374,9 @@ public class StatisticsEndpoint {
 																final Iterable<Date> dates,
 																final Map<Integer, TrainingtypesRecord> trainingTypes,
 																final Map<Integer, List<Integer>> certificatesByTrainingTypes) throws ParseException {
-		final EmployeeStatisticsBuilder builder = EmployeeStatistics
-				.builder(trainingTypes, certificatesByTrainingTypes, buildCertificatesVoiding(empl_pk));
+		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(trainingTypes, certificatesByTrainingTypes, buildCertificatesVoiding(empl_pk));
 		final Map<Date, EmployeeStatistics> res = new TreeMap<>();
-
-		// TODO: Only retrieve the Training Types that we care about
-		final Iterator<Record> trainings = this.resources.listTrainings(empl_pk, Collections.emptyList(), null, null, null).iterator();
+		final Iterator<Record> trainings = this.resources.listTrainingsUnrestricted(empl_pk, Collections.emptyList(), null, null, null).iterator();
 		Record training = trainings.hasNext() ? trainings.next() : null;
 		for (final Date nextStop : dates) {
 			while ((training != null) && !nextStop.before(training.getValue(TRAININGS.TRNG_DATE))) {
@@ -401,7 +398,8 @@ public class StatisticsEndpoint {
 		final Date currentDate = new Date(new java.util.Date().getTime());
 		final EmployeeStatisticsBuilder builder = EmployeeStatistics
 				.builder(trainingTypes, certificatesByTrainingTypes, buildCertificatesVoiding(empl_pk));
-		this.resources.listTrainings(empl_pk, Collections.emptyList(), null, null, currentDate.toString()).forEach(training -> builder.accept(training));
+		this.resources.listTrainingsUnrestricted(empl_pk, Collections.emptyList(), null, null, currentDate.toString())
+				.forEach(training -> builder.accept(training));
 		return new SimpleEntry<>(currentDate, builder.buildFor(currentDate));
 	}
 
