@@ -8,7 +8,6 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_TRAINERS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
@@ -25,9 +24,10 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
 import org.ccjmne.faomaintenance.api.utils.Constants;
+import org.ccjmne.faomaintenance.api.utils.ForbiddenException;
 import org.ccjmne.faomaintenance.api.utils.Restrictions;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
-import org.ccjmne.faomaintenance.api.utils.ForbiddenException;
+import org.ccjmne.faomaintenance.api.utils.StatisticsCaches;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
@@ -229,7 +229,12 @@ public class ResourcesEndpoint {
 			throw new ForbiddenException();
 		}
 
-		return listTrainingsUnrestricted(empl_pk, types, dateStr, fromStr, toStr);
+		return listTrainingsUnrestricted(
+											empl_pk,
+											types,
+											dateStr == null ? null : SafeDateFormat.parseAsSql(dateStr),
+											fromStr == null ? null : SafeDateFormat.parseAsSql(fromStr),
+											toStr == null ? null : SafeDateFormat.parseAsSql(toStr));
 	}
 
 	@GET
@@ -241,20 +246,13 @@ public class ResourcesEndpoint {
 
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
 			query.addSelect(TRAININGS.fields());
-			query.addSelect(DSL.select(Constants.AGENTS_REGISTERED).from(TRAININGS_EMPLOYEES)
-					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
-					.asField("registered"));
-			query.addSelect(DSL.select(Constants.AGENTS_VALIDATED).from(TRAININGS_EMPLOYEES)
-					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
-					.asField("validated"));
-			query.addSelect(DSL.select(DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
-					.filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq("FLUNKED"))).from(TRAININGS_EMPLOYEES)
-					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
-					.asField("flunked"));
-			query.addSelect(DSL.select(DSL.arrayAgg(TRAININGS_TRAINERS.TRTR_EMPL_FK)).from(TRAININGS_TRAINERS)
-					.where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK))
-					.asField("trainers"));
 			query.addFrom(TRAININGS);
+			query.addJoin(TRAININGS_EMPLOYEES, JoinType.LEFT_OUTER_JOIN, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK));
+			query.addSelect(Constants.TRAINING_REGISTERED);
+			query.addSelect(Constants.TRAINING_VALIDATED);
+			query.addSelect(Constants.TRAINING_FLUNKED);
+			query.addSelect(Constants.TRAINING_EXPIRY);
+			query.addSelect(Constants.TRAINING_TRAINERS);
 			query.addConditions(TRAININGS.TRNG_PK.eq(trng_pk));
 			query.addGroupBy(TRAININGS.fields());
 			return query.fetchOne();
@@ -305,28 +303,26 @@ public class ResourcesEndpoint {
 	 * {@link ResourcesEndpoint#listTrainings(String, List, String, String, String)}
 	 * , except that this implementation <b>does not filter out results</b>
 	 * based off of the current {@link HttpServletRequest}'s restrictions.<br />
-	 * Used solely by the {@link StatisticsEndpoint} to build statistics for
+	 * Used solely by the {@link StatisticsCaches} to build statistics for
 	 * employees or sites.
 	 */
 	public Result<Record> listTrainingsUnrestricted(
 													final String empl_pk,
 													final List<Integer> types,
-													final String dateStr,
-													final String fromStr,
-													final String toStr) throws ParseException {
+													final Date date,
+													final Date from,
+													final Date to) {
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
 			query.addSelect(TRAININGS.fields());
 			query.addFrom(TRAININGS);
 			query.addGroupBy(TRAININGS.fields());
 			query.addJoin(TRAININGS_EMPLOYEES, JoinType.LEFT_OUTER_JOIN, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK));
 
-			query.addSelect(Constants.AGENTS_REGISTERED);
-			query.addSelect(Constants.AGENTS_VALIDATED);
-			query.addSelect(Constants.AGENTS_FLUNKED);
-			query.addSelect(Constants.EXPIRY_DATE);
-			query.addSelect(DSL.select(DSL.arrayAgg(TRAININGS_TRAINERS.TRTR_EMPL_FK)).from(TRAININGS_TRAINERS)
-					.where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK))
-					.asField("trainers"));
+			query.addSelect(Constants.TRAINING_REGISTERED);
+			query.addSelect(Constants.TRAINING_VALIDATED);
+			query.addSelect(Constants.TRAINING_FLUNKED);
+			query.addSelect(Constants.TRAINING_EXPIRY);
+			query.addSelect(Constants.TRAINING_TRAINERS);
 
 			if (empl_pk != null) {
 				query.addSelect(TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS_EMPLOYEES.TREM_COMMENT);
@@ -339,20 +335,17 @@ public class ResourcesEndpoint {
 				query.addJoin(TRAININGTYPES, TRAININGS.TRNG_TRTY_FK.eq(TRAININGTYPES.TRTY_PK).and(TRAININGTYPES.TRTY_PK.in(types)));
 			}
 
-			if (dateStr != null) {
-				final Date date = SafeDateFormat.parseAsSql(dateStr);
+			if (date != null) {
 				query.addConditions(TRAININGS.TRNG_START.isNotNull()
 						.and(TRAININGS.TRNG_START.le(date).and(TRAININGS.TRNG_DATE.ge(date)))
 						.or(TRAININGS.TRNG_DATE.eq(date)));
 			}
 
-			if (fromStr != null) {
-				final Date from = SafeDateFormat.parseAsSql(fromStr);
+			if (from != null) {
 				query.addConditions(TRAININGS.TRNG_DATE.ge(from).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.ge(from))));
 			}
 
-			if (toStr != null) {
-				final Date to = SafeDateFormat.parseAsSql(toStr);
+			if (to != null) {
 				query.addConditions(TRAININGS.TRNG_DATE.le(to).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.le(to))));
 			}
 

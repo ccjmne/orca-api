@@ -33,6 +33,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
+import org.ccjmne.faomaintenance.api.utils.StatisticsCaches;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesEmployeesRecord;
 import org.jooq.DSLContext;
@@ -48,10 +49,10 @@ public class UpdateEndpoint {
 	private static final Pattern FIRST_LETTER = Pattern.compile("\\b(\\w)");
 
 	private final DSLContext ctx;
-	private final StatisticsEndpoint statistics;
+	private final StatisticsCaches statistics;
 
 	@Inject
-	public UpdateEndpoint(final DSLContext ctx, final StatisticsEndpoint statistics, final ResourcesEndpoint resources) {
+	public UpdateEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final StatisticsCaches statistics) {
 		this.ctx = ctx;
 		this.statistics = statistics;
 	}

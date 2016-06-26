@@ -33,14 +33,14 @@ public class TrainingsStatistics {
 						.getOrDefault(certPk, new TrainingsCertificateStatistics());
 				this.certificates.putIfAbsent(certPk, trainingCertificatesStatistics);
 				trainingCertificatesStatistics.statistics.trainings += 1;
-				trainingCertificatesStatistics.statistics.employeesRegistered += training.getValue(Constants.AGENTS_REGISTERED).intValue();
-				trainingCertificatesStatistics.statistics.employeesTrained += training.getValue(Constants.AGENTS_VALIDATED).intValue();
+				trainingCertificatesStatistics.statistics.employeesRegistered += training.getValue(Constants.TRAINING_REGISTERED).intValue();
+				trainingCertificatesStatistics.statistics.employeesTrained += training.getValue(Constants.TRAINING_VALIDATED).intValue();
 				final TrainingsStatisticsData trainingTypeStatistics = trainingCertificatesStatistics.trainingTypesStatistics
 						.getOrDefault(training.getValue(TRAININGS.TRNG_TRTY_FK), new TrainingsStatisticsData());
 				trainingCertificatesStatistics.trainingTypesStatistics.putIfAbsent(training.getValue(TRAININGS.TRNG_TRTY_FK), trainingTypeStatistics);
 				trainingTypeStatistics.trainings += 1;
-				trainingTypeStatistics.employeesRegistered += training.getValue(Constants.AGENTS_REGISTERED).intValue();
-				trainingTypeStatistics.employeesTrained += training.getValue(Constants.AGENTS_VALIDATED).intValue();
+				trainingTypeStatistics.employeesRegistered += training.getValue(Constants.TRAINING_REGISTERED).intValue();
+				trainingTypeStatistics.employeesTrained += training.getValue(Constants.TRAINING_VALIDATED).intValue();
 			}
 		}
 
@@ -50,12 +50,12 @@ public class TrainingsStatistics {
 						.getOrDefault(certPk, new TrainingsCertificateStatistics());
 				this.certificates.putIfAbsent(certPk, trainingCertificatesStatistics);
 				trainingCertificatesStatistics.statistics.trainingsExpired += 1;
-				trainingCertificatesStatistics.statistics.employeesExpired += training.getValue(Constants.AGENTS_VALIDATED).intValue();
+				trainingCertificatesStatistics.statistics.employeesExpired += training.getValue(Constants.TRAINING_VALIDATED).intValue();
 				final TrainingsStatisticsData trainingTypeStatistics = trainingCertificatesStatistics.trainingTypesStatistics
 						.getOrDefault(training.getValue(TRAININGS.TRNG_TRTY_FK), new TrainingsStatisticsData());
 				trainingCertificatesStatistics.trainingTypesStatistics.putIfAbsent(training.getValue(TRAININGS.TRNG_TRTY_FK), trainingTypeStatistics);
 				trainingTypeStatistics.trainingsExpired += 1;
-				trainingTypeStatistics.employeesExpired += training.getValue(Constants.AGENTS_VALIDATED).intValue();
+				trainingTypeStatistics.employeesExpired += training.getValue(Constants.TRAINING_VALIDATED).intValue();
 			}
 		}
 

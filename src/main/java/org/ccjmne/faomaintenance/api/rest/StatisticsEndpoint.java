@@ -1,7 +1,6 @@
 package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
@@ -10,9 +9,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 import java.sql.Date;
 import java.text.ParseException;
 import java.time.LocalDate;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -21,14 +18,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -41,95 +34,38 @@ import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
+import org.ccjmne.faomaintenance.api.utils.StatisticsCaches;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
 import com.google.common.base.Function;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Range;
 
-@Singleton
 @Path("statistics")
 public class StatisticsEndpoint {
 	private static final Integer DEFAULT_INTERVAL = Integer.valueOf(6);
 
-	private final ResourcesEndpoint resources;
 	private final DSLContext ctx;
-
-	private final LoadingCache<String, Map.Entry<Date, EmployeeStatistics>> employeeStatisticsCache;
-	private final LoadingCache<String, Map.Entry<Date, SiteStatistics>> siteStatisticsCache;
-	private final ExecutorService statisticsCalculationThreadPool;
-
+	private final ResourcesEndpoint resources;
 	private final ResourcesByKeysEndpoint resourcesByKeys;
+
+	private final StatisticsCaches statistics;
 
 	@Inject
 	public StatisticsEndpoint(
 								final DSLContext ctx,
 								final ResourcesEndpoint resources,
-								final ResourcesByKeysEndpoint resourcesByKeys) {
+								final ResourcesByKeysEndpoint resourcesByKeys,
+								final StatisticsCaches statisticsCaches) {
 		this.ctx = ctx;
 		this.resources = resources;
 		this.resourcesByKeys = resourcesByKeys;
-		this.statisticsCalculationThreadPool = Executors.newFixedThreadPool(16);
-
-		this.employeeStatisticsCache = CacheBuilder.newBuilder()
-				.refreshAfterWrite(30, TimeUnit.MINUTES).<String, Map
-				.Entry<Date, EmployeeStatistics>> build(CacheLoader.asyncReloading(CacheLoader.<String, Map.Entry<Date, EmployeeStatistics>> from(empl_pk -> {
-					try {
-						return StatisticsEndpoint.this
-								.buildLatestEmployeeStats(
-															empl_pk,
-															StatisticsEndpoint.this.resourcesByKeys.listTrainingTypes(),
-															StatisticsEndpoint.this.resourcesByKeys.listTrainingtypesCertificates());
-					} catch (final Exception e) {
-						throw new RuntimeException(e);
-					}
-				}), this.statisticsCalculationThreadPool));
-
-		this.siteStatisticsCache = CacheBuilder.newBuilder()
-				.refreshAfterWrite(1, TimeUnit.HOURS).<String, Map
-				.Entry<Date, SiteStatistics>> build(CacheLoader.asyncReloading(CacheLoader.<String, Map.Entry<Date, SiteStatistics>> from(site_pk -> {
-					try {
-						return StatisticsEndpoint.this.calculateLatestSiteStats(site_pk);
-					} catch (final Exception e) {
-						throw new RuntimeException(e);
-					}
-				}), this.statisticsCalculationThreadPool));
-	}
-
-	public void invalidateSitesStats() {
-		this.siteStatisticsCache.invalidateAll();
-	}
-
-	public void invalidateSitesStats(final Collection<String> sites) {
-		this.siteStatisticsCache.invalidateAll(sites);
-	}
-
-	public void invalidateEmployeesStats() {
-		this.employeeStatisticsCache.invalidateAll();
-		this.siteStatisticsCache.invalidateAll();
-	}
-
-	/**
-	 * Allowed to directly use the {@link DSLContext} with no access
-	 * restriction.<br />
-	 * Reason: <b>Cache management</b>.
-	 */
-	public void invalidateEmployeesStats(final Collection<String> employees) {
-		this.employeeStatisticsCache.invalidateAll(employees);
-		invalidateSitesStats(this.ctx
-				.selectDistinct(SITES_EMPLOYEES.SIEM_SITE_FK)
-				.from(SITES_EMPLOYEES)
-				.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE)
-						.and(SITES_EMPLOYEES.SIEM_EMPL_FK.in(employees)))
-				.fetch(SITES_EMPLOYEES.SIEM_SITE_FK));
+		this.statistics = statisticsCaches;
 	}
 
 	@GET
@@ -141,7 +77,7 @@ public class StatisticsEndpoint {
 		final List<Record> trainings = this.resources.listTrainings(null, Collections.EMPTY_LIST, null, null, null).stream()
 				.filter(trng -> Constants.TRNG_OUTCOME_COMPLETED.equals(trng.getValue(TRAININGS.TRNG_OUTCOME))).collect(Collectors.toList());
 		final List<Record> trainingsByExpiry = this.resources
-				.listTrainings(null, Collections.EMPTY_LIST, null, null, null).sortAsc(Constants.EXPIRY_DATE).stream()
+				.listTrainings(null, Collections.EMPTY_LIST, null, null, null).sortAsc(Constants.TRAINING_EXPIRY).stream()
 				.filter(trng -> Constants.TRNG_OUTCOME_COMPLETED.equals(trng.getValue(TRAININGS.TRNG_OUTCOME))).collect(Collectors.toList());
 
 		final Map<Integer, List<Integer>> certs = this.resourcesByKeys.listTrainingtypesCertificates();
@@ -170,7 +106,7 @@ public class StatisticsEndpoint {
 			populateTrainingsStatsBuilders(
 											trainingsStatsBuilders,
 											trainingsByExpiry,
-											(record) -> record.getValue(Constants.EXPIRY_DATE),
+											(record) -> record.getValue(Constants.TRAINING_EXPIRY),
 											(builder, training) -> builder.registerExpiry(training));
 			res.put(interval, trainingsStatsBuilders.stream().map(TrainingsStatisticsBuilder::build).collect(Collectors.toList()));
 		}
@@ -209,8 +145,7 @@ public class StatisticsEndpoint {
 													@QueryParam("from") final String fromStr,
 													@QueryParam("interval") final Integer interval) throws ParseException {
 		if ((dateStr == null) && (fromStr == null)) {
-			this.siteStatisticsCache.refresh(site_pk);
-			return new ImmutableMap.Builder<Date, SiteStatistics>().put(this.siteStatisticsCache.getUnchecked(site_pk)).build();
+			return new ImmutableMap.Builder<Date, SiteStatistics>().put(this.statistics.getSiteStats(site_pk)).build();
 		}
 
 		return calculateSiteStats(site_pk, computeDates(fromStr, dateStr, interval));
@@ -224,8 +159,7 @@ public class StatisticsEndpoint {
 															@QueryParam("from") final String fromStr,
 															@QueryParam("interval") final Integer interval) throws ParseException {
 		if ((dateStr == null) && (fromStr == null)) {
-			this.employeeStatisticsCache.refresh(empl_pk);
-			return new ImmutableMap.Builder<Date, EmployeeStatistics>().put(this.employeeStatisticsCache.getUnchecked(empl_pk)).build();
+			return new ImmutableMap.Builder<Date, EmployeeStatistics>().put(this.statistics.getEmployeeStats(empl_pk)).build();
 		}
 
 		return buildEmployeeStats(
@@ -244,10 +178,10 @@ public class StatisticsEndpoint {
 																@QueryParam("from") final String fromStr,
 																@QueryParam("interval") final Integer interval) throws ParseException {
 		final List<String> sites = this.resources.listSites(department, employee, dateStr, false).getValues(SITES.SITE_PK);
-		if ((dateStr == null) && (fromStr == null) && (this.siteStatisticsCache.size() >= (sites.size() / 2))) {
+		if ((dateStr == null) && (fromStr == null)) {
 			final Builder<String, SiteStatistics> sitesStats = new ImmutableMap.Builder<>();
 			for (final String site_pk : sites) {
-				sitesStats.put(site_pk, this.siteStatisticsCache.getUnchecked(site_pk).getValue());
+				sitesStats.put(site_pk, this.statistics.getSiteStats(site_pk).getValue());
 			}
 
 			return Collections.singletonMap(new Date(new java.util.Date().getTime()), sitesStats.build());
@@ -255,7 +189,7 @@ public class StatisticsEndpoint {
 
 		final TreeMap<Date, Map<String, SiteStatistics>> res = calculateSitesStats(sites, dateStr, fromStr, interval);
 		if (dateStr == null) {
-			res.lastEntry().getValue().forEach((site_pk, stats) -> this.siteStatisticsCache.put(site_pk, new SimpleEntry<>(res.lastKey(), stats)));
+			res.lastEntry().getValue().forEach((site_pk, stats) -> this.statistics.putSitesStats(site_pk, res.lastKey(), stats));
 		}
 
 		return res;
@@ -274,7 +208,7 @@ public class StatisticsEndpoint {
 		if ((dateStr == null) && (fromStr == null)) {
 			final Builder<String, EmployeeStatistics> employeesStats = new ImmutableMap.Builder<>();
 			for (final String empl_pk : employees) {
-				employeesStats.put(empl_pk, this.employeeStatisticsCache.getUnchecked(empl_pk).getValue());
+				employeesStats.put(empl_pk, this.statistics.getEmployeeStats(empl_pk).getValue());
 			}
 
 			return Collections.singletonMap(new Date(new java.util.Date().getTime()), employeesStats.build());
@@ -292,7 +226,8 @@ public class StatisticsEndpoint {
 		return res;
 	}
 
-	private TreeMap<Date, Map<String, SiteStatistics>> calculateSitesStats(
+	// TODO: use in StatisticsCaches as an init pre-fill
+	public TreeMap<Date, Map<String, SiteStatistics>> calculateSitesStats(
 																			final List<String> sites,
 																			final String dateStr,
 																			final String fromStr,
@@ -301,7 +236,7 @@ public class StatisticsEndpoint {
 		final Map<Integer, List<Integer>> trainingtypesCertificates = this.resourcesByKeys.listTrainingtypesCertificates();
 		final List<Date> dates = computeDates(fromStr, dateStr, interval);
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStats = new HashMap<>();
-		final Map<String, Boolean> employeesStatus = allEmployeesEverForSites(sites);
+		final Map<String, Boolean> employeesStatus = this.statistics.allEmployeesEverForSites(sites);
 		for (final String empl_pk : employeesStatus.keySet()) {
 			employeesStats.put(empl_pk, buildEmployeeStats(empl_pk, dates, trainingTypes, trainingtypesCertificates));
 		}
@@ -331,11 +266,11 @@ public class StatisticsEndpoint {
 		return res;
 	}
 
-	private Map<Date, SiteStatistics> calculateSiteStats(final String site_pk, final List<Date> dates) throws ParseException {
+	private Map<Date, SiteStatistics> calculateSiteStats(final String site_pk, final List<Date> dates) {
 		final Map<Integer, TrainingtypesRecord> trainingTypes = this.resourcesByKeys.listTrainingTypes();
 		final Map<Integer, List<Integer>> trainingtypesCertificates = this.resourcesByKeys.listTrainingtypesCertificates();
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStats = new HashMap<>();
-		final Map<String, Boolean> employeesContractTypes = allEmployeesEverForSites(Collections.singletonList(site_pk));
+		final Map<String, Boolean> employeesContractTypes = this.statistics.allEmployeesEverForSites(Collections.singletonList(site_pk));
 		for (final String empl_pk : employeesContractTypes.keySet()) {
 			employeesStats.put(empl_pk, buildEmployeeStats(empl_pk, dates, trainingTypes, trainingtypesCertificates));
 		}
@@ -360,21 +295,12 @@ public class StatisticsEndpoint {
 		return res;
 	}
 
-	private Map.Entry<Date, SiteStatistics> calculateLatestSiteStats(final String site_pk) throws ParseException {
-		final Date currentDate = new Date(new java.util.Date().getTime());
-		final Map<String, Boolean> employeesContractTypes = allEmployeesEverForSites(Collections.singletonList(site_pk));
-		final SiteStatistics stats = new SiteStatistics(this.resourcesByKeys.listCertificates());
-		getEmployeesStats(site_pk, null, null, null).values().iterator().next()
-				.forEach((empl_pk, empl_stats) -> stats.register(empl_pk, employeesContractTypes.get(empl_pk), empl_stats));
-		return new SimpleEntry<>(currentDate, stats);
-	}
-
 	private Map<Date, EmployeeStatistics> buildEmployeeStats(
 																final String empl_pk,
 																final Iterable<Date> dates,
 																final Map<Integer, TrainingtypesRecord> trainingTypes,
-																final Map<Integer, List<Integer>> certificatesByTrainingTypes) throws ParseException {
-		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(trainingTypes, certificatesByTrainingTypes, buildCertificatesVoiding(empl_pk));
+																final Map<Integer, List<Integer>> certificatesByTrainingTypes) {
+		final EmployeeStatisticsBuilder builder = EmployeeStatistics.builder(certificatesByTrainingTypes, this.statistics.buildCertificatesVoiding(empl_pk));
 		final Map<Date, EmployeeStatistics> res = new TreeMap<>();
 		final Iterator<Record> trainings = this.resources.listTrainingsUnrestricted(empl_pk, Collections.EMPTY_LIST, null, null, null).iterator();
 		Record training = trainings.hasNext() ? trainings.next() : null;
@@ -390,19 +316,6 @@ public class StatisticsEndpoint {
 		return res;
 	}
 
-	private Map.Entry<Date, EmployeeStatistics> buildLatestEmployeeStats(
-																			final String empl_pk,
-																			final Map<Integer, TrainingtypesRecord> trainingTypes,
-																			final Map<Integer, List<Integer>> certificatesByTrainingTypes)
-																					throws ParseException {
-		final Date currentDate = new Date(new java.util.Date().getTime());
-		final EmployeeStatisticsBuilder builder = EmployeeStatistics
-				.builder(trainingTypes, certificatesByTrainingTypes, buildCertificatesVoiding(empl_pk));
-		this.resources.listTrainingsUnrestricted(empl_pk, Collections.EMPTY_LIST, null, null, currentDate.toString())
-				.forEach(training -> builder.accept(training));
-		return new SimpleEntry<>(currentDate, builder.buildFor(currentDate));
-	}
-
 	/**
 	 * Allowed to directly use the {@link DSLContext} with no access
 	 * restriction.<br />
@@ -413,31 +326,6 @@ public class StatisticsEndpoint {
 				.join(UPDATES).on(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(UPDATES.UPDT_PK))
 				.where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
 				.fetchGroups(UPDATES.UPDT_DATE, SITES_EMPLOYEES.SIEM_EMPL_FK);
-	}
-
-	/**
-	 * Allowed to directly use the {@link DSLContext} with no access
-	 * restriction.<br />
-	 * Reason: <b>statistics building</b>.
-	 */
-	private Map<String, Boolean> allEmployeesEverForSites(final List<String> sites) {
-		return this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT)
-				.from(SITES_EMPLOYEES)
-				.join(EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK)).where(SITES_EMPLOYEES.SIEM_SITE_FK.in(sites))
-				.fetchMap(SITES_EMPLOYEES.SIEM_EMPL_FK, EMPLOYEES.EMPL_PERMANENT);
-	}
-
-	/**
-	 * Allowed to directly use the {@link DSLContext} with no access
-	 * restriction.<br />
-	 * Reason: <b>non-filtered data</b> (certificates related).
-	 */
-	private Map<Integer, java.util.Date> buildCertificatesVoiding(final String empl_pk) {
-		final Map<Integer, java.util.Date> res = new HashMap<>();
-		this.ctx.selectFrom(EMPLOYEES_CERTIFICATES_OPTOUT).where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk)).fetch()
-				.forEach(record -> res.put(record.getEmceCertFk(), record.getEmceDate()));
-
-		return res;
 	}
 
 	private static List<Date> computeDates(final String fromStr, final String toStr, final Integer intervalRaw) throws ParseException {

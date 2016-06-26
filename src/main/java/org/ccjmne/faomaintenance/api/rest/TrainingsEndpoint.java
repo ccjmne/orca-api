@@ -18,6 +18,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
+import org.ccjmne.faomaintenance.api.utils.StatisticsCaches;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -27,10 +28,10 @@ public class TrainingsEndpoint {
 
 	private final DSLContext ctx;
 	private final ResourcesEndpoint resources;
-	private final StatisticsEndpoint statistics;
+	private final StatisticsCaches statistics;
 
 	@Inject
-	public TrainingsEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final StatisticsEndpoint statistics) {
+	public TrainingsEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final StatisticsCaches statistics) {
 		this.ctx = ctx;
 		this.resources = resources;
 		this.statistics = statistics;

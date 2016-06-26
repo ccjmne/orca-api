@@ -2,17 +2,15 @@ package org.ccjmne.faomaintenance.api.rest.resources;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 
+import java.sql.Date;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.ccjmne.faomaintenance.api.utils.Constants;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.Record;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -25,20 +23,15 @@ public class EmployeeStatistics {
 
 	public static class EmployeeStatisticsBuilder {
 
-		private final Map<Integer, TrainingtypesRecord> trainingTypes;
-		private final Map<Integer, java.util.Date> expiryDates;
-		private final Calendar calendar;
+		private final Map<Integer, Date> expiryDates;
 		private final Map<Integer, List<Integer>> certificatesByTrainingType;
-		private final Map<Integer, java.util.Date> certificatesVoiding;
+		private final Map<Integer, Date> certificatesVoiding;
 		private final Multimap<Integer, Record> trainings;
 
 		protected EmployeeStatisticsBuilder(
-											final Map<Integer, TrainingtypesRecord> trainingTypes,
 											final Map<Integer, List<Integer>> certificatesByTrainingType,
 											final Map<Integer, Date> certificatesVoiding) {
-			this.trainingTypes = trainingTypes;
 			this.certificatesByTrainingType = certificatesByTrainingType;
-			this.calendar = Calendar.getInstance();
 			this.expiryDates = new HashMap<>();
 			this.trainings = ArrayListMultimap.<Integer, Record> create();
 			this.certificatesVoiding = certificatesVoiding;
@@ -46,12 +39,11 @@ public class EmployeeStatistics {
 
 		public EmployeeStatistics.EmployeeStatisticsBuilder accept(final Record training) {
 			if (Constants.EMPL_OUTCOME_VALIDATED.equals(training.getValue(TRAININGS_EMPLOYEES.TREM_OUTCOME))) {
-				final Record trainingType = this.trainingTypes.get(training.getValue(TRAININGS.TRNG_TRTY_FK));
-				final java.sql.Date trainingDate = training.getValue(TRAININGS.TRNG_DATE);
-				this.calendar.setTime(trainingDate);
-				this.calendar.add(Calendar.MONTH, trainingType.getValue(TRAININGTYPES.TRTY_VALIDITY).intValue());
 				for (final Integer cert_pk : this.certificatesByTrainingType.get(training.getValue(TRAININGS.TRNG_TRTY_FK))) {
-					this.expiryDates.merge(cert_pk, this.calendar.getTime(), (expiryDate, potential) -> (potential.after(expiryDate)) ? potential : expiryDate);
+					this.expiryDates.merge(
+											cert_pk,
+											training.getValue(Constants.TRAINING_EXPIRY),
+											(expiryDate, potential) -> (potential.after(expiryDate)) ? potential : expiryDate);
 					if (this.certificatesVoiding.containsKey(cert_pk)) {
 						this.expiryDates.merge(
 												cert_pk,
@@ -75,16 +67,15 @@ public class EmployeeStatistics {
 	}
 
 	public static EmployeeStatistics.EmployeeStatisticsBuilder builder(
-																		final Map<Integer, TrainingtypesRecord> trainingTypes,
 																		final Map<Integer, List<Integer>> certificatesByTrainingTypes,
-																		final Map<Integer, java.util.Date> certificatesVoiding) {
-		return new EmployeeStatisticsBuilder(trainingTypes, certificatesByTrainingTypes, certificatesVoiding);
+																		final Map<Integer, Date> certificatesVoiding) {
+		return new EmployeeStatisticsBuilder(certificatesByTrainingTypes, certificatesVoiding);
 	}
 
 	private final Map<Integer, EmployeeCertificateStatistics> certificates;
 	private final Date asOf;
 
-	protected EmployeeStatistics(final Map<Integer, java.util.Date> expiryDates, final Multimap<Integer, Record> trainings, final Date asOf) {
+	protected EmployeeStatistics(final Map<Integer, Date> expiryDates, final Multimap<Integer, Record> trainings, final Date asOf) {
 		this.asOf = asOf;
 		final Builder<Integer, EmployeeCertificateStatistics> builder = ImmutableMap.<Integer, EmployeeCertificateStatistics> builder();
 		expiryDates.forEach((certificate, expiryDate) -> builder.put(certificate, new EmployeeCertificateStatistics(expiryDate, trainings.get(certificate))));
