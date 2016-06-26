@@ -7,8 +7,10 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
 
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRolesRecord;
 import org.jooq.DatePart;
 import org.jooq.Field;
+import org.jooq.RecordMapper;
 import org.jooq.impl.DSL;
 
 public class Constants {
@@ -33,7 +35,7 @@ public class Constants {
 	public static final Integer ACCESS_LEVEL_TRAININGS = Integer.valueOf(4);
 	public static final Integer ACCESS_LEVEL_ALL_SITES = Integer.valueOf(3);
 	public static final Integer ACCESS_LEVEL_ONE_DEPT = Integer.valueOf(2);
-	// DATABASE CONSTANTS ----
+	// ----
 
 	// ---- SUBQUERIES AND FIELDS
 	public static final Field<Integer> LATEST_UPDATE = DSL.select(UPDATES.UPDT_PK)
@@ -50,5 +52,16 @@ public class Constants {
 						DSL.field(DSL.select(TRAININGTYPES.TRTY_VALIDITY).from(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(TRAININGS.TRNG_TRTY_FK))),
 						DatePart.MONTH)
 			.as("expiry");
-	// SUBQUERIES AND FIELDS ----
+	public static final RecordMapper<EmployeesRolesRecord, Object> EMPLOYEES_ROLES_MAPPER = entry -> {
+		switch (entry.getEmroType()) {
+			case Constants.ROLE_ACCESS:
+			case Constants.ROLE_ADMIN:
+				return entry.getEmroLevel();
+			case Constants.ROLE_TRAINER:
+				return entry.getEmroTrlvFk();
+			default:
+				return Boolean.TRUE;
+		}
+	};
+	// ----
 }

@@ -10,8 +10,9 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
+import org.ccjmne.faomaintenance.api.utils.Constants;
+import org.ccjmne.faomaintenance.api.utils.Restrictions;
 import org.jooq.DSLContext;
-import org.jooq.impl.DSL;
 
 @Path("admin")
 public class AdministrationEndpoint {
@@ -26,14 +27,19 @@ public class AdministrationEndpoint {
 	@GET
 	@Path("users/{empl_pk}")
 	public Map<String, Object> getUserInfo(@PathParam("empl_pk") final String empl_pk) {
-		return this.ctx
+		final Map<String, Object> res = this.ctx
 				.select(
 						EMPLOYEES.EMPL_PK,
 						EMPLOYEES.EMPL_FIRSTNAME,
 						EMPLOYEES.EMPL_SURNAME,
-						EMPLOYEES.EMPL_GENDER,
-						DSL.arrayAgg(EMPLOYEES_ROLES.EMRO_TYPE).as("roles"))
-				.from(EMPLOYEES).join(EMPLOYEES_ROLES).on(EMPLOYEES_ROLES.EMPL_PK.eq(EMPLOYEES.EMPL_PK)).where(EMPLOYEES.EMPL_PK.eq(empl_pk))
-				.groupBy(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_SURNAME, EMPLOYEES.EMPL_GENDER).fetchOneMap();
+						EMPLOYEES.EMPL_GENDER)
+				.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.eq(empl_pk))
+				.fetchOneMap();
+		res.put(
+				"roles",
+				this.ctx.selectFrom(EMPLOYEES_ROLES).where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk))
+						.fetchMap(EMPLOYEES_ROLES.EMRO_TYPE, Constants.EMPLOYEES_ROLES_MAPPER));
+		res.put("restrictions", Restrictions.forEmployee(empl_pk, this.ctx));
+		return res;
 	}
 }
