@@ -31,6 +31,7 @@ public class TrainingsEndpoint {
 	private final StatisticsCaches statistics;
 
 	@Inject
+	// TODO: use Restrictions
 	public TrainingsEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final StatisticsCaches statistics) {
 		this.ctx = ctx;
 		this.resources = resources;
