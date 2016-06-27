@@ -2,6 +2,7 @@ package org.ccjmne.faomaintenance.api.utils;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
@@ -15,6 +16,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.ccjmne.faomaintenance.api.rest.ResourcesEndpoint;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
@@ -42,6 +44,10 @@ public class ResourcesUnrestricted {
 
 	public Result<CertificatesRecord> listCertificates() {
 		return this.ctx.selectFrom(CERTIFICATES).orderBy(CERTIFICATES.CERT_ORDER).fetch();
+	}
+
+	public Result<EmployeesCertificatesOptoutRecord> listCertificatesVoiding(final String empl_pk) {
+		return this.ctx.selectFrom(EMPLOYEES_CERTIFICATES_OPTOUT).where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk)).fetch();
 	}
 
 	/**

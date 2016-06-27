@@ -2,7 +2,6 @@ package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
@@ -13,6 +12,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 import java.sql.Date;
 import java.text.ParseException;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -129,19 +129,16 @@ public class ResourcesEndpoint {
 						EMPLOYEES.EMPL_NOTES,
 						EMPLOYEES.EMPL_ADDR)
 				.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.equal(empl_pk)).fetchOne();
-
 	}
 
 	@GET
 	@Path("employees/{empl_pk}/voiding")
-	public Result<EmployeesCertificatesOptoutRecord> getEmployeeCertificatesVoiding(@PathParam("empl_pk") final String empl_pk) {
+	public Result<EmployeesCertificatesOptoutRecord> getEmployeeVoiding(@PathParam("empl_pk") final String empl_pk) {
 		if (!this.restrictions.canAccessEmployee(empl_pk)) {
 			throw new ForbiddenException();
 		}
 
-		return this.ctx.selectFrom(EMPLOYEES_CERTIFICATES_OPTOUT)
-				.where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk))
-				.orderBy(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK).fetch();
+		return this.unrestrictedResources.listCertificatesVoiding(empl_pk);
 	}
 
 	@GET
@@ -199,6 +196,19 @@ public class ResourcesEndpoint {
 		}
 
 		return this.ctx.selectFrom(SITES).where(SITES.SITE_PK.eq(site_pk)).fetchOne();
+	}
+
+	@GET
+	@Path("sites/{site_pk}/history")
+	public Map<Date, Result<Record>> getSiteEmployeesHistory(final String site_pk) {
+		if (!this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
+			throw new ForbiddenException();
+		}
+
+		return this.ctx.select().from(SITES_EMPLOYEES)
+				.join(UPDATES).on(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(UPDATES.UPDT_PK))
+				.where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
+				.fetchGroups(UPDATES.UPDT_DATE);
 	}
 
 	@GET
@@ -337,54 +347,4 @@ public class ResourcesEndpoint {
 	private Integer getUpdatePkFor(final String dateStr) throws ParseException {
 		return getUpdateFor(dateStr).getValue(UPDATES.UPDT_PK);
 	}
-
-	// TODO: remove
-	public Result<Record> listTrainingsREMOVED(
-												final String empl_pk,
-												final List<Integer> types,
-												final Date date,
-												final Date from,
-												final Date to) {
-		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
-			query.addSelect(TRAININGS.fields());
-			query.addFrom(TRAININGS);
-			query.addGroupBy(TRAININGS.fields());
-			query.addJoin(TRAININGS_EMPLOYEES, JoinType.LEFT_OUTER_JOIN, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK));
-
-			query.addSelect(Constants.TRAINING_REGISTERED);
-			query.addSelect(Constants.TRAINING_VALIDATED);
-			query.addSelect(Constants.TRAINING_FLUNKED);
-			query.addSelect(Constants.TRAINING_EXPIRY);
-			query.addSelect(Constants.TRAINING_TRAINERS);
-
-			if (empl_pk != null) {
-				query.addSelect(TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS_EMPLOYEES.TREM_COMMENT);
-				query.addGroupBy(TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS_EMPLOYEES.TREM_COMMENT);
-				query.addConditions(TRAININGS_EMPLOYEES.TREM_PK
-						.in(DSL.select(TRAININGS_EMPLOYEES.TREM_PK).from(TRAININGS_EMPLOYEES).where(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk))));
-			}
-
-			if (!types.isEmpty()) {
-				query.addJoin(TRAININGTYPES, TRAININGS.TRNG_TRTY_FK.eq(TRAININGTYPES.TRTY_PK).and(TRAININGTYPES.TRTY_PK.in(types)));
-			}
-
-			if (date != null) {
-				query.addConditions(TRAININGS.TRNG_START.isNotNull()
-						.and(TRAININGS.TRNG_START.le(date).and(TRAININGS.TRNG_DATE.ge(date)))
-						.or(TRAININGS.TRNG_DATE.eq(date)));
-			}
-
-			if (from != null) {
-				query.addConditions(TRAININGS.TRNG_DATE.ge(from).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.ge(from))));
-			}
-
-			if (to != null) {
-				query.addConditions(TRAININGS.TRNG_DATE.le(to).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.le(to))));
-			}
-
-			query.addOrderBy(TRAININGS.TRNG_DATE);
-			return query.fetch();
-		}
-	}
-
 }
