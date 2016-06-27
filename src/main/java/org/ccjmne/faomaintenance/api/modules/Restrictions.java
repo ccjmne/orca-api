@@ -1,4 +1,4 @@
-package org.ccjmne.faomaintenance.api.utils;
+package org.ccjmne.faomaintenance.api.modules;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_ROLES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
@@ -13,6 +13,7 @@ import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
 
+import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRolesRecord;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;

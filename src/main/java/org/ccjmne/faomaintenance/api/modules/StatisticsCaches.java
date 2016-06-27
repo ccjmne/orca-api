@@ -1,4 +1,4 @@
-package org.ccjmne.faomaintenance.api.utils;
+package org.ccjmne.faomaintenance.api.modules;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
@@ -19,6 +19,7 @@ import javax.inject.Inject;
 
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeStatisticsBuilder;
+import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.rest.resources.SiteStatistics;
 import org.jooq.DSLContext;
 import org.jooq.Record;

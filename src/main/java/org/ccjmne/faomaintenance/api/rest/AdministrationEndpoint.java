@@ -10,8 +10,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
+import org.ccjmne.faomaintenance.api.modules.Restrictions;
 import org.ccjmne.faomaintenance.api.utils.Constants;
-import org.ccjmne.faomaintenance.api.utils.Restrictions;
 import org.jooq.DSLContext;
 
 @Path("admin")

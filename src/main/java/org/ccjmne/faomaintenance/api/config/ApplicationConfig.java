@@ -3,10 +3,10 @@ package org.ccjmne.faomaintenance.api.config;
 import javax.inject.Singleton;
 
 import org.ccjmne.faomaintenance.api.db.PostgresDSLContext;
+import org.ccjmne.faomaintenance.api.modules.ResourcesUnrestricted;
+import org.ccjmne.faomaintenance.api.modules.Restrictions;
+import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
 import org.ccjmne.faomaintenance.api.utils.CustomObjectMapper;
-import org.ccjmne.faomaintenance.api.utils.ResourcesUnrestricted;
-import org.ccjmne.faomaintenance.api.utils.Restrictions;
-import org.ccjmne.faomaintenance.api.utils.StatisticsCaches;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.process.internal.RequestScoped;

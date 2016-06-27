@@ -16,7 +16,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import org.ccjmne.faomaintenance.api.utils.StatisticsCaches;
+import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
 import org.ccjmne.faomaintenance.jooq.classes.Tables;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;

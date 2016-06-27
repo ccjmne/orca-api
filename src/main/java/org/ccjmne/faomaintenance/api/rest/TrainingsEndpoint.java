@@ -17,8 +17,8 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
+import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
-import org.ccjmne.faomaintenance.api.utils.StatisticsCaches;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
