@@ -20,6 +20,10 @@ import org.jooq.impl.DSL;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 
+/**
+ * Provides tools to manage restrictions of resources access or manipulation
+ * provided an authenticated {@link HttpServletRequest} or a specific user ID.
+ */
 public class Restrictions {
 	private final DSLContext ctx;
 

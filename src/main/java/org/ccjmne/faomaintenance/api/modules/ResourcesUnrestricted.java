@@ -14,7 +14,6 @@ import java.sql.Date;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 
-import org.ccjmne.faomaintenance.api.rest.ResourcesEndpoint;
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
@@ -27,6 +26,11 @@ import org.jooq.Result;
 import org.jooq.SelectQuery;
 import org.jooq.impl.DSL;
 
+/**
+ * Concentrate all accesses to the database (all usages of a {@link DSLContext})
+ * that are not meant to be filtered according to the {@link Restrictions}
+ * module.
+ */
 public class ResourcesUnrestricted {
 	private final DSLContext ctx;
 
@@ -89,10 +93,9 @@ public class ResourcesUnrestricted {
 	/**
 	 * Used solely by the {@link StatisticsCaches} to build statistics for
 	 * sites.<br />
-	 * Lists employees according to a lot of parameters just like
-	 * {@link ResourcesEndpoint#listEmployees(String, String, String)} , except
-	 * that this implementation <b>does not filter out results</b> based off of
-	 * the current {@link HttpServletRequest}'s restrictions.<br />
+	 * Lists <b>currently assigned</b> employees. This implementation <b>does
+	 * not filter out results</b> based off of the current
+	 * {@link HttpServletRequest}'s restrictions.<br />
 	 */
 	public Result<Record> listEmployees(final String site_pk) {
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
@@ -112,6 +115,7 @@ public class ResourcesUnrestricted {
 								SITES_EMPLOYEES,
 								SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
 								SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk),
+								SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE),
 								SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE));
 			} else {
 				query.addJoin(

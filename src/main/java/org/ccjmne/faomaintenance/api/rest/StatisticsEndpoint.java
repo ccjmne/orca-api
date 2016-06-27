@@ -225,8 +225,6 @@ public class StatisticsEndpoint {
 		}
 
 		final List<String> employees = this.resources.listEmployees(site_pk, dateStr, null).getValues(EMPLOYEES.EMPL_PK);
-		// TODO: Bulk employees stats computing when cache isn't reasonably full
-		// + store in cache. Just like SitesStatistics.
 		if ((dateStr == null) && (fromStr == null)) {
 			final Builder<String, EmployeeStatistics> employeesStats = new ImmutableMap.Builder<>();
 			for (final String empl_pk : employees) {
@@ -236,6 +234,7 @@ public class StatisticsEndpoint {
 			return Collections.singletonMap(new Date(new java.util.Date().getTime()), employeesStats.build());
 		}
 
+		// TODO: Bulk employees stats computing
 		final Map<Integer, TrainingtypesRecord> trainingTypes = this.resourcesByKeys.listTrainingTypes();
 		final Map<Integer, List<Integer>> trainingtypesCertificates = this.resourcesByKeys.listTrainingtypesCertificates();
 		final List<Date> dates = computeDates(fromStr, dateStr, interval);
@@ -248,7 +247,6 @@ public class StatisticsEndpoint {
 		return res;
 	}
 
-	// TODO: use in StatisticsCaches as an init pre-fill
 	/**
 	 * Specifically allowed to directly use the {@link DSLContext} with
 	 * virtually no restriction.<br />
