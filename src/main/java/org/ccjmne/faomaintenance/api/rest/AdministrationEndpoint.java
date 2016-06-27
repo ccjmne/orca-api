@@ -32,7 +32,11 @@ public class AdministrationEndpoint {
 						EMPLOYEES.EMPL_PK,
 						EMPLOYEES.EMPL_FIRSTNAME,
 						EMPLOYEES.EMPL_SURNAME,
-						EMPLOYEES.EMPL_GENDER)
+						EMPLOYEES.EMPL_DOB,
+						EMPLOYEES.EMPL_PERMANENT,
+						EMPLOYEES.EMPL_GENDER,
+						EMPLOYEES.EMPL_NOTES,
+						EMPLOYEES.EMPL_ADDR)
 				.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.eq(empl_pk))
 				.fetchOneMap();
 		res.put(

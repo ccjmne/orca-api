@@ -44,6 +44,7 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.Record4;
 import org.jooq.Result;
 
 import com.google.common.base.Function;
@@ -267,7 +268,7 @@ public class StatisticsEndpoint {
 			employeesStats.put(empl_pk, buildEmployeeStats(empl_pk, dates, trainingTypes, trainingtypesCertificates));
 		}
 
-		final TreeMap<Date, Map<String, Result<Record>>> employeesHistory = new TreeMap<>();
+		final TreeMap<Date, Map<String, Result<? extends Record>>> employeesHistory = new TreeMap<>();
 		for (final String site_pk : sites) {
 			this.resources.getSiteEmployeesHistory(site_pk)
 					.forEach((date, employees) -> {
@@ -278,9 +279,9 @@ public class StatisticsEndpoint {
 		final Map<Integer, CertificatesRecord> certificates = this.resourcesByKeys.listCertificates();
 		final TreeMap<Date, Map<String, SiteStatistics>> res = new TreeMap<>();
 		for (final Date date : dates) {
-			final Entry<Date, Map<String, Result<Record>>> mostAccurate = employeesHistory.floorEntry(date);
+			final Entry<Date, Map<String, Result<? extends Record>>> mostAccurate = employeesHistory.floorEntry(date);
 			if (mostAccurate != null) {
-				for (final Entry<String, Result<Record>> sitesEmployeesHistory : mostAccurate.getValue().entrySet()) {
+				for (final Entry<String, Result<? extends Record>> sitesEmployeesHistory : mostAccurate.getValue().entrySet()) {
 					final SiteStatistics stats = new SiteStatistics(certificates);
 					for (final Record empl : sitesEmployeesHistory.getValue()) {
 						stats.register(
@@ -302,7 +303,12 @@ public class StatisticsEndpoint {
 	/**
 	 * Specifically allowed to directly use the {@link DSLContext} with
 	 * virtually no restriction.<br />
-	 * Reason: <code>private</code> method <b>shielded</b> by the caller.
+	 * Reasons:
+	 * <ol>
+	 * <li><code>private</code> method <b>shielded</b> by the caller.</li>
+	 * <li>Can access employees that are not in the accessible sites anymore.
+	 * </li>
+	 * </ol>
 	 */
 	private Map<Date, SiteStatistics> calculateSiteStats(final String site_pk, final List<Date> dates) {
 		final Map<Integer, TrainingtypesRecord> trainingTypes = this.resourcesByKeys.listTrainingTypes();
@@ -315,7 +321,7 @@ public class StatisticsEndpoint {
 		}
 
 		final TreeSet<Date> updates = new TreeSet<>(this.resources.listUpdates().getValues(UPDATES.UPDT_DATE));
-		final Map<Date, Result<Record>> employeesHistory = this.resources.getSiteEmployeesHistory(site_pk);
+		final Map<Date, Result<Record4<String, Boolean, String, Date>>> employeesHistory = this.resources.getSiteEmployeesHistory(site_pk);
 
 		final Map<Integer, CertificatesRecord> certificates = this.resourcesByKeys.listCertificates();
 		final Map<Date, SiteStatistics> res = new TreeMap<>();
@@ -345,7 +351,7 @@ public class StatisticsEndpoint {
 		final EmployeeStatisticsBuilder builder = EmployeeStatistics
 				.builder(
 							certificatesByTrainingTypes,
-							this.resources.getEmployeeVoiding(empl_pk)
+							this.resourcesUnrestricted.listCertificatesVoiding(empl_pk)
 									.intoMap(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK, EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE));
 		final Map<Date, EmployeeStatistics> res = new TreeMap<>();
 		final Iterator<Record> trainings = this.resourcesUnrestricted.listTrainings(empl_pk).iterator();

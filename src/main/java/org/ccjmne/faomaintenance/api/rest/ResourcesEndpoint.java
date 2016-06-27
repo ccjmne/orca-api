@@ -33,6 +33,7 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.UpdatesRecord;
 import org.jooq.DSLContext;
 import org.jooq.JoinType;
 import org.jooq.Record;
+import org.jooq.Record4;
 import org.jooq.Result;
 import org.jooq.Select;
 import org.jooq.SelectQuery;
@@ -200,12 +201,13 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("sites/{site_pk}/history")
-	public Map<Date, Result<Record>> getSiteEmployeesHistory(final String site_pk) {
+	public Map<Date, Result<Record4<String, Boolean, String, Date>>> getSiteEmployeesHistory(final String site_pk) {
 		if (!this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
 			throw new ForbiddenException();
 		}
 
-		return this.ctx.select().from(SITES_EMPLOYEES)
+		return this.ctx.select(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_PERMANENT, SITES_EMPLOYEES.SIEM_SITE_FK, UPDATES.UPDT_DATE).from(SITES_EMPLOYEES)
+				.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK))
 				.join(UPDATES).on(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(UPDATES.UPDT_PK))
 				.where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
 				.fetchGroups(UPDATES.UPDT_DATE);

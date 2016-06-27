@@ -1,11 +1,10 @@
-package org.ccjmne.faomaintenance.api.utils;
+package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 
 import java.util.Map;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -14,12 +13,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.ccjmne.faomaintenance.api.rest.AdministrationEndpoint;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.RolesRecord;
 import org.jooq.DSLContext;
-import org.jooq.Result;
 
-@Singleton
 @Path("account")
 public class AccountEndpoint {
 
@@ -35,12 +30,6 @@ public class AccountEndpoint {
 	@GET
 	public Map<String, Object> getCurrentUserInfo(@Context final HttpServletRequest request) {
 		return this.admin.getUserInfo(request.getRemoteUser());
-	}
-
-	@GET
-	@Path("roles")
-	public Result<RolesRecord> getAvailableRoles() {
-		return this.admin.getAvailableRoles();
 	}
 
 	@PUT

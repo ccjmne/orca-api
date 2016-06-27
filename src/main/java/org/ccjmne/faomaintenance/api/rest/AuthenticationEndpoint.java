@@ -5,7 +5,6 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import java.util.Base64;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
@@ -13,7 +12,6 @@ import javax.ws.rs.core.Response.Status;
 
 import org.jooq.DSLContext;
 
-@Singleton
 @Path("auth")
 public class AuthenticationEndpoint {
 
