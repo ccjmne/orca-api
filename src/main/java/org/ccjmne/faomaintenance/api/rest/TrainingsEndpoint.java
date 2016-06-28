@@ -17,9 +17,12 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
+import org.ccjmne.faomaintenance.api.modules.Restrictions;
 import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
+import org.ccjmne.faomaintenance.api.utils.ForbiddenException;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingsRecord;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
@@ -29,18 +32,23 @@ public class TrainingsEndpoint {
 	private final DSLContext ctx;
 	private final ResourcesEndpoint resources;
 	private final StatisticsCaches statistics;
+	private final Restrictions restrictions;
 
 	@Inject
-	// TODO: use Restrictions
-	public TrainingsEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final StatisticsCaches statistics) {
+	public TrainingsEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final StatisticsCaches statistics, final Restrictions restrictions) {
 		this.ctx = ctx;
 		this.resources = resources;
 		this.statistics = statistics;
+		this.restrictions = restrictions;
 	}
 
 	@POST
-	public Integer addTraining(final Map<String, Object> training) throws ParseException {
-		return insertTraining(new Integer(this.ctx.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, this.ctx);
+	public Integer addTraining(final Map<String, Object> training) {
+		return this.ctx.transactionResult(config -> {
+			try (final DSLContext transactionContext = DSL.using(config)) {
+				return insertTraining(new Integer(transactionContext.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transactionContext);
+			}
+		});
 	}
 
 	@POST
@@ -60,32 +68,45 @@ public class TrainingsEndpoint {
 	public Boolean updateTraining(@PathParam("trng_pk") final Integer trng_pk, final Map<String, Object> training) {
 		return this.ctx.transactionResult(config -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
-				final boolean exists = deleteTrainingImpl(trng_pk, transactionCtx);
+				final Boolean exists = deleteTrainingImpl(trng_pk, transactionCtx);
 				insertTraining(trng_pk, training, transactionCtx);
-				return Boolean.valueOf(exists);
+				return exists;
 			}
 		});
 	}
 
 	@DELETE
 	@Path("{trng_pk}")
-	public boolean deleteTraining(@PathParam("trng_pk") final Integer trng_pk) throws ParseException {
-		return deleteTrainingImpl(trng_pk, this.ctx);
+	public Boolean deleteTraining(@PathParam("trng_pk") final Integer trng_pk) {
+		return this.ctx.transactionResult(config -> {
+			try (final DSLContext transactionCtx = DSL.using(config)) {
+				return deleteTrainingImpl(trng_pk, transactionCtx);
+			}
+		});
 	}
 
-	private boolean deleteTrainingImpl(final Integer trng_pk, final DSLContext transactionCtx) throws ParseException {
-		final boolean exists = transactionCtx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).fetch().isNotEmpty();
-		if (exists) {
+	private Boolean deleteTrainingImpl(final Integer trng_pk, final DSLContext transactionCtx) throws ParseException {
+		final TrainingsRecord training = transactionCtx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).fetchOne();
+		if (training != null) {
+			if (!this.restrictions.getManageableTypes().contains(training.getTrngTrtyFk())) {
+				throw new ForbiddenException();
+			}
+
 			transactionCtx.delete(TRAININGS_TRAINERS).where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(trng_pk)).execute();
 			this.statistics.invalidateEmployeesStats(this.resources.listEmployees(null, null, String.valueOf(trng_pk.intValue())).getValues(EMPLOYEES.EMPL_PK));
 			transactionCtx.delete(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).execute();
+			return Boolean.TRUE;
 		}
 
-		return exists;
+		return Boolean.FALSE;
 	}
 
 	@SuppressWarnings("unchecked")
 	private Integer insertTraining(final Integer trng_pk, final Map<String, Object> map, final DSLContext transactionContext) throws ParseException {
+		if (!this.restrictions.getManageableTypes().contains(map.get(TRAININGS.TRNG_TRTY_FK.getName()))) {
+			throw new ForbiddenException();
+		}
+
 		transactionContext
 				.insertInto(
 							TRAININGS,
