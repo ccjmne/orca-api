@@ -1,6 +1,9 @@
 package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_ROLES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERLEVELS;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERLEVELS_TRAININGTYPES;
 
 import java.util.Map;
 
@@ -13,7 +16,10 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.impl.DSL;
 
 @Path("account")
 public class AccountEndpoint {
@@ -30,6 +36,18 @@ public class AccountEndpoint {
 	@GET
 	public Map<String, Object> getCurrentUserInfo(@Context final HttpServletRequest request) {
 		return this.admin.getUserInfo(request.getRemoteUser());
+	}
+
+	@GET
+	@Path("trainerlevel")
+	public Record getTrainerLevels(@Context final HttpServletRequest request) {
+		return this.ctx.select(TRAINERLEVELS.TRLV_PK, TRAINERLEVELS.TRLV_ID, DSL.arrayAgg(TRAINERLEVELS_TRAININGTYPES.TLTR_TRTY_FK).as("types"))
+				.from(TRAINERLEVELS).leftOuterJoin(TRAINERLEVELS_TRAININGTYPES).on(TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK.eq(TRAINERLEVELS.TRLV_PK))
+				.where(TRAINERLEVELS.TRLV_PK
+						.eq(DSL.select(EMPLOYEES_ROLES.EMRO_TRLV_FK).from(EMPLOYEES_ROLES)
+								.where(EMPLOYEES_ROLES.EMPL_PK.eq(request.getRemoteUser()).and(EMPLOYEES_ROLES.EMRO_TYPE.eq(Constants.ROLE_TRAINER)))
+								.asField()))
+				.groupBy(TRAINERLEVELS.TRLV_PK, TRAINERLEVELS.TRLV_ID).fetchOne();
 	}
 
 	@PUT
