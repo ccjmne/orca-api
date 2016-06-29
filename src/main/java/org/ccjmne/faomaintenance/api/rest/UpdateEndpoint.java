@@ -6,6 +6,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_ROLES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERLEVELS_TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
@@ -196,6 +197,9 @@ public class UpdateEndpoint {
 											.from(TRAININGTYPES)
 											.fetchOne("order", Integer.class))
 							.execute();
+
+					transactionCtx.insertInto(TRAINERLEVELS_TRAININGTYPES, TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK, TRAINERLEVELS_TRAININGTYPES.TLTR_TRTY_FK)
+							.values(Constants.UNASSIGNED_TRAINERLEVEL, trty_pk);
 				}
 
 				transactionCtx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(trty_pk)).execute();

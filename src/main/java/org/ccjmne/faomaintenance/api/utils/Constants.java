@@ -28,6 +28,7 @@ public class Constants {
 
 	public static final String UNASSIGNED_SITE = "0";
 	public static final Integer UNASSIGNED_DEPT = Integer.valueOf(0);
+	public static final Integer UNASSIGNED_TRAINERLEVEL = Integer.valueOf(0);
 
 	public static final String ROLE_ACCESS = "access";
 	public static final String ROLE_TRAINER = "trainer";
