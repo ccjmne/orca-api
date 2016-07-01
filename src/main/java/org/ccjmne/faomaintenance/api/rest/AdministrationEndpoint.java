@@ -13,6 +13,7 @@ import java.util.Random;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -39,9 +40,11 @@ public class AdministrationEndpoint {
 	private final DSLContext ctx;
 
 	@Inject
-	public AdministrationEndpoint(final DSLContext ctx) {
-		// TODO: use Resitrictions
+	public AdministrationEndpoint(final DSLContext ctx, final Restrictions restrictions) {
 		this.ctx = ctx;
+		if (!restrictions.canManageUsers()) {
+			throw new ForbiddenException();
+		}
 	}
 
 	@GET
@@ -104,7 +107,16 @@ public class AdministrationEndpoint {
 	@GET
 	@Path("users/{empl_pk}")
 	public Map<String, Object> getUserInfo(@PathParam("empl_pk") final String empl_pk) {
-		final Map<String, Object> res = this.ctx
+		return AdministrationEndpoint.getUserInfoImpl(empl_pk, this.ctx);
+	}
+
+	/**
+	 * Not part of the exposed API. Used by {@link AccountEndpoint} only.<br />
+	 * Return account information and corresponding {@link Restrictions} for a
+	 * given user ID.
+	 */
+	public static Map<String, Object> getUserInfoImpl(final String empl_pk, final DSLContext ctx) {
+		final Map<String, Object> res = ctx
 				.select(
 						EMPLOYEES.EMPL_PK,
 						EMPLOYEES.EMPL_FIRSTNAME,
@@ -118,9 +130,9 @@ public class AdministrationEndpoint {
 				.fetchOneMap();
 		res.put(
 				"roles",
-				this.ctx.selectFrom(EMPLOYEES_ROLES).where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk))
+				ctx.selectFrom(EMPLOYEES_ROLES).where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk))
 						.fetchMap(EMPLOYEES_ROLES.EMRO_TYPE, Constants.EMPLOYEES_ROLES_MAPPER));
-		res.put("restrictions", Restrictions.forEmployee(empl_pk, this.ctx));
+		res.put("restrictions", Restrictions.forEmployee(empl_pk, ctx));
 		return res;
 	}
 

@@ -12,6 +12,7 @@ import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -19,7 +20,6 @@ import javax.ws.rs.PathParam;
 
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
 import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
-import org.ccjmne.faomaintenance.api.utils.ForbiddenException;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingsRecord;

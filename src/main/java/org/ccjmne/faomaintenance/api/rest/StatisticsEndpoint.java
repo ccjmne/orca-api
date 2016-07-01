@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -38,7 +39,6 @@ import org.ccjmne.faomaintenance.api.rest.resources.SiteStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
 import org.ccjmne.faomaintenance.api.utils.Constants;
-import org.ccjmne.faomaintenance.api.utils.ForbiddenException;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;

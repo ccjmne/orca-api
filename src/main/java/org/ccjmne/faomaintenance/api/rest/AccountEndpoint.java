@@ -25,17 +25,15 @@ import org.jooq.impl.DSL;
 public class AccountEndpoint {
 
 	private final DSLContext ctx;
-	private final AdministrationEndpoint admin;
 
 	@Inject
-	public AccountEndpoint(final DSLContext ctx, final AdministrationEndpoint admin) {
+	public AccountEndpoint(final DSLContext ctx) {
 		this.ctx = ctx;
-		this.admin = admin;
 	}
 
 	@GET
 	public Map<String, Object> getCurrentUserInfo(@Context final HttpServletRequest request) {
-		return this.admin.getUserInfo(request.getRemoteUser());
+		return AdministrationEndpoint.getUserInfoImpl(request.getRemoteUser(), this.ctx);
 	}
 
 	@GET

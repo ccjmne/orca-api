@@ -29,6 +29,10 @@ public class Restrictions {
 
 	private final boolean accessTrainings;
 	private final boolean accessAllSites;
+	private final boolean manageEmployeeNotes;
+	private final boolean manageSites;
+	private final boolean manageCertificates;
+	private final boolean manageUsers;
 	private final List<String> accessibleSites;
 	private final List<Integer> manageableTypes;
 	private final Integer accessibleDepartment;
@@ -43,7 +47,6 @@ public class Restrictions {
 	}
 
 	private Restrictions(final String empl_pk, final DSLContext ctx) {
-		// TODO: Administration restrictions management?
 		this.ctx = ctx;
 		final Map<String, EmployeesRolesRecord> roles = ctx.selectFrom(EMPLOYEES_ROLES)
 				.where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk)).fetchMap(EMPLOYEES_ROLES.EMRO_TYPE);
@@ -51,6 +54,17 @@ public class Restrictions {
 				&& Constants.ACCESS_LEVEL_TRAININGS.equals(roles.get(Constants.ROLE_ACCESS).getEmroLevel());
 		this.accessAllSites = roles.containsKey(Constants.ROLE_ACCESS)
 				&& (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(roles.get(Constants.ROLE_ACCESS).getEmroLevel()) <= 0);
+		if (roles.containsKey(Constants.ROLE_ADMIN)) {
+			this.manageEmployeeNotes = roles.get(Constants.ROLE_ADMIN).getEmroLevel().compareTo(Integer.valueOf(1)) >= 0;
+			this.manageSites = roles.get(Constants.ROLE_ADMIN).getEmroLevel().compareTo(Integer.valueOf(2)) >= 0;
+			this.manageCertificates = roles.get(Constants.ROLE_ADMIN).getEmroLevel().compareTo(Integer.valueOf(3)) >= 0;
+			this.manageUsers = roles.get(Constants.ROLE_ADMIN).getEmroLevel().equals(Integer.valueOf(4));
+		} else {
+			this.manageEmployeeNotes = false;
+			this.manageSites = false;
+			this.manageCertificates = false;
+			this.manageUsers = false;
+		}
 		this.accessibleDepartment = getAccessibleDepartment(empl_pk, roles.get(Constants.ROLE_ACCESS));
 		this.accessibleSites = listAccessibleSites(empl_pk, roles.get(Constants.ROLE_ACCESS));
 		this.manageableTypes = listManageableTypes(roles.get(Constants.ROLE_TRAINER));
@@ -134,6 +148,26 @@ public class Restrictions {
 	@JsonGetter
 	public boolean canAccessAllSites() {
 		return this.accessAllSites;
+	}
+
+	@JsonGetter
+	public boolean canManageEmployeeNotes() {
+		return this.manageEmployeeNotes;
+	}
+
+	@JsonGetter
+	public boolean canManageSites() {
+		return this.manageSites;
+	}
+
+	@JsonGetter
+	public boolean canManageCertificates() {
+		return this.manageCertificates;
+	}
+
+	@JsonGetter
+	public boolean canManageUsers() {
+		return this.manageUsers;
 	}
 
 	/**

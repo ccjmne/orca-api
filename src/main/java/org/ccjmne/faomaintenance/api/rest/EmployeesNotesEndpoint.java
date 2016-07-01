@@ -9,6 +9,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -16,6 +17,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.ccjmne.faomaintenance.api.modules.Restrictions;
 import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
 import org.ccjmne.faomaintenance.jooq.classes.Tables;
 import org.jooq.DSLContext;
@@ -27,7 +29,11 @@ public class EmployeesNotesEndpoint {
 	private final StatisticsCaches statistics;
 
 	@Inject
-	public EmployeesNotesEndpoint(final DSLContext ctx, final StatisticsCaches statistics) {
+	public EmployeesNotesEndpoint(final DSLContext ctx, final StatisticsCaches statistics, final Restrictions restrictions) {
+		if (!restrictions.canManageEmployeeNotes()) {
+			throw new ForbiddenException();
+		}
+
 		this.ctx = ctx;
 		this.statistics = statistics;
 	}

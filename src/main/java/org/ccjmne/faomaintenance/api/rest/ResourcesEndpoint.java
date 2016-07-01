@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -23,7 +24,6 @@ import javax.ws.rs.QueryParam;
 import org.ccjmne.faomaintenance.api.modules.ResourcesUnrestricted;
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
 import org.ccjmne.faomaintenance.api.utils.Constants;
-import org.ccjmne.faomaintenance.api.utils.ForbiddenException;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
