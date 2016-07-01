@@ -15,20 +15,18 @@ import org.jooq.DSLContext;
 @Path("auth")
 public class AuthenticationEndpoint {
 
-	private final AdministrationEndpoint admin;
 	private final DSLContext ctx;
 
 	@Inject
-	public AuthenticationEndpoint(final DSLContext ctx, final AdministrationEndpoint admin) {
+	public AuthenticationEndpoint(final DSLContext ctx) {
 		this.ctx = ctx;
-		this.admin = admin;
 	}
 
 	@POST
 	public Response authenticate(final String authorization) {
 		final String[] split = new String(Base64.getDecoder().decode(authorization)).split(":");
 		if ((split.length == 2) && this.ctx.fetchExists(EMPLOYEES, EMPLOYEES.EMPL_PK.eq(split[0]).and(EMPLOYEES.EMPL_PWD.eq(split[1])))) {
-			return Response.ok(this.admin.getUserInfo(split[0])).build();
+			return Response.ok(AdministrationEndpoint.getUserInfoImpl(split[0], this.ctx)).build();
 		}
 
 		return Response.status(Status.UNAUTHORIZED).build();
