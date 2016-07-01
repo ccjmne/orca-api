@@ -25,7 +25,6 @@ import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
-import org.jooq.Result;
 import org.jooq.Row1;
 import org.jooq.impl.DSL;
 
@@ -41,6 +40,7 @@ public class AdministrationEndpoint {
 
 	@Inject
 	public AdministrationEndpoint(final DSLContext ctx) {
+		// TODO: use Resitrictions
 		this.ctx = ctx;
 	}
 
@@ -61,6 +61,7 @@ public class AdministrationEndpoint {
 																DSL.arrayAgg(EMPLOYEES_ROLES.EMRO_TRLV_FK).as("rolesTrlvPks"))
 				.from(EMPLOYEES).join(EMPLOYEES_ROLES).on(EMPLOYEES_ROLES.EMPL_PK.eq(EMPLOYEES.EMPL_PK))
 				.where(EMPLOYEES.EMPL_PWD.isNotNull())
+				.and(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT))
 				.groupBy(
 							EMPLOYEES.EMPL_PK,
 							EMPLOYEES.EMPL_FIRSTNAME,
@@ -126,18 +127,18 @@ public class AdministrationEndpoint {
 	@PUT
 	@Path("users/{empl_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
-	public void updateUser(@PathParam("empl_pk") final String empl_pk, final Map<String, Integer> roles) {
+	public void updateUser(@PathParam("empl_pk") final String empl_pk, final Map<String, Object> roles) {
 		this.ctx.transaction((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
-				transactionCtx.delete(EMPLOYEES_ROLES).where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk));
+				transactionCtx.delete(EMPLOYEES_ROLES).where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk)).execute();
 				if (!roles.isEmpty()) {
 					for (final String type : roles.keySet()) {
 						final Field<Integer> specification = getRoleSpecificationField(type);
-						if (specification != null) {
+						if (specification == null) {
 							transactionCtx.insertInto(EMPLOYEES_ROLES).set(EMPLOYEES_ROLES.EMPL_PK, empl_pk).set(EMPLOYEES_ROLES.EMRO_TYPE, type).execute();
 						} else {
 							transactionCtx.insertInto(EMPLOYEES_ROLES).set(EMPLOYEES_ROLES.EMPL_PK, empl_pk).set(EMPLOYEES_ROLES.EMRO_TYPE, type)
-									.set(specification, roles.get(type)).execute();
+									.set(specification, (Integer) roles.get(type)).execute();
 						}
 					}
 				}
@@ -161,10 +162,10 @@ public class AdministrationEndpoint {
 
 	@GET
 	@Path("trainerlevels")
-	public Result<? extends Record> getTrainerLevels() {
+	public Map<Integer, ? extends Record> getTrainerLevels() {
 		return this.ctx.select(TRAINERLEVELS.TRLV_PK, TRAINERLEVELS.TRLV_ID, DSL.arrayAgg(TRAINERLEVELS_TRAININGTYPES.TLTR_TRTY_FK).as("types"))
 				.from(TRAINERLEVELS).leftOuterJoin(TRAINERLEVELS_TRAININGTYPES).on(TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK.eq(TRAINERLEVELS.TRLV_PK))
-				.groupBy(TRAINERLEVELS.TRLV_PK, TRAINERLEVELS.TRLV_ID).fetch();
+				.groupBy(TRAINERLEVELS.TRLV_PK, TRAINERLEVELS.TRLV_ID).fetchMap(TRAINERLEVELS.TRLV_PK);
 	}
 
 	@POST
@@ -175,7 +176,8 @@ public class AdministrationEndpoint {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
 				final Integer trlv_pk = transactionCtx.select(DSL.max(TRAINERLEVELS.TRLV_PK).add(Integer.valueOf(1)).as("trlv_pk"))
 						.from(TRAINERLEVELS).fetchOne("trlv_pk", Integer.class);
-				transactionCtx.insertInto(TRAINERLEVELS, TRAINERLEVELS.TRLV_PK, TRAINERLEVELS.TRLV_ID).values(trlv_pk, (String) level.get("id")).execute();
+				transactionCtx.insertInto(TRAINERLEVELS, TRAINERLEVELS.TRLV_PK, TRAINERLEVELS.TRLV_ID)
+						.values(trlv_pk, (String) level.get(TRAINERLEVELS.TRLV_ID.getName())).execute();
 				insertTypes(trlv_pk, (List<Integer>) level.get("types"), transactionCtx);
 				return trlv_pk;
 			}
@@ -188,8 +190,8 @@ public class AdministrationEndpoint {
 	public void updateTrainerlevel(@PathParam("trlv_pk") final Integer trlv_pk, final Map<String, Object> level) {
 		this.ctx.transaction((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
-				transactionCtx.update(TRAINERLEVELS).set(TRAINERLEVELS.TRLV_ID, (String) level.get(TRAINERLEVELS.TRLV_ID.getName())).execute();
-				transactionCtx.delete(TRAINERLEVELS_TRAININGTYPES).where(TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK.eq(trlv_pk));
+				transactionCtx.update(TRAINERLEVELS).set(TRAINERLEVELS.TRLV_ID, (String) level.get(TRAINERLEVELS.TRLV_ID.getName()))
+						.where(TRAINERLEVELS.TRLV_PK.eq(trlv_pk)).execute();
 				insertTypes(trlv_pk, (List<Integer>) level.get("types"), transactionCtx);
 			}
 		});
@@ -223,7 +225,12 @@ public class AdministrationEndpoint {
 	}
 
 	private static void insertTypes(final Integer trlv_pk, final List<Integer> types, final DSLContext transactionCtx) {
-		if (types.isEmpty()) {
+		if (Constants.UNASSIGNED_TRAINERLEVEL.equals(trlv_pk)) {
+			return;
+		}
+
+		transactionCtx.delete(TRAINERLEVELS_TRAININGTYPES).where(TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK.eq(trlv_pk)).execute();
+		if (!types.isEmpty()) {
 			transactionCtx.insertInto(TRAINERLEVELS_TRAININGTYPES, TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK, TRAINERLEVELS_TRAININGTYPES.TLTR_TRTY_FK)
 					.select(DSL.select(DSL.val(trlv_pk), DSL.field("trlv_trty_fk", Integer.class))
 							.from(DSL.values(types.stream().map(DSL::row).toArray(Row1[]::new)).as("unused", "trlv_trty_fk")))
