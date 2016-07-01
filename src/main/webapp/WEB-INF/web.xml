@@ -75,6 +75,7 @@
 			<web-resource-name>General Management API</web-resource-name>
 
 			<url-pattern>/admin/*</url-pattern>
+			<url-pattern>/certificates/*</url-pattern>
 			<url-pattern>/update/*</url-pattern>
 			<url-pattern>/employees-notes/*</url-pattern>
 			<http-method>GET</http-method>
