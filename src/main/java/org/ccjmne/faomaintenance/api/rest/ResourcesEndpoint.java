@@ -317,6 +317,7 @@ public class ResourcesEndpoint {
 
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
 			query.addSelect(DEPARTMENTS.fields());
+			query.addSelect(DSL.count(SITES.SITE_PK));
 			query.addFrom(DEPARTMENTS);
 			query.addGroupBy(DEPARTMENTS.fields());
 			query.addJoin(SITES, unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN, SITES.SITE_DEPT_FK.eq(DEPARTMENTS.DEPT_PK));
