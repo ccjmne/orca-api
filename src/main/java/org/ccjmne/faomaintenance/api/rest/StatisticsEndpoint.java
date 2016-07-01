@@ -100,11 +100,9 @@ public class StatisticsEndpoint {
 			throw new ForbiddenException();
 		}
 
-		final List<Record> trainings = this.resources.listTrainings(null, Collections.EMPTY_LIST, null, null, null).stream()
-				.filter(trng -> Constants.TRNG_OUTCOME_COMPLETED.equals(trng.getValue(TRAININGS.TRNG_OUTCOME))).collect(Collectors.toList());
-		final List<Record> trainingsByExpiry = this.resources
-				.listTrainings(null, Collections.EMPTY_LIST, null, null, null).sortAsc(Constants.TRAINING_EXPIRY).stream()
-				.filter(trng -> Constants.TRNG_OUTCOME_COMPLETED.equals(trng.getValue(TRAININGS.TRNG_OUTCOME))).collect(Collectors.toList());
+		final List<Record> trainings = this.resources.listTrainings(null, Collections.EMPTY_LIST, null, null, null, Boolean.TRUE);
+		final List<Record> trainingsByExpiry = this.resources.listTrainings(null, Collections.EMPTY_LIST, null, null, null, Boolean.TRUE)
+				.sortAsc(Constants.TRAINING_EXPIRY);
 
 		final Map<Integer, List<Integer>> certs = this.resourcesByKeys.listTrainingtypesCertificates();
 		final Map<Integer, Iterable<TrainingsStatistics>> res = new HashMap<>();

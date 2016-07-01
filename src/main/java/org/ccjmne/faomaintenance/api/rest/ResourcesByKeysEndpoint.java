@@ -57,8 +57,9 @@ public class ResourcesByKeysEndpoint {
 													@QueryParam("type") final List<Integer> types,
 													@QueryParam("date") final String dateStr,
 													@QueryParam("from") final String fromStr,
-													@QueryParam("to") final String toStr) throws ParseException {
-		return this.resources.listTrainings(empl_pk, types, dateStr, fromStr, toStr).intoMap(TRAININGS.TRNG_PK);
+													@QueryParam("to") final String toStr,
+													@QueryParam("completed") final Boolean completedOnly) throws ParseException {
+		return this.resources.listTrainings(empl_pk, types, dateStr, fromStr, toStr, completedOnly).intoMap(TRAININGS.TRNG_PK);
 	}
 
 	@GET
