@@ -19,6 +19,6 @@ public class NullPointerExceptionMapper implements ExceptionMapper<NullPointerEx
 	@Override
 	public Response toResponse(final NullPointerException e) {
 		LOGGER.warn("Could not process request.", e);
-		return Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();
+		return Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
 	}
 }

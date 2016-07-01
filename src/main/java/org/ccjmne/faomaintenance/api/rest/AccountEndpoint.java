@@ -1,11 +1,13 @@
 package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_ROLES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERLEVELS;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERLEVELS_TRAININGTYPES;
 
 import java.util.Map;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -14,32 +16,36 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.RolesRecord;
+import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.jooq.DSLContext;
-import org.jooq.Result;
+import org.jooq.Record;
+import org.jooq.impl.DSL;
 
-@Singleton
 @Path("account")
 public class AccountEndpoint {
 
 	private final DSLContext ctx;
-	private final AdministrationEndpoint admin;
 
 	@Inject
-	public AccountEndpoint(final DSLContext ctx, final AdministrationEndpoint admin) {
+	public AccountEndpoint(final DSLContext ctx) {
 		this.ctx = ctx;
-		this.admin = admin;
 	}
 
 	@GET
 	public Map<String, Object> getCurrentUserInfo(@Context final HttpServletRequest request) {
-		return this.admin.getUserInfo(request.getRemoteUser());
+		return AdministrationEndpoint.getUserInfoImpl(request.getRemoteUser(), this.ctx);
 	}
 
 	@GET
-	@Path("roles")
-	public Result<RolesRecord> getAvailableRoles() {
-		return this.admin.getAvailableRoles();
+	@Path("trainerlevel")
+	public Record getTrainerLevels(@Context final HttpServletRequest request) {
+		return this.ctx.select(TRAINERLEVELS.TRLV_PK, TRAINERLEVELS.TRLV_ID, DSL.arrayAgg(TRAINERLEVELS_TRAININGTYPES.TLTR_TRTY_FK).as("types"))
+				.from(TRAINERLEVELS).leftOuterJoin(TRAINERLEVELS_TRAININGTYPES).on(TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK.eq(TRAINERLEVELS.TRLV_PK))
+				.where(TRAINERLEVELS.TRLV_PK
+						.eq(DSL.select(EMPLOYEES_ROLES.EMRO_TRLV_FK).from(EMPLOYEES_ROLES)
+								.where(EMPLOYEES_ROLES.EMPL_PK.eq(request.getRemoteUser()).and(EMPLOYEES_ROLES.EMRO_TYPE.eq(Constants.ROLE_TRAINER)))
+								.asField()))
+				.groupBy(TRAINERLEVELS.TRLV_PK, TRAINERLEVELS.TRLV_ID).fetchOne();
 	}
 
 	@PUT
