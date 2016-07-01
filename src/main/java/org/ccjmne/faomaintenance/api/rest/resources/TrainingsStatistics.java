@@ -1,8 +1,6 @@
 package org.ccjmne.faomaintenance.api.rest.resources;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 
 import java.sql.Date;
 import java.util.HashMap;
@@ -10,24 +8,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics.TrainingsCertificateStatistics.TrainingsStatisticsData;
-import org.jooq.DatePart;
-import org.jooq.Field;
+import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.jooq.Record;
-import org.jooq.impl.DSL;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 
 public class TrainingsStatistics {
-
-	public static final Field<Integer> AGENTS_REGISTERED = DSL.count(TRAININGS_EMPLOYEES.TREM_PK).as("registered");
-	public static final Field<Integer> AGENTS_VALIDATED = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
-			.filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq("VALIDATED")).as("validated");
-	public static final Field<Date> EXPIRY_DATE = DSL
-			.dateAdd(
-						TRAININGS.TRNG_DATE,
-						DSL.field(DSL.select(TRAININGTYPES.TRTY_VALIDITY).from(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(TRAININGS.TRNG_TRTY_FK))),
-						DatePart.MONTH);
 
 	public static class TrainingsStatisticsBuilder {
 		private final Map<Integer, List<Integer>> certificatesByTrainingType;
@@ -46,14 +33,14 @@ public class TrainingsStatistics {
 						.getOrDefault(certPk, new TrainingsCertificateStatistics());
 				this.certificates.putIfAbsent(certPk, trainingCertificatesStatistics);
 				trainingCertificatesStatistics.statistics.trainings += 1;
-				trainingCertificatesStatistics.statistics.employeesRegistered += training.getValue(TrainingsStatistics.AGENTS_REGISTERED).intValue();
-				trainingCertificatesStatistics.statistics.employeesTrained += training.getValue(TrainingsStatistics.AGENTS_VALIDATED).intValue();
+				trainingCertificatesStatistics.statistics.employeesRegistered += training.getValue(Constants.TRAINING_REGISTERED).intValue();
+				trainingCertificatesStatistics.statistics.employeesTrained += training.getValue(Constants.TRAINING_VALIDATED).intValue();
 				final TrainingsStatisticsData trainingTypeStatistics = trainingCertificatesStatistics.trainingTypesStatistics
 						.getOrDefault(training.getValue(TRAININGS.TRNG_TRTY_FK), new TrainingsStatisticsData());
 				trainingCertificatesStatistics.trainingTypesStatistics.putIfAbsent(training.getValue(TRAININGS.TRNG_TRTY_FK), trainingTypeStatistics);
 				trainingTypeStatistics.trainings += 1;
-				trainingTypeStatistics.employeesRegistered += training.getValue(TrainingsStatistics.AGENTS_REGISTERED).intValue();
-				trainingTypeStatistics.employeesTrained += training.getValue(TrainingsStatistics.AGENTS_VALIDATED).intValue();
+				trainingTypeStatistics.employeesRegistered += training.getValue(Constants.TRAINING_REGISTERED).intValue();
+				trainingTypeStatistics.employeesTrained += training.getValue(Constants.TRAINING_VALIDATED).intValue();
 			}
 		}
 
@@ -63,12 +50,12 @@ public class TrainingsStatistics {
 						.getOrDefault(certPk, new TrainingsCertificateStatistics());
 				this.certificates.putIfAbsent(certPk, trainingCertificatesStatistics);
 				trainingCertificatesStatistics.statistics.trainingsExpired += 1;
-				trainingCertificatesStatistics.statistics.employeesExpired += training.getValue(TrainingsStatistics.AGENTS_VALIDATED).intValue();
+				trainingCertificatesStatistics.statistics.employeesExpired += training.getValue(Constants.TRAINING_VALIDATED).intValue();
 				final TrainingsStatisticsData trainingTypeStatistics = trainingCertificatesStatistics.trainingTypesStatistics
 						.getOrDefault(training.getValue(TRAININGS.TRNG_TRTY_FK), new TrainingsStatisticsData());
 				trainingCertificatesStatistics.trainingTypesStatistics.putIfAbsent(training.getValue(TRAININGS.TRNG_TRTY_FK), trainingTypeStatistics);
 				trainingTypeStatistics.trainingsExpired += 1;
-				trainingTypeStatistics.employeesExpired += training.getValue(TrainingsStatistics.AGENTS_VALIDATED).intValue();
+				trainingTypeStatistics.employeesExpired += training.getValue(Constants.TRAINING_VALIDATED).intValue();
 			}
 		}
 
