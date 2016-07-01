@@ -53,10 +53,6 @@ public class SiteStatistics {
 		return this.certificates;
 	}
 
-	public Map<String, EmployeeStatistics> getEmployeesStatistics() {
-		return this.employeesStatistics;
-	}
-
 	public class SiteCertificateStatistics {
 
 		private int count;
