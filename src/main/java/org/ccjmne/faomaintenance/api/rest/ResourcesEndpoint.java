@@ -235,7 +235,8 @@ public class ResourcesEndpoint {
 										@QueryParam("type") final List<Integer> types,
 										@QueryParam("date") final String dateStr,
 										@QueryParam("from") final String fromStr,
-										@QueryParam("to") final String toStr) throws ParseException {
+										@QueryParam("to") final String toStr,
+										@QueryParam("completed") final Boolean completedOnly) throws ParseException {
 		if (!this.restrictions.canAccessTrainings()) {
 			throw new ForbiddenException();
 		}
@@ -279,6 +280,10 @@ public class ResourcesEndpoint {
 
 			if (to != null) {
 				query.addConditions(TRAININGS.TRNG_DATE.le(to).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.le(to))));
+			}
+
+			if ((completedOnly != null) && completedOnly.booleanValue()) {
+				query.addConditions(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_COMPLETED));
 			}
 
 			query.addOrderBy(TRAININGS.TRNG_DATE);

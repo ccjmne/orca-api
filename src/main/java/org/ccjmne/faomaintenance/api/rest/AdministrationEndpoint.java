@@ -5,6 +5,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_ROLES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERLEVELS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERLEVELS_TRAININGTYPES;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Row1;
+import org.jooq.Row2;
 import org.jooq.impl.DSL;
 
 @SuppressWarnings("unchecked")
@@ -243,9 +245,11 @@ public class AdministrationEndpoint {
 
 		transactionCtx.delete(TRAINERLEVELS_TRAININGTYPES).where(TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK.eq(trlv_pk)).execute();
 		if (!types.isEmpty()) {
+			final List<Row1<Integer>> rows = new ArrayList<>(types.size());
+			types.forEach(type -> rows.add(DSL.row(type)));
 			transactionCtx.insertInto(TRAINERLEVELS_TRAININGTYPES, TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK, TRAINERLEVELS_TRAININGTYPES.TLTR_TRTY_FK)
 					.select(DSL.select(DSL.val(trlv_pk), DSL.field("trlv_trty_fk", Integer.class))
-							.from(DSL.values(types.stream().map(DSL::row).toArray(Row1[]::new)).as("unused", "trlv_trty_fk")))
+							.from(DSL.values(rows.toArray(new Row2[0])).as("unused", "trlv_trty_fk")))
 					.execute();
 		}
 	}
