@@ -31,7 +31,6 @@ import org.jooq.Row1;
 import org.jooq.Row2;
 import org.jooq.impl.DSL;
 
-@SuppressWarnings("unchecked")
 @Path("admin")
 public class AdministrationEndpoint {
 
@@ -138,12 +137,25 @@ public class AdministrationEndpoint {
 		return res;
 	}
 
+	@POST
+	@Path("users/{empl_pk}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public String createUser(@PathParam("empl_pk") final String empl_pk, final Map<String, Object> roles) {
+		final String password = resetPassword(empl_pk);
+		updateUser(empl_pk, roles);
+		return password;
+	}
+
 	@PUT
 	@Path("users/{empl_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	public void updateUser(@PathParam("empl_pk") final String empl_pk, final Map<String, Object> roles) {
 		this.ctx.transaction((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
+				if (!transactionCtx.fetchExists(EMPLOYEES, EMPLOYEES.EMPL_PK.eq(empl_pk).and(EMPLOYEES.EMPL_PWD.isNotNull()))) {
+					throw new IllegalArgumentException("The user '" + empl_pk + "' does not have a password and therefore cannot be assigned any role.");
+				}
+
 				transactionCtx.delete(EMPLOYEES_ROLES).where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk)).execute();
 				if (!roles.isEmpty()) {
 					for (final String type : roles.keySet()) {
@@ -185,6 +197,7 @@ public class AdministrationEndpoint {
 	@POST
 	@Path("trainerlevels")
 	@Consumes(MediaType.APPLICATION_JSON)
+	@SuppressWarnings("unchecked")
 	public Integer createTrainerlevel(final Map<String, Object> level) {
 		return this.ctx.transactionResult((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
@@ -201,6 +214,7 @@ public class AdministrationEndpoint {
 	@PUT
 	@Path("trainerlevels/{trlv_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
+	@SuppressWarnings("unchecked")
 	public void updateTrainerlevel(@PathParam("trlv_pk") final Integer trlv_pk, final Map<String, Object> level) {
 		this.ctx.transaction((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
@@ -238,6 +252,7 @@ public class AdministrationEndpoint {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private static void insertTypes(final Integer trlv_pk, final List<Integer> types, final DSLContext transactionCtx) {
 		if (Constants.UNASSIGNED_TRAINERLEVEL.equals(trlv_pk)) {
 			return;
