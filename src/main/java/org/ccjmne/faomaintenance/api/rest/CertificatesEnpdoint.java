@@ -134,7 +134,7 @@ public class CertificatesEnpdoint {
 							.execute();
 
 					transactionCtx.insertInto(TRAINERLEVELS_TRAININGTYPES, TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK, TRAINERLEVELS_TRAININGTYPES.TLTR_TRTY_FK)
-							.values(Constants.UNASSIGNED_TRAINERLEVEL, trty_pk);
+							.values(Constants.UNASSIGNED_TRAINERLEVEL, trty_pk).execute();
 				}
 
 				transactionCtx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(trty_pk)).execute();
