@@ -201,12 +201,12 @@ public class AdministrationEndpoint {
 	public Integer createTrainerprofile(final Map<String, Object> level) {
 		return this.ctx.transactionResult((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
-				final Integer trlv_pk = transactionCtx.select(DSL.max(TRAINERPROFILES.TRPR_PK).add(Integer.valueOf(1)).as(TRAINERPROFILES.TRPR_PK.getName()))
+				final Integer trpr_pk = transactionCtx.select(DSL.max(TRAINERPROFILES.TRPR_PK).add(Integer.valueOf(1)).as(TRAINERPROFILES.TRPR_PK.getName()))
 						.from(TRAINERPROFILES).fetchOne(TRAINERPROFILES.TRPR_PK.getName(), Integer.class);
 				transactionCtx.insertInto(TRAINERPROFILES, TRAINERPROFILES.TRPR_PK, TRAINERPROFILES.TRPR_ID)
-						.values(trlv_pk, (String) level.get(TRAINERPROFILES.TRPR_ID.getName())).execute();
-				insertTypes(trlv_pk, (List<Integer>) level.get("types"), transactionCtx);
-				return trlv_pk;
+						.values(trpr_pk, (String) level.get(TRAINERPROFILES.TRPR_ID.getName())).execute();
+				insertTypes(trpr_pk, (List<Integer>) level.get("types"), transactionCtx);
+				return trpr_pk;
 			}
 		});
 	}
@@ -253,17 +253,17 @@ public class AdministrationEndpoint {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static void insertTypes(final Integer trlv_pk, final List<Integer> types, final DSLContext transactionCtx) {
-		if (Constants.UNASSIGNED_TRAINERPROFILE.equals(trlv_pk)) {
+	private static void insertTypes(final Integer trpr_pk, final List<Integer> types, final DSLContext transactionCtx) {
+		if (Constants.UNASSIGNED_TRAINERPROFILE.equals(trpr_pk)) {
 			return;
 		}
 
-		transactionCtx.delete(TRAINERPROFILES_TRAININGTYPES).where(TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK.eq(trlv_pk)).execute();
+		transactionCtx.delete(TRAINERPROFILES_TRAININGTYPES).where(TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK.eq(trpr_pk)).execute();
 		if (!types.isEmpty()) {
 			final List<Row1<Integer>> rows = new ArrayList<>(types.size());
 			types.forEach(type -> rows.add(DSL.row(type)));
 			transactionCtx.insertInto(TRAINERPROFILES_TRAININGTYPES, TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK, TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK)
-					.select(DSL.select(DSL.val(trlv_pk), DSL.field(TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK.getName(), Integer.class))
+					.select(DSL.select(DSL.val(trpr_pk), DSL.field(TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK.getName(), Integer.class))
 							.from(DSL.values(rows.toArray(new Row2[0])).as("unused", TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK.getName())))
 					.execute();
 		}
