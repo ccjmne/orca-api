@@ -2,8 +2,8 @@ package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_ROLES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERLEVELS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERLEVELS_TRAININGTYPES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -62,7 +62,7 @@ public class AdministrationEndpoint {
 																EMPLOYEES.EMPL_ADDR,
 																DSL.arrayAgg(EMPLOYEES_ROLES.EMRO_TYPE).as("rolesTypes"),
 																DSL.arrayAgg(EMPLOYEES_ROLES.EMRO_LEVEL).as("rolesLevels"),
-																DSL.arrayAgg(EMPLOYEES_ROLES.EMRO_TRLV_FK).as("rolesTrlvPks"))
+																DSL.arrayAgg(EMPLOYEES_ROLES.EMRO_TRPR_FK).as("rolesTrprFks"))
 				.from(EMPLOYEES).join(EMPLOYEES_ROLES).on(EMPLOYEES_ROLES.EMPL_PK.eq(EMPLOYEES.EMPL_PK))
 				.where(EMPLOYEES.EMPL_PWD.isNotNull())
 				.and(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT))
@@ -80,7 +80,7 @@ public class AdministrationEndpoint {
 		for (final Map<String, Object> user : users) {
 			final String[] rolesTypes = (String[]) user.remove("rolesTypes");
 			final Integer[] rolesLevels = (Integer[]) user.remove("rolesLevels");
-			final Integer[] rolesTrlvPks = (Integer[]) user.remove("rolesTrlvPks");
+			final Integer[] rolesTrprFks = (Integer[]) user.remove("rolesTrprFks");
 			if (rolesTypes.length > 0) {
 				final Map<String, Object> roles = new HashMap<>();
 				for (int i = 0; i < rolesTypes.length; i++) {
@@ -90,7 +90,7 @@ public class AdministrationEndpoint {
 							roles.put(rolesTypes[i], rolesLevels[i]);
 							break;
 						case Constants.ROLE_TRAINER:
-							roles.put(rolesTypes[i], rolesTrlvPks[i]);
+							roles.put(rolesTypes[i], rolesTrprFks[i]);
 							break;
 						default:
 							roles.put(rolesTypes[i], Boolean.TRUE);
@@ -187,24 +187,24 @@ public class AdministrationEndpoint {
 	}
 
 	@GET
-	@Path("trainerlevels")
-	public Map<Integer, ? extends Record> getTrainerLevels() {
-		return this.ctx.select(TRAINERLEVELS.TRLV_PK, TRAINERLEVELS.TRLV_ID, DSL.arrayAgg(TRAINERLEVELS_TRAININGTYPES.TLTR_TRTY_FK).as("types"))
-				.from(TRAINERLEVELS).leftOuterJoin(TRAINERLEVELS_TRAININGTYPES).on(TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK.eq(TRAINERLEVELS.TRLV_PK))
-				.groupBy(TRAINERLEVELS.TRLV_PK, TRAINERLEVELS.TRLV_ID).fetchMap(TRAINERLEVELS.TRLV_PK);
+	@Path("trainerprofiles")
+	public Map<Integer, ? extends Record> getTrainerprofiles() {
+		return this.ctx.select(TRAINERPROFILES.TRPR_PK, TRAINERPROFILES.TRPR_ID, DSL.arrayAgg(TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK).as("types"))
+				.from(TRAINERPROFILES).leftOuterJoin(TRAINERPROFILES_TRAININGTYPES).on(TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK.eq(TRAINERPROFILES.TRPR_PK))
+				.groupBy(TRAINERPROFILES.TRPR_PK, TRAINERPROFILES.TRPR_ID).fetchMap(TRAINERPROFILES.TRPR_PK);
 	}
 
 	@POST
-	@Path("trainerlevels")
+	@Path("trainerprofiles")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@SuppressWarnings("unchecked")
-	public Integer createTrainerlevel(final Map<String, Object> level) {
+	public Integer createTrainerprofile(final Map<String, Object> level) {
 		return this.ctx.transactionResult((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
-				final Integer trlv_pk = transactionCtx.select(DSL.max(TRAINERLEVELS.TRLV_PK).add(Integer.valueOf(1)).as("trlv_pk"))
-						.from(TRAINERLEVELS).fetchOne("trlv_pk", Integer.class);
-				transactionCtx.insertInto(TRAINERLEVELS, TRAINERLEVELS.TRLV_PK, TRAINERLEVELS.TRLV_ID)
-						.values(trlv_pk, (String) level.get(TRAINERLEVELS.TRLV_ID.getName())).execute();
+				final Integer trlv_pk = transactionCtx.select(DSL.max(TRAINERPROFILES.TRPR_PK).add(Integer.valueOf(1)).as(TRAINERPROFILES.TRPR_PK.getName()))
+						.from(TRAINERPROFILES).fetchOne(TRAINERPROFILES.TRPR_PK.getName(), Integer.class);
+				transactionCtx.insertInto(TRAINERPROFILES, TRAINERPROFILES.TRPR_PK, TRAINERPROFILES.TRPR_ID)
+						.values(trlv_pk, (String) level.get(TRAINERPROFILES.TRPR_ID.getName())).execute();
 				insertTypes(trlv_pk, (List<Integer>) level.get("types"), transactionCtx);
 				return trlv_pk;
 			}
@@ -212,23 +212,23 @@ public class AdministrationEndpoint {
 	}
 
 	@PUT
-	@Path("trainerlevels/{trlv_pk}")
+	@Path("trainerprofiles/{trpr_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@SuppressWarnings("unchecked")
-	public void updateTrainerlevel(@PathParam("trlv_pk") final Integer trlv_pk, final Map<String, Object> level) {
+	public void updateTrainerprofile(@PathParam("trpr_pk") final Integer trpr_pk, final Map<String, Object> level) {
 		this.ctx.transaction((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
-				transactionCtx.update(TRAINERLEVELS).set(TRAINERLEVELS.TRLV_ID, (String) level.get(TRAINERLEVELS.TRLV_ID.getName()))
-						.where(TRAINERLEVELS.TRLV_PK.eq(trlv_pk)).execute();
-				insertTypes(trlv_pk, (List<Integer>) level.get("types"), transactionCtx);
+				transactionCtx.update(TRAINERPROFILES).set(TRAINERPROFILES.TRPR_ID, (String) level.get(TRAINERPROFILES.TRPR_PK.getName()))
+						.where(TRAINERPROFILES.TRPR_PK.eq(trpr_pk)).execute();
+				insertTypes(trpr_pk, (List<Integer>) level.get("types"), transactionCtx);
 			}
 		});
 	}
 
 	@DELETE
-	@Path("trainerlevels/{trlv_pk}")
-	public boolean deleteTrainerlevel(@PathParam("trlv_pk") final Integer trlv_pk) {
-		return this.ctx.delete(TRAINERLEVELS).where(TRAINERLEVELS.TRLV_PK.eq(trlv_pk)).execute() > 0;
+	@Path("trainerprofiles/{trpr_pk}")
+	public boolean deleteTrainerprofile(@PathParam("trpr_pk") final Integer trpr_pk) {
+		return this.ctx.delete(TRAINERPROFILES).where(TRAINERPROFILES.TRPR_PK.eq(trpr_pk)).execute() > 0;
 	}
 
 	private static String generatePassword() {
@@ -246,7 +246,7 @@ public class AdministrationEndpoint {
 			case Constants.ROLE_ADMIN:
 				return EMPLOYEES_ROLES.EMRO_LEVEL;
 			case Constants.ROLE_TRAINER:
-				return EMPLOYEES_ROLES.EMRO_TRLV_FK;
+				return EMPLOYEES_ROLES.EMRO_TRPR_FK;
 			default:
 				return null;
 		}
@@ -254,17 +254,17 @@ public class AdministrationEndpoint {
 
 	@SuppressWarnings("unchecked")
 	private static void insertTypes(final Integer trlv_pk, final List<Integer> types, final DSLContext transactionCtx) {
-		if (Constants.UNASSIGNED_TRAINERLEVEL.equals(trlv_pk)) {
+		if (Constants.UNASSIGNED_TRAINERPROFILE.equals(trlv_pk)) {
 			return;
 		}
 
-		transactionCtx.delete(TRAINERLEVELS_TRAININGTYPES).where(TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK.eq(trlv_pk)).execute();
+		transactionCtx.delete(TRAINERPROFILES_TRAININGTYPES).where(TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK.eq(trlv_pk)).execute();
 		if (!types.isEmpty()) {
 			final List<Row1<Integer>> rows = new ArrayList<>(types.size());
 			types.forEach(type -> rows.add(DSL.row(type)));
-			transactionCtx.insertInto(TRAINERLEVELS_TRAININGTYPES, TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK, TRAINERLEVELS_TRAININGTYPES.TLTR_TRTY_FK)
-					.select(DSL.select(DSL.val(trlv_pk), DSL.field("trlv_trty_fk", Integer.class))
-							.from(DSL.values(rows.toArray(new Row2[0])).as("unused", "trlv_trty_fk")))
+			transactionCtx.insertInto(TRAINERPROFILES_TRAININGTYPES, TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK, TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK)
+					.select(DSL.select(DSL.val(trlv_pk), DSL.field(TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK.getName(), Integer.class))
+							.from(DSL.values(rows.toArray(new Row2[0])).as("unused", TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK.getName())))
 					.execute();
 		}
 	}

@@ -3,7 +3,7 @@ package org.ccjmne.faomaintenance.api.modules;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_ROLES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERLEVELS_TRAININGTYPES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
 
 import java.util.Collections;
 import java.util.List;
@@ -90,9 +90,9 @@ public class Restrictions {
 			return Collections.EMPTY_LIST;
 		}
 
-		return this.ctx.selectFrom(TRAINERLEVELS_TRAININGTYPES)
-				.where(TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK.eq(role.getEmroTrlvFk()))
-				.fetch(TRAINERLEVELS_TRAININGTYPES.TLTR_TRTY_FK);
+		return this.ctx.selectFrom(TRAINERPROFILES_TRAININGTYPES)
+				.where(TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK.eq(role.getEmroTrprFk()))
+				.fetch(TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK);
 	}
 
 	private List<String> listAccessibleSites(final String empl_pk, final EmployeesRolesRecord role) {
