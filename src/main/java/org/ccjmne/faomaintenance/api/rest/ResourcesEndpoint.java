@@ -82,6 +82,7 @@ public class ResourcesEndpoint {
 							EMPLOYEES.EMPL_ADDR);
 			query.addSelect(SITES_EMPLOYEES.fields());
 			query.addFrom(EMPLOYEES);
+
 			if (site_pk != null) {
 				query.addJoin(
 								SITES_EMPLOYEES,
@@ -92,8 +93,11 @@ public class ResourcesEndpoint {
 				query.addJoin(
 								SITES_EMPLOYEES,
 								SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-								SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE),
 								SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)));
+
+				if (trng_pk == null) {
+					query.addConditions(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE));
+				}
 
 				if (!this.restrictions.canAccessAllSites()) {
 					query.addConditions(SITES_EMPLOYEES.SIEM_SITE_FK.in(this.restrictions.getAccessibleSites()));
@@ -101,6 +105,10 @@ public class ResourcesEndpoint {
 			}
 
 			if (trng_pk != null) {
+				if (!this.restrictions.canAccessTrainings()) {
+					throw new ForbiddenException();
+				}
+
 				query.addSelect(TRAININGS_EMPLOYEES.fields());
 				query.addJoin(
 								TRAININGS_EMPLOYEES,
