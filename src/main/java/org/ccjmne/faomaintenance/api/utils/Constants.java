@@ -28,7 +28,7 @@ public class Constants {
 
 	public static final String UNASSIGNED_SITE = "0";
 	public static final Integer UNASSIGNED_DEPT = Integer.valueOf(0);
-	public static final Integer UNASSIGNED_TRAINERLEVEL = Integer.valueOf(0);
+	public static final Integer UNASSIGNED_TRAINERPROFILE = Integer.valueOf(0);
 
 	public static final String ROLE_ACCESS = "access";
 	public static final String ROLE_TRAINER = "trainer";
@@ -62,7 +62,7 @@ public class Constants {
 			case Constants.ROLE_ADMIN:
 				return entry.getEmroLevel();
 			case Constants.ROLE_TRAINER:
-				return entry.getEmroTrlvFk();
+				return entry.getEmroTrprFk();
 			default:
 				return Boolean.TRUE;
 		}

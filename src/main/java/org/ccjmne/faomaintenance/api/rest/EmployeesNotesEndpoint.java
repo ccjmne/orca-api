@@ -19,7 +19,6 @@ import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
 import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
-import org.ccjmne.faomaintenance.jooq.classes.Tables;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
@@ -48,19 +47,27 @@ public class EmployeesNotesEndpoint {
 
 	@POST
 	@Path("{empl_pk}/optout")
-	public void optOut(@PathParam("empl_pk") final String empl_pk, @QueryParam("cert_pk") final Integer cert_pk, @QueryParam("date") final java.sql.Date date) {
+	@Consumes(MediaType.APPLICATION_JSON)
+	public void optOut(
+						@PathParam("empl_pk") final String empl_pk,
+						@QueryParam("cert_pk") final Integer cert_pk,
+						@QueryParam("date") final java.sql.Date date,
+						final Map<String, String> data) {
 		if (this.ctx.fetchExists(DSL.selectFrom(EMPLOYEES_CERTIFICATES_OPTOUT).where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk))
 				.and(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK.eq(cert_pk)))) {
-			this.ctx.update(EMPLOYEES_CERTIFICATES_OPTOUT).set(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE, date)
+			this.ctx.update(EMPLOYEES_CERTIFICATES_OPTOUT)
+					.set(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE, date)
+					.set(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_REASON, data.get(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_REASON.getName()))
 					.where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk)).and(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK.eq(cert_pk))
 					.execute();
 		} else {
 			this.ctx.insertInto(
-								Tables.EMPLOYEES_CERTIFICATES_OPTOUT,
-								Tables.EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK,
-								Tables.EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK,
-								Tables.EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE)
-					.values(empl_pk, cert_pk, date).execute();
+								EMPLOYEES_CERTIFICATES_OPTOUT,
+								EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK,
+								EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK,
+								EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE,
+								EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_REASON)
+					.values(empl_pk, cert_pk, date, data.get(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_REASON.getName())).execute();
 		}
 
 		this.statistics.invalidateEmployeesStats(Collections.singletonList(empl_pk));

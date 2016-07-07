@@ -1,7 +1,7 @@
 package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERLEVELS_TRAININGTYPES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
@@ -133,8 +133,9 @@ public class CertificatesEnpdoint {
 											.fetchOne("order", Integer.class))
 							.execute();
 
-					transactionCtx.insertInto(TRAINERLEVELS_TRAININGTYPES, TRAINERLEVELS_TRAININGTYPES.TLTR_TRLV_FK, TRAINERLEVELS_TRAININGTYPES.TLTR_TRTY_FK)
-							.values(Constants.UNASSIGNED_TRAINERLEVEL, trty_pk);
+					transactionCtx
+							.insertInto(TRAINERPROFILES_TRAININGTYPES, TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK, TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK)
+							.values(Constants.UNASSIGNED_TRAINERPROFILE, trty_pk).execute();
 				}
 
 				transactionCtx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(trty_pk)).execute();
