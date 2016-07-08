@@ -58,8 +58,8 @@ public class AccountEndpoint {
 			throw new IllegalArgumentException("Both current and updated passwords must be provided.");
 		}
 
-		if (0 == this.ctx.update(EMPLOYEES).set(EMPLOYEES.EMPL_PWD, newPassword)
-				.where(EMPLOYEES.EMPL_PK.eq(request.getRemoteUser()).and(EMPLOYEES.EMPL_PWD.eq(currentPassword))).execute()) {
+		if (0 == this.ctx.update(EMPLOYEES).set(EMPLOYEES.EMPL_PWD, DSL.md5(newPassword))
+				.where(EMPLOYEES.EMPL_PK.eq(request.getRemoteUser()).and(EMPLOYEES.EMPL_PWD.eq(DSL.md5(currentPassword)))).execute()) {
 			throw new IllegalArgumentException("Invalid current password.");
 		}
 	}
