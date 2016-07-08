@@ -59,7 +59,7 @@ public class AccountEndpoint {
 		}
 
 		if (0 == this.ctx.update(EMPLOYEES).set(EMPLOYEES.EMPL_PWD, DSL.md5(newPassword))
-				.where(EMPLOYEES.EMPL_PK.eq(request.getRemoteUser()).and(EMPLOYEES.EMPL_PWD.eq(currentPassword))).execute()) {
+				.where(EMPLOYEES.EMPL_PK.eq(request.getRemoteUser()).and(EMPLOYEES.EMPL_PWD.eq(DSL.md5(currentPassword)))).execute()) {
 			throw new IllegalArgumentException("Invalid current password.");
 		}
 	}

@@ -11,6 +11,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 
 @Path("auth")
 public class AuthenticationEndpoint {
@@ -25,7 +26,7 @@ public class AuthenticationEndpoint {
 	@POST
 	public Response authenticate(final String authorization) {
 		final String[] split = new String(Base64.getDecoder().decode(authorization)).split(":");
-		if ((split.length == 2) && this.ctx.fetchExists(EMPLOYEES, EMPLOYEES.EMPL_PK.eq(split[0]).and(EMPLOYEES.EMPL_PWD.eq(split[1])))) {
+		if ((split.length == 2) && this.ctx.fetchExists(EMPLOYEES, EMPLOYEES.EMPL_PK.eq(split[0]).and(EMPLOYEES.EMPL_PWD.eq(DSL.md5(split[1]))))) {
 			return Response.ok(AdministrationEndpoint.getUserInfoImpl(split[0], this.ctx)).build();
 		}
 
