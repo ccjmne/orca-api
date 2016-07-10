@@ -182,7 +182,7 @@ public class AdministrationEndpoint {
 	@Path("users/{empl_pk}/password")
 	public String resetPassword(@PathParam("empl_pk") final String empl_pk) {
 		final String password = generatePassword();
-		this.ctx.update(EMPLOYEES).set(EMPLOYEES.EMPL_PWD, password).where(EMPLOYEES.EMPL_PK.eq(empl_pk)).execute();
+		this.ctx.update(EMPLOYEES).set(EMPLOYEES.EMPL_PWD, DSL.md5(password)).where(EMPLOYEES.EMPL_PK.eq(empl_pk)).execute();
 		return password;
 	}
 
