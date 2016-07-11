@@ -171,6 +171,15 @@ public class Restrictions {
 	}
 
 	/**
+	 * Same implementation as {@link Restrictions#canManageUsers}: the same
+	 * authorisation is required.
+	 */
+	@JsonGetter
+	public boolean canManageClient() {
+		return this.manageUsers;
+	}
+
+	/**
 	 * Get the department the current {@link HttpServletRequest}'s scope should
 	 * be restricted to, if relevant.
 	 *

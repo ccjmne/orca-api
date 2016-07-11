@@ -103,7 +103,7 @@
 			<url-pattern>/account/*</url-pattern>
 			<url-pattern>/admin/*</url-pattern>
 			<url-pattern>/auth/*</url-pattern>
-			<url-pattern>/client</url-pattern>
+			<url-pattern>/client/*</url-pattern>
 
 			<http-method>OPTIONS</http-method>
 			<!-- No authentication constraints here -->
