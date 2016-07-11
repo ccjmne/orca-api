@@ -2,14 +2,16 @@ package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.CLIENT;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URLConnection;
 import java.util.Map;
 
-import javax.activation.FileTypeMap;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.ForbiddenException;
@@ -70,18 +72,22 @@ public class ClientEndpoint {
 			throw new ForbiddenException();
 		}
 
-		final String contentType = FileTypeMap.getDefaultFileTypeMap().getContentType(fileDetail.getFileName());
-		if (!contentType.startsWith("image/")) {
-			throw new IllegalArgumentException("Expected an image. Got " + contentType);
+		final File file = getFile(fileStream);
+		try (BufferedInputStream is = new BufferedInputStream(new FileInputStream(file))) {
+			final String mimeType = URLConnection.guessContentTypeFromStream(is);
+			if (!mimeType.startsWith("image/")) {
+				throw new IllegalArgumentException("Expected an image. Got " + mimeType);
+			}
+
+			final String objectKey = String.format(
+													"%s-logo.%s",
+													this.ctx.selectFrom(CLIENT).fetchOne(CLIENT.CLNT_ID),
+													mimeType.substring(mimeType.indexOf("/") + 1));
+			this.client
+					.putObject(new PutObjectRequest(ClientEndpoint.ORCA_RESOURCES_BUCKET, objectKey, file).withCannedAcl(CannedAccessControlList.PublicRead));
+			this.ctx.update(CLIENT).set(CLIENT.CLNT_LOGO, this.client.getResourceUrl(ClientEndpoint.ORCA_RESOURCES_BUCKET, objectKey)).execute();
 		}
 
-		final File file = getFile(fileStream);
-		final String objectKey = String.format(
-												"%s-logo.%s",
-												this.ctx.selectFrom(CLIENT).fetchOne(CLIENT.CLNT_ID),
-												contentType.substring(contentType.indexOf("/") + 1));
-		this.client.putObject(new PutObjectRequest(ClientEndpoint.ORCA_RESOURCES_BUCKET, objectKey, file).withCannedAcl(CannedAccessControlList.PublicRead));
-		this.ctx.update(CLIENT).set(CLIENT.CLNT_LOGO, this.client.getResourceUrl(ClientEndpoint.ORCA_RESOURCES_BUCKET, objectKey)).execute();
 		file.delete();
 	}
 
