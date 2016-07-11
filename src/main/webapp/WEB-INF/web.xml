@@ -78,6 +78,7 @@
 			<url-pattern>/certificates/*</url-pattern>
 			<url-pattern>/update/*</url-pattern>
 			<url-pattern>/employees-notes/*</url-pattern>
+			<url-pattern>/client/*</url-pattern>
 			<http-method>GET</http-method>
 			<http-method>DELETE</http-method>
 			<http-method>POST</http-method>
@@ -111,10 +112,18 @@
 
 	<security-constraint>
 		<web-resource-collection>
-			<web-resource-name>Authentication + Client Endpoints</web-resource-name>
+			<web-resource-name>Authentication Endpoint</web-resource-name>
 			<url-pattern>/auth/*</url-pattern>
-			<url-pattern>/client</url-pattern>
 			<http-method>POST</http-method>
+			<!-- No authentication constraints here -->
+		</web-resource-collection>
+	</security-constraint>
+
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>Client Endpoint</web-resource-name>
+			<url-pattern>/client/*</url-pattern>
+			<http-method>GET</http-method>
 			<!-- No authentication constraints here -->
 		</web-resource-collection>
 	</security-constraint>
