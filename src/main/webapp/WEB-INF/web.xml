@@ -102,6 +102,7 @@
 			<url-pattern>/account/*</url-pattern>
 			<url-pattern>/admin/*</url-pattern>
 			<url-pattern>/auth/*</url-pattern>
+			<url-pattern>/client</url-pattern>
 
 			<http-method>OPTIONS</http-method>
 			<!-- No authentication constraints here -->
@@ -110,8 +111,9 @@
 
 	<security-constraint>
 		<web-resource-collection>
-			<web-resource-name>Authentication Endpoint</web-resource-name>
+			<web-resource-name>Authentication + Client Endpoints</web-resource-name>
 			<url-pattern>/auth/*</url-pattern>
+			<url-pattern>/client</url-pattern>
 			<http-method>POST</http-method>
 			<!-- No authentication constraints here -->
 		</web-resource-collection>
