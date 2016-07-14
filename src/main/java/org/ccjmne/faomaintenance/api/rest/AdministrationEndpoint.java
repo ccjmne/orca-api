@@ -216,12 +216,14 @@ public class AdministrationEndpoint {
 						final Field<Integer> specification;
 						switch (type) {
 							case Constants.ROLE_ACCESS:
-								if (Constants.USERTYPE_DEPARTMENT.equals(data.get(USERS.USER_TYPE.getName())) && (((Integer) roles.get(type)).intValue() < 2)) {
+								if (Constants.USERTYPE_DEPARTMENT.equals(data.get(USERS.USER_TYPE.getName()))
+										&& ((((Integer) roles.get(type)).compareTo(Constants.ACCESS_LEVEL_DEPARTMENT)) < 0)) {
 									throw new IllegalArgumentException(
 																		String.format(
-																						"A user of type '%s' cannot be granted a role '%s' which level is lower than 2.",
+																						"A user of type '%s' cannot be granted a role '%s' which level is lower than %d.",
 																						Constants.USERTYPE_DEPARTMENT,
-																						Constants.ROLE_ACCESS));
+																						Constants.ROLE_ACCESS,
+																						Constants.ACCESS_LEVEL_DEPARTMENT));
 								}
 
 								//$FALL-THROUGH$

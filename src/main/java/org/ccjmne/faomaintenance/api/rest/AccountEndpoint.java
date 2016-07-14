@@ -51,6 +51,7 @@ public class AccountEndpoint {
 	@PUT
 	@Path("password")
 	@Consumes(MediaType.APPLICATION_JSON)
+	// TODO: use Restrictions
 	public void updatePassword(@Context final HttpServletRequest request, final Map<String, String> passwords) {
 		final String currentPassword = passwords.get("pwd_current");
 		final String newPassword = passwords.get("pwd_new");

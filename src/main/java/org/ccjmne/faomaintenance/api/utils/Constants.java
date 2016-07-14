@@ -40,7 +40,7 @@ public class Constants {
 
 	public static final Integer ACCESS_LEVEL_TRAININGS = Integer.valueOf(4);
 	public static final Integer ACCESS_LEVEL_ALL_SITES = Integer.valueOf(3);
-	public static final Integer ACCESS_LEVEL_ONE_DEPT = Integer.valueOf(2);
+	public static final Integer ACCESS_LEVEL_DEPARTMENT = Integer.valueOf(2);
 	// ----
 
 	// ---- SUBQUERIES AND FIELDS
