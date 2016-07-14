@@ -2,10 +2,10 @@ package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_ROLES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS_ROLES;
 
 import java.text.ParseException;
 import java.util.Collections;
@@ -145,12 +145,13 @@ public class UpdateEndpoint {
 					}
 
 					// Remove all privileges of the unassigned employees
+					// TODO: USER_ID != EMPL_PK
 					transactionCtx
-							.delete(EMPLOYEES_ROLES)
+							.delete(USERS_ROLES)
 							.where(
-									EMPLOYEES_ROLES.EMPL_PK.notIn(transactionCtx.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES)
+									USERS_ROLES.USER_ID.notIn(transactionCtx.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES)
 											.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk))))
-							.and(EMPLOYEES_ROLES.EMPL_PK.ne(Constants.USER_ROOT))
+							.and(USERS_ROLES.USER_ID.ne(Constants.USER_ROOT))
 							.execute();
 
 					// ... and set their site to #0 ('unassigned')

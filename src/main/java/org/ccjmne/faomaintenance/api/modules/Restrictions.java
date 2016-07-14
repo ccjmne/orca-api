@@ -1,9 +1,9 @@
 package org.ccjmne.faomaintenance.api.modules;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_ROLES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS_ROLES;
 
 import java.util.Collections;
 import java.util.List;
@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
 
 import org.ccjmne.faomaintenance.api.utils.Constants;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRolesRecord;
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.UsersRolesRecord;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
@@ -24,6 +24,8 @@ import com.fasterxml.jackson.annotation.JsonGetter;
  * Provides tools to manage restrictions of resources access or manipulation
  * provided an authenticated {@link HttpServletRequest} or a specific user ID.
  */
+
+// TODO: Adapt to USER TYPE (employee, site or department)
 public class Restrictions {
 	private final DSLContext ctx;
 
@@ -42,36 +44,37 @@ public class Restrictions {
 		this(request.getRemoteUser(), ctx);
 	}
 
-	public static Restrictions forEmployee(final String empl_pk, final DSLContext ctx) {
+	public static Restrictions forUser(final String empl_pk, final DSLContext ctx) {
 		return new Restrictions(empl_pk, ctx);
 	}
 
 	private Restrictions(final String empl_pk, final DSLContext ctx) {
 		this.ctx = ctx;
-		final Map<String, EmployeesRolesRecord> roles = ctx.selectFrom(EMPLOYEES_ROLES)
-				.where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk)).fetchMap(EMPLOYEES_ROLES.EMRO_TYPE);
+		final Map<String, UsersRolesRecord> roles = ctx.selectFrom(USERS_ROLES)
+				.where(USERS_ROLES.USER_ID.eq(empl_pk)).fetchMap(USERS_ROLES.USRO_TYPE);
 		this.accessTrainings = roles.containsKey(Constants.ROLE_ACCESS)
-				&& Constants.ACCESS_LEVEL_TRAININGS.equals(roles.get(Constants.ROLE_ACCESS).getEmroLevel());
+				&& Constants.ACCESS_LEVEL_TRAININGS.equals(roles.get(Constants.ROLE_ACCESS).getUsroLevel());
 		this.accessAllSites = roles.containsKey(Constants.ROLE_ACCESS)
-				&& (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(roles.get(Constants.ROLE_ACCESS).getEmroLevel()) <= 0);
+				&& (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(roles.get(Constants.ROLE_ACCESS).getUsroLevel()) <= 0);
 		if (roles.containsKey(Constants.ROLE_ADMIN)) {
-			this.manageEmployeeNotes = roles.get(Constants.ROLE_ADMIN).getEmroLevel().compareTo(Integer.valueOf(1)) >= 0;
-			this.manageSites = roles.get(Constants.ROLE_ADMIN).getEmroLevel().compareTo(Integer.valueOf(2)) >= 0;
-			this.manageCertificates = roles.get(Constants.ROLE_ADMIN).getEmroLevel().compareTo(Integer.valueOf(3)) >= 0;
-			this.manageUsers = roles.get(Constants.ROLE_ADMIN).getEmroLevel().equals(Integer.valueOf(4));
+			this.manageEmployeeNotes = roles.get(Constants.ROLE_ADMIN).getUsroLevel().compareTo(Integer.valueOf(1)) >= 0;
+			this.manageSites = roles.get(Constants.ROLE_ADMIN).getUsroLevel().compareTo(Integer.valueOf(2)) >= 0;
+			this.manageCertificates = roles.get(Constants.ROLE_ADMIN).getUsroLevel().compareTo(Integer.valueOf(3)) >= 0;
+			this.manageUsers = roles.get(Constants.ROLE_ADMIN).getUsroLevel().equals(Integer.valueOf(4));
 		} else {
 			this.manageEmployeeNotes = false;
 			this.manageSites = false;
 			this.manageCertificates = false;
 			this.manageUsers = false;
 		}
+
 		this.accessibleDepartment = getAccessibleDepartment(empl_pk, roles.get(Constants.ROLE_ACCESS));
 		this.accessibleSites = listAccessibleSites(empl_pk, roles.get(Constants.ROLE_ACCESS));
 		this.manageableTypes = listManageableTypes(roles.get(Constants.ROLE_TRAINER));
 	}
 
-	private Integer getAccessibleDepartment(final String empl_pk, final EmployeesRolesRecord role) {
-		if ((role == null) || !Constants.ACCESS_LEVEL_ONE_DEPT.equals(role.getEmroLevel())) {
+	private Integer getAccessibleDepartment(final String empl_pk, final UsersRolesRecord role) {
+		if ((role == null) || !Constants.ACCESS_LEVEL_ONE_DEPT.equals(role.getUsroLevel())) {
 			return null;
 		}
 
@@ -85,18 +88,18 @@ public class Restrictions {
 				.fetchOne(SITES.SITE_DEPT_FK);
 	}
 
-	private List<Integer> listManageableTypes(final EmployeesRolesRecord role) {
+	private List<Integer> listManageableTypes(final UsersRolesRecord role) {
 		if (role == null) {
 			return Collections.EMPTY_LIST;
 		}
 
 		return this.ctx.selectFrom(TRAINERPROFILES_TRAININGTYPES)
-				.where(TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK.eq(role.getEmroTrprFk()))
+				.where(TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK.eq(role.getUsroTrprFk()))
 				.fetch(TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK);
 	}
 
-	private List<String> listAccessibleSites(final String empl_pk, final EmployeesRolesRecord role) {
-		if ((role == null) || (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(role.getEmroLevel()) <= 0)) {
+	private List<String> listAccessibleSites(final String empl_pk, final UsersRolesRecord role) {
+		if ((role == null) || (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(role.getUsroLevel()) <= 0)) {
 			return Collections.EMPTY_LIST;
 		}
 
@@ -110,7 +113,7 @@ public class Restrictions {
 			return Collections.EMPTY_LIST;
 		}
 
-		if (Constants.ACCESS_LEVEL_ONE_DEPT.equals(role.getEmroLevel())) {
+		if (Constants.ACCESS_LEVEL_ONE_DEPT.equals(role.getUsroLevel())) {
 			return this.ctx.selectFrom(SITES)
 					.where(SITES.SITE_DEPT_FK.eq(DSL.select(SITES.SITE_DEPT_FK).from(SITES).where(SITES.SITE_PK.eq(site))))
 					.fetch(SITES.SITE_PK);
