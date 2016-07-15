@@ -69,13 +69,13 @@ public class AdministrationEndpoint {
 			query.addGroupBy(DEPARTMENTS.fields());
 			query.addFrom(USERS);
 			query.addSelect(
-							DSL.arrayAgg(USERS_ROLES.USRO_TYPE).as("rolesTypes"),
-							DSL.arrayAgg(USERS_ROLES.USRO_LEVEL).as("rolesLevels"),
-							DSL.arrayAgg(USERS_ROLES.USRO_TRPR_FK).as("rolesTrprFks"));
-			query.addJoin(USERS_ROLES, USERS_ROLES.USER_ID.eq(USERS.USER_ID));
-			query.addJoin(EMPLOYEES, JoinType.FULL_OUTER_JOIN, EMPLOYEES.EMPL_PK.eq(USERS.USER_EMPL_FK));
-			query.addJoin(SITES, JoinType.FULL_OUTER_JOIN, SITES.SITE_PK.eq(USERS.USER_SITE_FK));
-			query.addJoin(DEPARTMENTS, JoinType.FULL_OUTER_JOIN, DEPARTMENTS.DEPT_PK.eq(USERS.USER_DEPT_FK));
+							DSL.arrayAgg(USERS_ROLES.USRO_TYPE).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("rolesTypes"),
+							DSL.arrayAgg(USERS_ROLES.USRO_LEVEL).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("rolesLevels"),
+							DSL.arrayAgg(USERS_ROLES.USRO_TRPR_FK).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("rolesTrprFks"));
+			query.addJoin(USERS_ROLES, JoinType.LEFT_OUTER_JOIN, USERS_ROLES.USER_ID.eq(USERS.USER_ID));
+			query.addJoin(EMPLOYEES, JoinType.LEFT_OUTER_JOIN, EMPLOYEES.EMPL_PK.eq(USERS.USER_EMPL_FK));
+			query.addJoin(SITES, JoinType.LEFT_OUTER_JOIN, SITES.SITE_PK.eq(USERS.USER_SITE_FK));
+			query.addJoin(DEPARTMENTS, JoinType.LEFT_OUTER_JOIN, DEPARTMENTS.DEPT_PK.eq(USERS.USER_DEPT_FK));
 			query.addConditions(USERS.USER_ID.ne(Constants.USER_ROOT));
 			final List<Map<String, Object>> users = query.fetchMaps();
 
@@ -83,8 +83,8 @@ public class AdministrationEndpoint {
 				final String[] rolesTypes = (String[]) user.remove("rolesTypes");
 				final Integer[] rolesLevels = (Integer[]) user.remove("rolesLevels");
 				final Integer[] rolesTrprFks = (Integer[]) user.remove("rolesTrprFks");
-				if (rolesTypes.length > 0) {
-					final Map<String, Object> roles = new HashMap<>();
+				final Map<String, Object> roles = new HashMap<>();
+				if ((rolesTypes != null) && (rolesTypes.length > 0)) {
 					for (int i = 0; i < rolesTypes.length; i++) {
 						switch (rolesTypes[i]) {
 							case Constants.ROLE_ACCESS:
@@ -98,9 +98,9 @@ public class AdministrationEndpoint {
 								roles.put(rolesTypes[i], Boolean.TRUE);
 						}
 					}
-
-					user.put("roles", roles);
 				}
+
+				user.put("roles", roles);
 
 			}
 
@@ -156,7 +156,7 @@ public class AdministrationEndpoint {
 	@Path("users/{user_id}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	public String createUser(@PathParam("user_id") final String user_id, final Map<String, Object> data) {
-		if (this.ctx.fetchExists(USERS, USERS.USER_ID.eq(user_id).or(USERS.USER_ID.ne(Constants.USER_ROOT)))) {
+		if (this.ctx.fetchExists(USERS, USERS.USER_ID.eq(user_id))) {
 			throw new IllegalArgumentException("The user '" + user_id + "' already exists.");
 		}
 
@@ -178,7 +178,7 @@ public class AdministrationEndpoint {
 	 * Updates (or creates) data for a user identified by its ID. Returns its
 	 * newly generated password in case of a user's creation.
 	 *
-	 * @param id
+	 * @param user_id
 	 *            the user's ID
 	 * @param data
 	 *            the data used to update or create the specified user
@@ -186,19 +186,19 @@ public class AdministrationEndpoint {
 	 *         exist.
 	 */
 	@SuppressWarnings("unchecked")
-	public String insertUserImpl(final String id, final Map<String, Object> data) {
+	public String insertUserImpl(final String user_id, final Map<String, Object> data) {
 		return this.ctx.transactionResult((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
 				final String password;
-				if (!transactionCtx.fetchExists(USERS, USERS.USER_ID.eq(id))) {
+				if (!transactionCtx.fetchExists(USERS, USERS.USER_ID.eq(user_id))) {
 					transactionCtx.insertInto(USERS, USERS.USER_ID, USERS.USER_PWD, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK, USERS.USER_DEPT_FK)
 							.values(
-									id,
-									password = generatePassword(),
-									(String) data.get(USERS.USER_TYPE.getName()),
-									(String) data.get(USERS.USER_EMPL_FK.getName()),
-									(String) data.get(USERS.USER_SITE_FK.getName()),
-									(Integer) data.get(USERS.USER_DEPT_FK.getName()))
+									DSL.val(user_id),
+									DSL.md5(password = generatePassword()),
+									DSL.val((String) data.get(USERS.USER_TYPE.getName())),
+									DSL.val((String) data.get(USERS.USER_EMPL_FK.getName())),
+									DSL.val((String) data.get(USERS.USER_SITE_FK.getName())),
+									DSL.val((Integer) data.get(USERS.USER_DEPT_FK.getName()), Integer.class))
 							.execute();
 				} else {
 					password = null;
@@ -206,10 +206,11 @@ public class AdministrationEndpoint {
 							.set(USERS.USER_TYPE, (String) data.get(USERS.USER_TYPE.getName()))
 							.set(USERS.USER_EMPL_FK, (String) data.get(USERS.USER_EMPL_FK.getName()))
 							.set(USERS.USER_SITE_FK, (String) data.get(USERS.USER_SITE_FK.getName()))
-							.set(USERS.USER_DEPT_FK, (Integer) data.get(USERS.USER_DEPT_FK.getName())).execute();
+							.set(USERS.USER_DEPT_FK, (Integer) data.get(USERS.USER_DEPT_FK.getName()))
+							.where(USERS.USER_ID.eq(user_id)).execute();
 				}
 
-				transactionCtx.delete(USERS_ROLES).where(USERS_ROLES.USER_ID.eq(id)).execute();
+				transactionCtx.delete(USERS_ROLES).where(USERS_ROLES.USER_ID.eq(user_id)).execute();
 				final Map<String, Object> roles = (Map<String, Object>) data.get("roles");
 				if ((roles != null) && !roles.isEmpty()) {
 					for (final String type : roles.keySet()) {
@@ -238,10 +239,10 @@ public class AdministrationEndpoint {
 						}
 
 						if (specification == null) {
-							transactionCtx.insertInto(USERS_ROLES).set(USERS_ROLES.USER_ID, id).set(USERS_ROLES.USRO_TYPE, type).execute();
+							transactionCtx.insertInto(USERS_ROLES).set(USERS_ROLES.USER_ID, user_id).set(USERS_ROLES.USRO_TYPE, type).execute();
 						} else {
 							transactionCtx.insertInto(USERS_ROLES)
-									.set(USERS_ROLES.USER_ID, id)
+									.set(USERS_ROLES.USER_ID, user_id)
 									.set(USERS_ROLES.USRO_TYPE, type)
 									.set(specification, (Integer) roles.get(type)).execute();
 						}
