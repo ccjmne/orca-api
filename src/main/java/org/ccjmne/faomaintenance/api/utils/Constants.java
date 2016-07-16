@@ -5,13 +5,12 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_TRAINERS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
 
 import java.sql.Date;
 
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRolesRecord;
 import org.jooq.DatePart;
 import org.jooq.Field;
-import org.jooq.RecordMapper;
 import org.jooq.impl.DSL;
 
 public class Constants {
@@ -30,13 +29,18 @@ public class Constants {
 	public static final Integer UNASSIGNED_DEPT = Integer.valueOf(0);
 	public static final Integer UNASSIGNED_TRAINERPROFILE = Integer.valueOf(0);
 
+	public static final String ROLE_USER = "user";
 	public static final String ROLE_ACCESS = "access";
 	public static final String ROLE_TRAINER = "trainer";
 	public static final String ROLE_ADMIN = "admin";
 
+	public static final String USERTYPE_EMPLOYEE = "employee";
+	public static final String USERTYPE_SITE = "site";
+	public static final String USERTYPE_DEPARTMENT = "department";
+
 	public static final Integer ACCESS_LEVEL_TRAININGS = Integer.valueOf(4);
 	public static final Integer ACCESS_LEVEL_ALL_SITES = Integer.valueOf(3);
-	public static final Integer ACCESS_LEVEL_ONE_DEPT = Integer.valueOf(2);
+	public static final Integer ACCESS_LEVEL_DEPARTMENT = Integer.valueOf(2);
 	// ----
 
 	// ---- SUBQUERIES AND FIELDS
@@ -56,16 +60,6 @@ public class Constants {
 						DSL.field(DSL.select(TRAININGTYPES.TRTY_VALIDITY).from(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(TRAININGS.TRNG_TRTY_FK))),
 						DatePart.MONTH)
 			.as("expiry");
-	public static final RecordMapper<EmployeesRolesRecord, Object> EMPLOYEES_ROLES_MAPPER = entry -> {
-		switch (entry.getEmroType()) {
-			case Constants.ROLE_ACCESS:
-			case Constants.ROLE_ADMIN:
-				return entry.getEmroLevel();
-			case Constants.ROLE_TRAINER:
-				return entry.getEmroTrprFk();
-			default:
-				return Boolean.TRUE;
-		}
-	};
-	// ----
+
+	public static Field<?>[] USERS_FIELDS = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK, USERS.USER_DEPT_FK };
 }

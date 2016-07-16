@@ -1,9 +1,12 @@
 package org.ccjmne.faomaintenance.api.rest;
 
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_ROLES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS_ROLES;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,11 +27,15 @@ import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
 import org.ccjmne.faomaintenance.api.utils.Constants;
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.UsersRolesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.JoinType;
 import org.jooq.Record;
+import org.jooq.RecordMapper;
 import org.jooq.Row1;
 import org.jooq.Row2;
+import org.jooq.SelectQuery;
 import org.jooq.impl.DSL;
 
 @Path("admin")
@@ -51,64 +58,60 @@ public class AdministrationEndpoint {
 	@GET
 	@Path("users")
 	public List<Map<String, Object>> getUsers() {
-		final List<Map<String, Object>> users = this.ctx.select(
-																EMPLOYEES.EMPL_PK,
-																EMPLOYEES.EMPL_FIRSTNAME,
-																EMPLOYEES.EMPL_SURNAME,
-																EMPLOYEES.EMPL_DOB,
-																EMPLOYEES.EMPL_PERMANENT,
-																EMPLOYEES.EMPL_GENDER,
-																EMPLOYEES.EMPL_NOTES,
-																EMPLOYEES.EMPL_ADDR,
-																DSL.arrayAgg(EMPLOYEES_ROLES.EMRO_TYPE).as("rolesTypes"),
-																DSL.arrayAgg(EMPLOYEES_ROLES.EMRO_LEVEL).as("rolesLevels"),
-																DSL.arrayAgg(EMPLOYEES_ROLES.EMRO_TRPR_FK).as("rolesTrprFks"))
-				.from(EMPLOYEES).join(EMPLOYEES_ROLES).on(EMPLOYEES_ROLES.EMPL_PK.eq(EMPLOYEES.EMPL_PK))
-				.where(EMPLOYEES.EMPL_PWD.isNotNull())
-				.and(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT))
-				.groupBy(
-							EMPLOYEES.EMPL_PK,
-							EMPLOYEES.EMPL_FIRSTNAME,
-							EMPLOYEES.EMPL_SURNAME,
-							EMPLOYEES.EMPL_DOB,
-							EMPLOYEES.EMPL_PERMANENT,
-							EMPLOYEES.EMPL_GENDER,
-							EMPLOYEES.EMPL_NOTES,
-							EMPLOYEES.EMPL_ADDR)
-				.fetchMaps();
+		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
+			query.addSelect(Constants.USERS_FIELDS);
+			query.addSelect(EMPLOYEES.fields());
+			query.addSelect(SITES.fields());
+			query.addSelect(DEPARTMENTS.fields());
+			query.addGroupBy(Constants.USERS_FIELDS);
+			query.addGroupBy(EMPLOYEES.fields());
+			query.addGroupBy(SITES.fields());
+			query.addGroupBy(DEPARTMENTS.fields());
+			query.addFrom(USERS);
+			query.addSelect(
+							DSL.arrayAgg(USERS_ROLES.USRO_TYPE).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("rolesTypes"),
+							DSL.arrayAgg(USERS_ROLES.USRO_LEVEL).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("rolesLevels"),
+							DSL.arrayAgg(USERS_ROLES.USRO_TRPR_FK).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("rolesTrprFks"));
+			query.addJoin(USERS_ROLES, JoinType.LEFT_OUTER_JOIN, USERS_ROLES.USER_ID.eq(USERS.USER_ID));
+			query.addJoin(EMPLOYEES, JoinType.LEFT_OUTER_JOIN, EMPLOYEES.EMPL_PK.eq(USERS.USER_EMPL_FK));
+			query.addJoin(SITES, JoinType.LEFT_OUTER_JOIN, SITES.SITE_PK.eq(USERS.USER_SITE_FK));
+			query.addJoin(DEPARTMENTS, JoinType.LEFT_OUTER_JOIN, DEPARTMENTS.DEPT_PK.eq(USERS.USER_DEPT_FK));
+			query.addConditions(USERS.USER_ID.ne(Constants.USER_ROOT));
+			final List<Map<String, Object>> users = query.fetchMaps();
 
-		for (final Map<String, Object> user : users) {
-			final String[] rolesTypes = (String[]) user.remove("rolesTypes");
-			final Integer[] rolesLevels = (Integer[]) user.remove("rolesLevels");
-			final Integer[] rolesTrprFks = (Integer[]) user.remove("rolesTrprFks");
-			if (rolesTypes.length > 0) {
+			for (final Map<String, Object> user : users) {
+				final String[] rolesTypes = (String[]) user.remove("rolesTypes");
+				final Integer[] rolesLevels = (Integer[]) user.remove("rolesLevels");
+				final Integer[] rolesTrprFks = (Integer[]) user.remove("rolesTrprFks");
 				final Map<String, Object> roles = new HashMap<>();
-				for (int i = 0; i < rolesTypes.length; i++) {
-					switch (rolesTypes[i]) {
-						case Constants.ROLE_ACCESS:
-						case Constants.ROLE_ADMIN:
-							roles.put(rolesTypes[i], rolesLevels[i]);
-							break;
-						case Constants.ROLE_TRAINER:
-							roles.put(rolesTypes[i], rolesTrprFks[i]);
-							break;
-						default:
-							roles.put(rolesTypes[i], Boolean.TRUE);
+				if ((rolesTypes != null) && (rolesTypes.length > 0)) {
+					for (int i = 0; i < rolesTypes.length; i++) {
+						switch (rolesTypes[i]) {
+							case Constants.ROLE_ACCESS:
+							case Constants.ROLE_ADMIN:
+								roles.put(rolesTypes[i], rolesLevels[i]);
+								break;
+							case Constants.ROLE_TRAINER:
+								roles.put(rolesTypes[i], rolesTrprFks[i]);
+								break;
+							default:
+								roles.put(rolesTypes[i], Boolean.TRUE);
+						}
 					}
 				}
 
 				user.put("roles", roles);
+
 			}
 
+			return users;
 		}
-
-		return users;
 	}
 
 	@GET
-	@Path("users/{empl_pk}")
-	public Map<String, Object> getUserInfo(@PathParam("empl_pk") final String empl_pk) {
-		return AdministrationEndpoint.getUserInfoImpl(empl_pk, this.ctx);
+	@Path("users/{user_id}")
+	public Map<String, Object> getUserInfo(@PathParam("user_id") final String user_id) {
+		return AdministrationEndpoint.getUserInfoImpl(user_id, this.ctx);
 	}
 
 	/**
@@ -116,73 +119,167 @@ public class AdministrationEndpoint {
 	 * Return account information and corresponding {@link Restrictions} for a
 	 * given user ID.
 	 */
-	public static Map<String, Object> getUserInfoImpl(final String empl_pk, final DSLContext ctx) {
+	public static Map<String, Object> getUserInfoImpl(final String user_id, final DSLContext ctx) {
 		final Map<String, Object> res = ctx
-				.select(
-						EMPLOYEES.EMPL_PK,
-						EMPLOYEES.EMPL_FIRSTNAME,
-						EMPLOYEES.EMPL_SURNAME,
-						EMPLOYEES.EMPL_DOB,
-						EMPLOYEES.EMPL_PERMANENT,
-						EMPLOYEES.EMPL_GENDER,
-						EMPLOYEES.EMPL_NOTES,
-						EMPLOYEES.EMPL_ADDR)
-				.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.eq(empl_pk))
+				.select(Constants.USERS_FIELDS)
+				.select(EMPLOYEES.fields())
+				.select(SITES.fields())
+				.select(DEPARTMENTS.fields())
+				.from(USERS)
+				.leftOuterJoin(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(USERS.USER_EMPL_FK))
+				.leftOuterJoin(SITES).on(SITES.SITE_PK.eq(USERS.USER_SITE_FK))
+				.leftOuterJoin(DEPARTMENTS).on(DEPARTMENTS.DEPT_PK.eq(USERS.USER_DEPT_FK))
+				.where(USERS.USER_ID.eq(user_id))
+
 				.fetchOneMap();
+
 		res.put(
 				"roles",
-				ctx.selectFrom(EMPLOYEES_ROLES).where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk))
-						.fetchMap(EMPLOYEES_ROLES.EMRO_TYPE, Constants.EMPLOYEES_ROLES_MAPPER));
-		res.put("restrictions", Restrictions.forEmployee(empl_pk, ctx));
+				ctx.selectFrom(USERS_ROLES).where(USERS_ROLES.USER_ID.eq(user_id))
+						.fetchMap(USERS_ROLES.USRO_TYPE, (RecordMapper<UsersRolesRecord, Object>) entry -> {
+							switch (entry.getUsroType()) {
+								case Constants.ROLE_ACCESS:
+								case Constants.ROLE_ADMIN:
+									return entry.getUsroLevel();
+								case Constants.ROLE_TRAINER:
+									return entry.getUsroTrprFk();
+								default:
+									return Boolean.TRUE;
+							}
+						}));
+
+		res.put("restrictions", Restrictions.forUser(user_id, ctx));
 		return res;
 	}
 
 	@POST
-	@Path("users/{empl_pk}")
+	@Path("users/{user_id}")
 	@Consumes(MediaType.APPLICATION_JSON)
-	public String createUser(@PathParam("empl_pk") final String empl_pk, final Map<String, Object> roles) {
-		final String password = resetPassword(empl_pk);
-		updateUser(empl_pk, roles);
-		return password;
+	public String createUser(@PathParam("user_id") final String user_id, final Map<String, Object> data) {
+		if (this.ctx.fetchExists(USERS, USERS.USER_ID.eq(user_id))) {
+			throw new IllegalArgumentException("The user '" + user_id + "' already exists.");
+		}
+
+		return insertUserImpl(user_id, data);
 	}
 
 	@PUT
-	@Path("users/{empl_pk}")
+	@Path("users/{user_id}")
 	@Consumes(MediaType.APPLICATION_JSON)
-	public void updateUser(@PathParam("empl_pk") final String empl_pk, final Map<String, Object> roles) {
-		this.ctx.transaction((config) -> {
+	public void updateUser(@PathParam("user_id") final String user_id, final Map<String, Object> data) {
+		if (!this.ctx.fetchExists(USERS, USERS.USER_ID.eq(user_id).and(USERS.USER_ID.ne(Constants.USER_ROOT)))) {
+			throw new IllegalArgumentException("The user '" + user_id + "' does not exist.");
+		}
+
+		insertUserImpl(user_id, data);
+	}
+
+	/**
+	 * Updates (or creates) data for a user identified by its ID. Returns its
+	 * newly generated password in case of a user's creation.
+	 *
+	 * @param user_id
+	 *            the user's ID
+	 * @param data
+	 *            the data used to update or create the specified user
+	 * @return <code>null</code> or a generated password if the user didn't
+	 *         exist.
+	 */
+	@SuppressWarnings("unchecked")
+	public String insertUserImpl(final String user_id, final Map<String, Object> data) {
+		return this.ctx.transactionResult((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
-				if (!transactionCtx.fetchExists(EMPLOYEES, EMPLOYEES.EMPL_PK.eq(empl_pk).and(EMPLOYEES.EMPL_PWD.isNotNull()))) {
-					throw new IllegalArgumentException("The user '" + empl_pk + "' does not have a password and therefore cannot be assigned any role.");
+				final String password;
+				if (!transactionCtx.fetchExists(USERS, USERS.USER_ID.eq(user_id))) {
+					transactionCtx.insertInto(USERS, USERS.USER_ID, USERS.USER_PWD, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK, USERS.USER_DEPT_FK)
+							.values(
+									DSL.val(user_id),
+									DSL.md5(password = generatePassword()),
+									DSL.val((String) data.get(USERS.USER_TYPE.getName())),
+									DSL.val((String) data.get(USERS.USER_EMPL_FK.getName())),
+									DSL.val((String) data.get(USERS.USER_SITE_FK.getName())),
+									DSL.val((Integer) data.get(USERS.USER_DEPT_FK.getName()), Integer.class))
+							.execute();
+				} else {
+					password = null;
+					transactionCtx.update(USERS)
+							.set(USERS.USER_TYPE, (String) data.get(USERS.USER_TYPE.getName()))
+							.set(USERS.USER_EMPL_FK, (String) data.get(USERS.USER_EMPL_FK.getName()))
+							.set(USERS.USER_SITE_FK, (String) data.get(USERS.USER_SITE_FK.getName()))
+							.set(USERS.USER_DEPT_FK, (Integer) data.get(USERS.USER_DEPT_FK.getName()))
+							.where(USERS.USER_ID.eq(user_id)).execute();
 				}
 
-				transactionCtx.delete(EMPLOYEES_ROLES).where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk)).execute();
-				if (!roles.isEmpty()) {
+				transactionCtx.delete(USERS_ROLES).where(USERS_ROLES.USER_ID.eq(user_id)).execute();
+				final Map<String, Object> roles = (Map<String, Object>) data.get("roles");
+				if ((roles != null) && !roles.isEmpty()) {
 					for (final String type : roles.keySet()) {
-						final Field<Integer> specification = getRoleSpecificationField(type);
+						final Field<Integer> specification;
+						switch (type) {
+							case Constants.ROLE_ACCESS:
+								if (Constants.USERTYPE_DEPARTMENT.equals(data.get(USERS.USER_TYPE.getName()))
+										&& ((((Integer) roles.get(type)).compareTo(Constants.ACCESS_LEVEL_DEPARTMENT)) < 0)) {
+									throw new IllegalArgumentException(
+																		String.format(
+																						"A user of type '%s' cannot be granted a role '%s' which level is lower than %d.",
+																						Constants.USERTYPE_DEPARTMENT,
+																						Constants.ROLE_ACCESS,
+																						Constants.ACCESS_LEVEL_DEPARTMENT));
+								}
+
+								//$FALL-THROUGH$
+							case Constants.ROLE_ADMIN:
+								specification = USERS_ROLES.USRO_LEVEL;
+								break;
+							case Constants.ROLE_TRAINER:
+								specification = USERS_ROLES.USRO_TRPR_FK;
+								break;
+							default:
+								specification = null;
+						}
+
 						if (specification == null) {
-							transactionCtx.insertInto(EMPLOYEES_ROLES).set(EMPLOYEES_ROLES.EMPL_PK, empl_pk).set(EMPLOYEES_ROLES.EMRO_TYPE, type).execute();
+							transactionCtx.insertInto(USERS_ROLES).set(USERS_ROLES.USER_ID, user_id).set(USERS_ROLES.USRO_TYPE, type).execute();
 						} else {
-							transactionCtx.insertInto(EMPLOYEES_ROLES).set(EMPLOYEES_ROLES.EMPL_PK, empl_pk).set(EMPLOYEES_ROLES.EMRO_TYPE, type)
+							transactionCtx.insertInto(USERS_ROLES)
+									.set(USERS_ROLES.USER_ID, user_id)
+									.set(USERS_ROLES.USRO_TYPE, type)
 									.set(specification, (Integer) roles.get(type)).execute();
 						}
 					}
 				}
+
+				return password;
 			}
 		});
 	}
 
-	@DELETE
-	@Path("users/{empl_pk}")
-	public boolean delete(@PathParam("empl_pk") final String empl_pk) {
-		return this.ctx.delete(EMPLOYEES_ROLES).where(EMPLOYEES_ROLES.EMPL_PK.eq(empl_pk)).execute() > 0;
+	@PUT
+	@Path("users/{user_id}/{new_id}")
+	public void changeId(@PathParam("user_id") final String user_id, @PathParam("new_id") final String newId) {
+		changeIdImpl(user_id, newId, this.ctx);
+	}
+
+	/**
+	 * Not part of the exposed API. Used by {@link AccountEndpoint} only.
+	 */
+	public static void changeIdImpl(final String user_id, final String newId, final DSLContext ctx) {
+		if (0 == ctx.update(USERS).set(USERS.USER_ID, newId).where(USERS.USER_ID.eq(user_id)).execute()) {
+			throw new IllegalArgumentException("The user '" + user_id + "' does not exist.");
+		}
 	}
 
 	@DELETE
-	@Path("users/{empl_pk}/password")
-	public String resetPassword(@PathParam("empl_pk") final String empl_pk) {
+	@Path("users/{user_id}")
+	public boolean delete(@PathParam("user_id") final String user_id) {
+		return this.ctx.delete(USERS).where(USERS.USER_ID.eq(user_id)).execute() > 0;
+	}
+
+	@DELETE
+	@Path("users/{user_id}/password")
+	public String resetPassword(@PathParam("user_id") final String user_id) {
 		final String password = generatePassword();
-		this.ctx.update(EMPLOYEES).set(EMPLOYEES.EMPL_PWD, DSL.md5(password)).where(EMPLOYEES.EMPL_PK.eq(empl_pk)).execute();
+		this.ctx.update(USERS).set(USERS.USER_PWD, DSL.md5(password)).where(USERS.USER_ID.eq(user_id)).execute();
 		return password;
 	}
 
@@ -238,18 +335,6 @@ public class AdministrationEndpoint {
 		}
 
 		return String.valueOf(res);
-	}
-
-	private static Field<Integer> getRoleSpecificationField(final String type) {
-		switch (type) {
-			case Constants.ROLE_ACCESS:
-			case Constants.ROLE_ADMIN:
-				return EMPLOYEES_ROLES.EMRO_LEVEL;
-			case Constants.ROLE_TRAINER:
-				return EMPLOYEES_ROLES.EMRO_TRPR_FK;
-			default:
-				return null;
-		}
 	}
 
 	@SuppressWarnings("unchecked")
