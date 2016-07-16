@@ -27,6 +27,7 @@ import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
+import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.UpdatesRecord;
@@ -71,15 +72,7 @@ public class ResourcesEndpoint {
 		}
 
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
-			query.addSelect(
-							EMPLOYEES.EMPL_PK,
-							EMPLOYEES.EMPL_FIRSTNAME,
-							EMPLOYEES.EMPL_SURNAME,
-							EMPLOYEES.EMPL_DOB,
-							EMPLOYEES.EMPL_PERMANENT,
-							EMPLOYEES.EMPL_GENDER,
-							EMPLOYEES.EMPL_NOTES,
-							EMPLOYEES.EMPL_ADDR);
+			query.addSelect(EMPLOYEES.fields());
 			query.addSelect(SITES_EMPLOYEES.fields());
 			query.addFrom(EMPLOYEES);
 
@@ -122,22 +115,12 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("employees/{empl_pk}")
-	public Record lookupEmployee(@PathParam("empl_pk") final String empl_pk) {
+	public EmployeesRecord lookupEmployee(@PathParam("empl_pk") final String empl_pk) {
 		if (!this.restrictions.canAccessEmployee(empl_pk)) {
 			throw new ForbiddenException();
 		}
 
-		return this.ctx
-				.select(
-						EMPLOYEES.EMPL_PK,
-						EMPLOYEES.EMPL_FIRSTNAME,
-						EMPLOYEES.EMPL_SURNAME,
-						EMPLOYEES.EMPL_DOB,
-						EMPLOYEES.EMPL_PERMANENT,
-						EMPLOYEES.EMPL_GENDER,
-						EMPLOYEES.EMPL_NOTES,
-						EMPLOYEES.EMPL_ADDR)
-				.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.equal(empl_pk)).fetchOne();
+		return this.ctx.selectFrom(EMPLOYEES).where(EMPLOYEES.EMPL_PK.equal(empl_pk)).fetchOne();
 	}
 
 	@GET
@@ -209,7 +192,7 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("sites/{site_pk}/history")
-	public Map<Date, Result<Record4<String, Boolean, String, Date>>> getSiteEmployeesHistory(final String site_pk) {
+	public Map<Date, Result<Record4<String, Boolean, String, Date>>> getSiteEmployeesHistory(@PathParam("site_pk") final String site_pk) {
 		if (!this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
 			throw new ForbiddenException();
 		}

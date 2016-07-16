@@ -1,6 +1,6 @@
 package org.ccjmne.faomaintenance.api.rest;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
 
 import java.util.Base64;
 
@@ -26,7 +26,7 @@ public class AuthenticationEndpoint {
 	@POST
 	public Response authenticate(final String authorization) {
 		final String[] split = new String(Base64.getDecoder().decode(authorization)).split(":");
-		if ((split.length == 2) && this.ctx.fetchExists(EMPLOYEES, EMPLOYEES.EMPL_PK.eq(split[0]).and(EMPLOYEES.EMPL_PWD.eq(DSL.md5(split[1]))))) {
+		if ((split.length == 2) && this.ctx.fetchExists(USERS, USERS.USER_ID.eq(split[0]).and(USERS.USER_PWD.eq(DSL.md5(split[1]))))) {
 			return Response.ok(AdministrationEndpoint.getUserInfoImpl(split[0], this.ctx)).build();
 		}
 

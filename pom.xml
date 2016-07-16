@@ -59,7 +59,7 @@
 		<dependency>
 			<groupId>org.ccjmne.faomaintenance</groupId>
 			<artifactId>foamainteance_jooqgeneration</artifactId>
-			<version>1.5.2-RC1</version>
+			<version>1.5.3-RC3</version>
 		</dependency>
 
 		<!-- AWS INTEGRATION -->
@@ -97,7 +97,7 @@
 		<dependency>
 			<groupId>org.jooq</groupId>
 			<artifactId>jooq</artifactId>
-			<version>3.7.2</version>
+			<version>3.8.4</version>
 		</dependency>
 
 		<!-- JSON -->
