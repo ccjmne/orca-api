@@ -3,8 +3,11 @@ package org.ccjmne.faomaintenance.api.rest;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS_CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS_ROLES;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -20,6 +23,8 @@ import javax.ws.rs.core.MediaType;
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.Row1;
+import org.jooq.Row2;
 import org.jooq.impl.DSL;
 
 @Path("account")
@@ -69,5 +74,30 @@ public class AccountEndpoint {
 	@Path("id/{new_id}")
 	public void changeId(@Context final HttpServletRequest request, @PathParam("new_id") final String newId) {
 		AdministrationEndpoint.changeIdImpl(request.getRemoteUser(), newId, this.ctx);
+	}
+
+	@GET
+	@Path("certificates")
+	public List<Integer> getRelevantCertificates(@Context final HttpServletRequest request) {
+		return this.ctx.selectFrom(USERS_CERTIFICATES)
+				.where(USERS_CERTIFICATES.USCE_USER_FK.eq(request.getRemoteUser()))
+				.fetch(USERS_CERTIFICATES.USCE_CERT_FK);
+	}
+
+	@PUT
+	@Path("certificates")
+	@SuppressWarnings("unchecked")
+	public void setRelevantCertificates(@Context final HttpServletRequest request, final List<Integer> certificates) {
+		this.ctx.transaction(config -> {
+			try (final DSLContext transactionCtx = DSL.using(config)) {
+				transactionCtx.delete(USERS_CERTIFICATES).where(USERS_CERTIFICATES.USCE_USER_FK.eq(request.getRemoteUser())).execute();
+				final List<Row1<Integer>> rows = new ArrayList<>(certificates.size());
+				certificates.forEach(cert -> rows.add(DSL.row(cert)));
+				transactionCtx.insertInto(USERS_CERTIFICATES, USERS_CERTIFICATES.USCE_USER_FK, USERS_CERTIFICATES.USCE_CERT_FK)
+						.select(DSL.select(DSL.val(request.getRemoteUser()), DSL.field(USERS_CERTIFICATES.USCE_CERT_FK.getName(), Integer.class))
+								.from(DSL.values(rows.toArray(new Row2[0])).as("unused", USERS_CERTIFICATES.USCE_CERT_FK.getName())))
+						.execute();
+			}
+		});
 	}
 }
