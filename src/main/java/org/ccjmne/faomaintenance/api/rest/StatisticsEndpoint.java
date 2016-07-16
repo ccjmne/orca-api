@@ -59,7 +59,7 @@ public class StatisticsEndpoint {
 
 	private final DSLContext ctx;
 	private final ResourcesEndpoint resources;
-	private final ResourcesByKeysEndpoint resourcesByKeys;
+	private final ResourcesByKeysCommonEndpoint commonResources;
 
 	/**
 	 * Used to list trainings for sites and employees' statistics computing
@@ -78,13 +78,13 @@ public class StatisticsEndpoint {
 	public StatisticsEndpoint(
 								final DSLContext ctx,
 								final ResourcesEndpoint resources,
-								final ResourcesByKeysEndpoint resourcesByKeys,
+								final ResourcesByKeysCommonEndpoint resourcesByKeys,
 								final ResourcesUnrestricted resourcesUnrestricted,
 								final StatisticsCaches statisticsCaches,
 								final Restrictions restrictions) {
 		this.ctx = ctx;
 		this.resources = resources;
-		this.resourcesByKeys = resourcesByKeys;
+		this.commonResources = resourcesByKeys;
 		this.resourcesUnrestricted = resourcesUnrestricted;
 		this.statistics = statisticsCaches;
 		this.restrictions = restrictions;
@@ -104,7 +104,7 @@ public class StatisticsEndpoint {
 		final List<Record> trainingsByExpiry = this.resources.listTrainings(null, Collections.EMPTY_LIST, null, null, null, Boolean.TRUE)
 				.sortAsc(Constants.TRAINING_EXPIRY);
 
-		final Map<Integer, List<Integer>> certs = this.resourcesByKeys.listTrainingtypesCertificates();
+		final Map<Integer, List<Integer>> certs = this.commonResources.listTrainingtypesCertificates();
 		final Map<Integer, Iterable<TrainingsStatistics>> res = new HashMap<>();
 
 		for (final Integer interval : intervals) {
@@ -174,8 +174,8 @@ public class StatisticsEndpoint {
 		return buildEmployeeStats(
 									empl_pk,
 									computeDates(fromStr, dateStr, interval),
-									this.resourcesByKeys.listTrainingTypes(),
-									this.resourcesByKeys.listTrainingtypesCertificates());
+									this.commonResources.listTrainingTypes(),
+									this.commonResources.listTrainingtypesCertificates());
 	}
 
 	@GET
@@ -234,8 +234,8 @@ public class StatisticsEndpoint {
 		}
 
 		// TODO: Bulk employees stats computing
-		final Map<Integer, TrainingtypesRecord> trainingTypes = this.resourcesByKeys.listTrainingTypes();
-		final Map<Integer, List<Integer>> trainingtypesCertificates = this.resourcesByKeys.listTrainingtypesCertificates();
+		final Map<Integer, TrainingtypesRecord> trainingTypes = this.commonResources.listTrainingTypes();
+		final Map<Integer, List<Integer>> trainingtypesCertificates = this.commonResources.listTrainingtypesCertificates();
 		final List<Date> dates = computeDates(fromStr, dateStr, interval);
 		final Map<Date, Map<String, EmployeeStatistics>> res = new TreeMap<>();
 		for (final String empl_pk : employees) {
@@ -256,8 +256,8 @@ public class StatisticsEndpoint {
 																			final String dateStr,
 																			final String fromStr,
 																			final Integer interval) throws ParseException {
-		final Map<Integer, TrainingtypesRecord> trainingTypes = this.resourcesByKeys.listTrainingTypes();
-		final Map<Integer, List<Integer>> trainingtypesCertificates = this.resourcesByKeys.listTrainingtypesCertificates();
+		final Map<Integer, TrainingtypesRecord> trainingTypes = this.commonResources.listTrainingTypes();
+		final Map<Integer, List<Integer>> trainingtypesCertificates = this.commonResources.listTrainingtypesCertificates();
 		final List<Date> dates = computeDates(fromStr, dateStr, interval);
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStats = new HashMap<>();
 		for (final String empl_pk : this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK)
@@ -274,7 +274,7 @@ public class StatisticsEndpoint {
 					});
 		}
 
-		final Map<Integer, CertificatesRecord> certificates = this.resourcesByKeys.listCertificates();
+		final Map<Integer, CertificatesRecord> certificates = this.commonResources.listCertificates();
 		final TreeMap<Date, Map<String, SiteStatistics>> res = new TreeMap<>();
 		for (final Date date : dates) {
 			final Entry<Date, Map<String, Result<? extends Record>>> mostAccurate = employeesHistory.floorEntry(date);
@@ -309,8 +309,8 @@ public class StatisticsEndpoint {
 	 * </ol>
 	 */
 	private Map<Date, SiteStatistics> calculateSiteStats(final String site_pk, final List<Date> dates) {
-		final Map<Integer, TrainingtypesRecord> trainingTypes = this.resourcesByKeys.listTrainingTypes();
-		final Map<Integer, List<Integer>> trainingtypesCertificates = this.resourcesByKeys.listTrainingtypesCertificates();
+		final Map<Integer, TrainingtypesRecord> trainingTypes = this.commonResources.listTrainingTypes();
+		final Map<Integer, List<Integer>> trainingtypesCertificates = this.commonResources.listTrainingtypesCertificates();
 		final Map<String, Map<Date, EmployeeStatistics>> employeesStats = new HashMap<>();
 		for (final String empl_pk : this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK)
 				.from(SITES_EMPLOYEES).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
@@ -321,7 +321,7 @@ public class StatisticsEndpoint {
 		final TreeSet<Date> updates = new TreeSet<>(this.resources.listUpdates().getValues(UPDATES.UPDT_DATE));
 		final Map<Date, Result<Record4<String, Boolean, String, Date>>> employeesHistory = this.resources.getSiteEmployeesHistory(site_pk);
 
-		final Map<Integer, CertificatesRecord> certificates = this.resourcesByKeys.listCertificates();
+		final Map<Integer, CertificatesRecord> certificates = this.commonResources.listCertificates();
 		final Map<Date, SiteStatistics> res = new TreeMap<>();
 		for (final Date date : dates) {
 			final SiteStatistics stats = new SiteStatistics(certificates);
