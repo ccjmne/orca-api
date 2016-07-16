@@ -254,6 +254,21 @@ public class AdministrationEndpoint {
 		});
 	}
 
+	@PUT
+	@Path("users/{user_id}/{new_id}")
+	public void changeId(@PathParam("user_id") final String user_id, @PathParam("new_id") final String newId) {
+		changeIdImpl(user_id, newId, this.ctx);
+	}
+
+	/**
+	 * Not part of the exposed API. Used by {@link AccountEndpoint} only.
+	 */
+	public static void changeIdImpl(final String user_id, final String newId, final DSLContext ctx) {
+		if (0 == ctx.update(USERS).set(USERS.USER_ID, newId).where(USERS.USER_ID.eq(user_id)).execute()) {
+			throw new IllegalArgumentException("The user '" + user_id + "' does not exist.");
+		}
+	}
+
 	@DELETE
 	@Path("users/{user_id}")
 	public boolean delete(@PathParam("user_id") final String user_id) {

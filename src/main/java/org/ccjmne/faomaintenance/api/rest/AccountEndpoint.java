@@ -13,6 +13,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
@@ -51,7 +52,6 @@ public class AccountEndpoint {
 	@PUT
 	@Path("password")
 	@Consumes(MediaType.APPLICATION_JSON)
-	// TODO: use Restrictions
 	public void updatePassword(@Context final HttpServletRequest request, final Map<String, String> passwords) {
 		final String currentPassword = passwords.get("pwd_current");
 		final String newPassword = passwords.get("pwd_new");
@@ -63,5 +63,11 @@ public class AccountEndpoint {
 				.where(USERS.USER_ID.eq(request.getRemoteUser()).and(USERS.USER_PWD.eq(DSL.md5(currentPassword)))).execute()) {
 			throw new IllegalArgumentException("Either the user doesn't exist or the specified current password was incorrect.");
 		}
+	}
+
+	@PUT
+	@Path("id/{new_id}")
+	public void changeId(@Context final HttpServletRequest request, @PathParam("new_id") final String newId) {
+		AdministrationEndpoint.changeIdImpl(request.getRemoteUser(), newId, this.ctx);
 	}
 }
