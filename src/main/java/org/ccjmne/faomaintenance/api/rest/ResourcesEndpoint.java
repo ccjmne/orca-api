@@ -25,11 +25,8 @@ import org.ccjmne.faomaintenance.api.modules.ResourcesUnrestricted;
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRecord;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.UpdatesRecord;
 import org.jooq.DSLContext;
 import org.jooq.JoinType;
@@ -323,24 +320,6 @@ public class ResourcesEndpoint {
 			query.addConditions(DEPARTMENTS.DEPT_PK.ne(DSL.val(Constants.UNASSIGNED_DEPT)));
 			return query.fetch();
 		}
-	}
-
-	@GET
-	@Path("trainingtypes")
-	public Result<TrainingtypesRecord> listTrainingTypes() {
-		return this.unrestrictedResources.listTrainingTypes();
-	}
-
-	@GET
-	@Path("trainingtypes_certificates")
-	public Result<TrainingtypesCertificatesRecord> listTrainingTypesCertificates() {
-		return this.unrestrictedResources.listTrainingTypesCertificates();
-	}
-
-	@GET
-	@Path("certificates")
-	public Result<CertificatesRecord> listCertificates() {
-		return this.unrestrictedResources.listCertificates();
 	}
 
 	private Integer getUpdatePkFor(final String dateStr) throws ParseException {
