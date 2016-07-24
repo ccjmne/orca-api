@@ -23,7 +23,7 @@ public class Constants {
 	public static final String EMPL_OUTCOME_VALIDATED = "VALIDATED";
 	private static final String EMPL_OUTCOME_FLUNKED = "FLUNKED";
 
-	public static final String USER_ROOT = "admin";
+	public static final String USER_ROOT = "root";
 
 	public static final String UNASSIGNED_SITE = "0";
 	public static final Integer UNASSIGNED_DEPT = Integer.valueOf(0);
