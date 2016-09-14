@@ -91,6 +91,10 @@ public class AccountEndpoint {
 		this.ctx.transaction(config -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
 				transactionCtx.delete(USERS_CERTIFICATES).where(USERS_CERTIFICATES.USCE_USER_FK.eq(request.getRemoteUser())).execute();
+				if (certificates.isEmpty()) {
+					return;
+				}
+
 				final List<Row1<Integer>> rows = new ArrayList<>(certificates.size());
 				certificates.forEach(cert -> rows.add(DSL.row(cert)));
 				transactionCtx.insertInto(USERS_CERTIFICATES, USERS_CERTIFICATES.USCE_USER_FK, USERS_CERTIFICATES.USCE_CERT_FK)
