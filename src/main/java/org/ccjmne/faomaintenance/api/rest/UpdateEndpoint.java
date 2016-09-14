@@ -5,6 +5,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS_ROLES;
 
 import java.text.ParseException;
@@ -110,12 +111,14 @@ public class UpdateEndpoint {
 	@DELETE
 	@Path("departments/{dept_pk}")
 	public boolean deleteDept(@PathParam("dept_pk") final Integer dept_pk) {
+		// Database CASCADEs the deletion of linked users, if any
 		return this.ctx.delete(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).execute() == 1;
 	}
 
 	@DELETE
 	@Path("sites/{site_pk}")
 	public boolean deleteSite(@PathParam("site_pk") final String site_pk) {
+		// Database CASCADEs the deletion of linked users, if any
 		final boolean exists = this.ctx.selectFrom(SITES).where(SITES.SITE_PK.equal(site_pk)).fetch().isNotEmpty();
 		if (exists) {
 			this.ctx.delete(SITES).where(SITES.SITE_PK.eq(site_pk)).execute();
@@ -145,12 +148,10 @@ public class UpdateEndpoint {
 					}
 
 					// Remove all privileges of the unassigned employees
-					// TODO: USER_ID != EMPL_PK
 					transactionCtx
-							.delete(USERS_ROLES)
-							.where(
-									USERS_ROLES.USER_ID.notIn(transactionCtx.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES)
-											.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk))))
+							.delete(USERS)
+							.where(USERS.USER_TYPE.eq(Constants.USERTYPE_EMPLOYEE).and(USERS.USER_EMPL_FK
+									.notIn(DSL.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES).where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk)))))
 							.and(USERS_ROLES.USER_ID.ne(Constants.USER_ROOT))
 							.execute();
 
