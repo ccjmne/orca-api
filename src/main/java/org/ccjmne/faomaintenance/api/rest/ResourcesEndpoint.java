@@ -303,20 +303,30 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("departments")
-	public Result<? extends Record> listDepartments(@QueryParam("unlisted") final boolean unlisted) {
+	public Result<? extends Record> listDepartments(@QueryParam("unlisted") final boolean unlisted) throws ParseException {
 		if (!this.restrictions.canAccessAllSites() && (this.restrictions.getAccessibleDepartment() == null)) {
 			throw new ForbiddenException();
 		}
 
-		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
+		final Integer update = getUpdatePkFor(null);
+		try (
+				final SelectQuery<Record> query = this.ctx.selectQuery();
+				final Select<? extends Record> employees = DSL
+						.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
+						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(update))) {
 			query.addSelect(DEPARTMENTS.fields());
 			query.addSelect(DSL.count(SITES.SITE_PK));
 			query.addFrom(DEPARTMENTS);
 			query.addGroupBy(DEPARTMENTS.fields());
 			query.addJoin(SITES, unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN, SITES.SITE_DEPT_FK.eq(DEPARTMENTS.DEPT_PK));
+			if (!unlisted) {
+				query.addJoin(employees, JoinType.JOIN, employees.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(SITES.SITE_PK));
+			}
+
 			if (!this.restrictions.canAccessAllSites()) {
 				query.addConditions(DEPARTMENTS.DEPT_PK.eq(this.restrictions.getAccessibleDepartment()));
 			}
+
 			query.addConditions(DEPARTMENTS.DEPT_PK.ne(DSL.val(Constants.UNASSIGNED_DEPT)));
 			return query.fetch();
 		}

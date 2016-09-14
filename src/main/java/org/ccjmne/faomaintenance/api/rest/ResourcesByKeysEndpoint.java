@@ -59,7 +59,7 @@ public class ResourcesByKeysEndpoint {
 
 	@GET
 	@Path("departments")
-	public Map<Integer, ? extends Record> listDepartments(@QueryParam("unlisted") final boolean unlisted) {
+	public Map<Integer, ? extends Record> listDepartments(@QueryParam("unlisted") final boolean unlisted) throws ParseException {
 		return this.resources.listDepartments(unlisted).intoMap(DEPARTMENTS.DEPT_PK);
 	}
 }
