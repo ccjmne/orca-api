@@ -33,6 +33,7 @@ import javax.ws.rs.QueryParam;
 import org.ccjmne.faomaintenance.api.modules.ResourcesUnrestricted;
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
 import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
+import org.ccjmne.faomaintenance.api.rest.resources.DepartmentStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeStatisticsBuilder;
 import org.ccjmne.faomaintenance.api.rest.resources.SiteStatistics;
@@ -139,6 +140,26 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
+	@Path("departments/{dept_pk}")
+	public Map<Date, DepartmentStatistics> getDepartmentStats(
+																@PathParam("dept_pk") final Integer dept_pk,
+																@QueryParam("date") final String dateStr,
+																@QueryParam("from") final String fromStr,
+																@QueryParam("interval") final Integer interval) throws ParseException {
+		if (!this.restrictions.canAccessAllSites() && !this.restrictions.canAccessDepartment(dept_pk)) {
+			throw new ForbiddenException();
+		}
+
+		final Map<Integer, CertificatesRecord> certificates = this.commonResources.listCertificates();
+		final Map<Date, DepartmentStatistics> res = new HashMap<>();
+		getSitesStats(dept_pk, null, dateStr, fromStr, interval).forEach((date, sitesStats) -> {
+			res.put(date, new DepartmentStatistics(certificates, sitesStats.values()));
+		});
+
+		return res;
+	}
+
+	@GET
 	@Path("sites/{site_pk}")
 	public Map<Date, SiteStatistics> getSiteStats(
 													@PathParam("site_pk") final String site_pk,
@@ -176,6 +197,49 @@ public class StatisticsEndpoint {
 									computeDates(fromStr, dateStr, interval),
 									this.commonResources.listTrainingTypes(),
 									this.commonResources.listTrainingtypesCertificates());
+	}
+
+	@GET
+	@Path("departments")
+	public Map<Date, Map<Integer, DepartmentStatistics>> getDepartmentsStats(
+																				@QueryParam("date") final String dateStr,
+																				@QueryParam("from") final String fromStr,
+																				@QueryParam("interval") final Integer interval) throws ParseException {
+		final Map<Date, Map<Integer, DepartmentStatistics>> res = new HashMap<>();
+		if (!this.restrictions.canAccessAllSites()) {
+			final Integer dept = this.restrictions.getAccessibleDepartment();
+			getDepartmentStats(dept, dateStr, fromStr, interval).forEach((date, departmentStats) -> {
+				res.put(date, Collections.singletonMap(dept, departmentStats));
+			});
+
+			return res;
+		}
+
+		final Map<Integer, CertificatesRecord> certificates = this.commonResources.listCertificates();
+		final Map<Integer, List<String>> departmentsSites = this.resources.listSites(null, null, null, false).intoGroups(SITES.SITE_DEPT_FK, SITES.SITE_PK);
+		if ((dateStr == null) && (fromStr == null)) {
+			final Map<Integer, DepartmentStatistics> entry = new HashMap<>();
+			departmentsSites.entrySet().stream().forEach(deptSites -> {
+				final DepartmentStatistics deptStats = new DepartmentStatistics(certificates, deptSites.getValue().stream()
+						.map(site -> this.statistics.getSiteStats(site).getValue()).collect(Collectors.toList()));
+				entry.put(deptSites.getKey(), deptStats);
+			});
+
+			return Collections.singletonMap(new Date(new java.util.Date().getTime()), entry);
+		}
+
+		getSitesStats(null, null, dateStr, fromStr, interval).forEach((date, sitesStats) -> {
+			final Map<Integer, DepartmentStatistics> entry = new HashMap<>();
+			departmentsSites.entrySet().stream().forEach(deptSites -> {
+				final DepartmentStatistics deptStats = new DepartmentStatistics(certificates, deptSites.getValue().stream()
+						.map(site -> sitesStats.get(site)).collect(Collectors.toList()));
+				entry.put(deptSites.getKey(), deptStats);
+			});
+
+			res.put(date, entry);
+		});
+
+		return res;
 	}
 
 	@GET
@@ -249,7 +313,12 @@ public class StatisticsEndpoint {
 	/**
 	 * Specifically allowed to directly use the {@link DSLContext} with
 	 * virtually no restriction.<br />
-	 * Reason: <code>private</code> method <b>shielded</b> by the caller.
+	 * Reasons:
+	 * <ol>
+	 * <li><code>private</code> method <b>shielded</b> by the caller.</li>
+	 * <li>Can access employees that are not in the accessible sites anymore.
+	 * </li>
+	 * </ol>
 	 */
 	private TreeMap<Date, Map<String, SiteStatistics>> calculateSitesStats(
 																			final List<String> sites,
@@ -283,7 +352,6 @@ public class StatisticsEndpoint {
 					final SiteStatistics stats = new SiteStatistics(certificates);
 					for (final Record empl : sitesEmployeesHistory.getValue()) {
 						stats.register(
-										empl.getValue(EMPLOYEES.EMPL_PK),
 										empl.getValue(EMPLOYEES.EMPL_PERMANENT),
 										employeesStats.get(empl.getValue(EMPLOYEES.EMPL_PK)).get(date));
 					}
@@ -329,7 +397,6 @@ public class StatisticsEndpoint {
 			if ((mostAccurate != null) && employeesHistory.containsKey(mostAccurate)) {
 				for (final Record empl : employeesHistory.get(mostAccurate)) {
 					stats.register(
-									empl.getValue(EMPLOYEES.EMPL_PK),
 									empl.getValue(EMPLOYEES.EMPL_PERMANENT),
 									employeesStats.get(empl.getValue(EMPLOYEES.EMPL_PK)).get(date));
 				}
