@@ -103,7 +103,6 @@ public class StatisticsCaches {
 		final SiteStatistics stats = new SiteStatistics(this.unrestrictedResources.listCertificates().intoMap(CERTIFICATES.CERT_PK));
 		for (final Record empl : this.unrestrictedResources.listEmployees(site_pk)) {
 			stats.register(
-							empl.getValue(EMPLOYEES.EMPL_PK),
 							empl.getValue(EMPLOYEES.EMPL_PERMANENT),
 							this.employeeStatisticsCache.getUnchecked(empl.getValue(EMPLOYEES.EMPL_PK)).getValue());
 		}
