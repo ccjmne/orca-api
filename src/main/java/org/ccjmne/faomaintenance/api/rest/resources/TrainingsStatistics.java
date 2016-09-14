@@ -29,33 +29,35 @@ public class TrainingsStatistics {
 
 		public void registerTraining(final Record training) {
 			for (final Integer certPk : this.certificatesByTrainingType.get(training.getValue(TRAININGS.TRNG_TRTY_FK))) {
-				final TrainingsCertificateStatistics trainingCertificatesStatistics = this.certificates
+				final TrainingsCertificateStatistics certStats = this.certificates
 						.getOrDefault(certPk, new TrainingsCertificateStatistics());
-				this.certificates.putIfAbsent(certPk, trainingCertificatesStatistics);
-				trainingCertificatesStatistics.statistics.trainings += 1;
-				trainingCertificatesStatistics.statistics.employeesRegistered += training.getValue(Constants.TRAINING_REGISTERED).intValue();
-				trainingCertificatesStatistics.statistics.employeesTrained += training.getValue(Constants.TRAINING_VALIDATED).intValue();
-				final TrainingsStatisticsData trainingTypeStatistics = trainingCertificatesStatistics.trainingTypesStatistics
+				this.certificates.putIfAbsent(certPk, certStats);
+				certStats.statistics.trainings += 1;
+				certStats.statistics.employeesRegistered += training.getValue(Constants.TRAINING_REGISTERED).intValue();
+				certStats.statistics.employeesTrained += training.getValue(Constants.TRAINING_VALIDATED).intValue();
+
+				final TrainingsStatisticsData typeStats = certStats.trainingTypesStatistics
 						.getOrDefault(training.getValue(TRAININGS.TRNG_TRTY_FK), new TrainingsStatisticsData());
-				trainingCertificatesStatistics.trainingTypesStatistics.putIfAbsent(training.getValue(TRAININGS.TRNG_TRTY_FK), trainingTypeStatistics);
-				trainingTypeStatistics.trainings += 1;
-				trainingTypeStatistics.employeesRegistered += training.getValue(Constants.TRAINING_REGISTERED).intValue();
-				trainingTypeStatistics.employeesTrained += training.getValue(Constants.TRAINING_VALIDATED).intValue();
+				certStats.trainingTypesStatistics.putIfAbsent(training.getValue(TRAININGS.TRNG_TRTY_FK), typeStats);
+				typeStats.trainings += 1;
+				typeStats.employeesRegistered += training.getValue(Constants.TRAINING_REGISTERED).intValue();
+				typeStats.employeesTrained += training.getValue(Constants.TRAINING_VALIDATED).intValue();
 			}
 		}
 
 		public void registerExpiry(final Record training) {
 			for (final Integer certPk : this.certificatesByTrainingType.get(training.getValue(TRAININGS.TRNG_TRTY_FK))) {
-				final TrainingsCertificateStatistics trainingCertificatesStatistics = this.certificates
+				final TrainingsCertificateStatistics certStats = this.certificates
 						.getOrDefault(certPk, new TrainingsCertificateStatistics());
-				this.certificates.putIfAbsent(certPk, trainingCertificatesStatistics);
-				trainingCertificatesStatistics.statistics.trainingsExpired += 1;
-				trainingCertificatesStatistics.statistics.employeesExpired += training.getValue(Constants.TRAINING_VALIDATED).intValue();
-				final TrainingsStatisticsData trainingTypeStatistics = trainingCertificatesStatistics.trainingTypesStatistics
+				this.certificates.putIfAbsent(certPk, certStats);
+				certStats.statistics.trainingsExpired += 1;
+				certStats.statistics.employeesExpired += training.getValue(Constants.TRAINING_VALIDATED).intValue();
+
+				final TrainingsStatisticsData typeStats = certStats.trainingTypesStatistics
 						.getOrDefault(training.getValue(TRAININGS.TRNG_TRTY_FK), new TrainingsStatisticsData());
-				trainingCertificatesStatistics.trainingTypesStatistics.putIfAbsent(training.getValue(TRAININGS.TRNG_TRTY_FK), trainingTypeStatistics);
-				trainingTypeStatistics.trainingsExpired += 1;
-				trainingTypeStatistics.employeesExpired += training.getValue(Constants.TRAINING_VALIDATED).intValue();
+				certStats.trainingTypesStatistics.putIfAbsent(training.getValue(TRAININGS.TRNG_TRTY_FK), typeStats);
+				typeStats.trainingsExpired += 1;
+				typeStats.employeesExpired += training.getValue(Constants.TRAINING_VALIDATED).intValue();
 			}
 		}
 
@@ -113,13 +115,13 @@ public class TrainingsStatistics {
 	}
 
 	public static class TrainingsCertificateStatistics {
+
 		public static class TrainingsStatisticsData {
 			public int trainings;
 			public int trainingsExpired;
 			public int employeesRegistered;
 			public int employeesTrained;
 			public int employeesExpired;
-
 		}
 
 		public final TrainingsStatisticsData statistics;
