@@ -112,16 +112,21 @@ public class DepartmentStatistics {
 			return Double.valueOf(Math.ceil((this.targetPercentage * getEmployeesCount()) / 100.0f)).intValue();
 		}
 
+		public int getTargetIndex() {
+			return Math.round(((this.targetSuccessCount + ((2 * this.targetWarningCount) / 3f)) / getSitesCount()) * 100f);
+		}
+
 		public int getCountPercentage() {
 			return getEmployeesCount() > 0 ? (this.count * 100) / getEmployeesCount() : 0;
 		}
 
 		public String getTargetStatus() {
-			if (this.targetDangerCount > 0) {
+			final int index = getTargetIndex();
+			if (index < 67) {
 				return Constants.STATUS_DANGER;
 			}
 
-			if (this.targetWarningCount > 0) {
+			if (index < 100) {
 				return Constants.STATUS_WARNING;
 			}
 
