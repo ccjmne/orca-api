@@ -332,6 +332,16 @@ public class ResourcesEndpoint {
 		}
 	}
 
+	@GET
+	@Path("departments/{dept_pk}")
+	public Record lookupDepartment(@PathParam("dept_pk") final Integer dept_pk) {
+		if (!this.restrictions.canAccessAllSites() && !this.restrictions.canAccessDepartment(dept_pk)) {
+			throw new ForbiddenException();
+		}
+
+		return this.ctx.selectFrom(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).fetchOne();
+	}
+
 	private Integer getUpdatePkFor(final String dateStr) throws ParseException {
 		return getUpdateFor(dateStr).getValue(UPDATES.UPDT_PK);
 	}
