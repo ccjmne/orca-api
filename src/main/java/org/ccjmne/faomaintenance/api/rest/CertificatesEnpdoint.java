@@ -160,7 +160,7 @@ public class CertificatesEnpdoint {
 	}
 
 	@POST
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "null" })
 	@Path("reorder")
 	public void reassignCertificates(final Map<Integer, Integer> reassignmentMap) {
 		if (reassignmentMap.isEmpty()) {

@@ -112,7 +112,7 @@ public class DepartmentStatistics {
 			return Double.valueOf(Math.ceil((this.targetPercentage * getEmployeesCount()) / 100.0f)).intValue();
 		}
 
-		public int getTargetIndex() {
+		public int getScore() {
 			return Math.round(((this.targetSuccessCount + ((2 * this.targetWarningCount) / 3f)) / getSitesCount()) * 100f);
 		}
 
@@ -121,7 +121,7 @@ public class DepartmentStatistics {
 		}
 
 		public String getTargetStatus() {
-			final int index = getTargetIndex();
+			final int index = getScore();
 			if (index < 67) {
 				return Constants.STATUS_DANGER;
 			}
