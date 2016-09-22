@@ -63,7 +63,8 @@ public class ResourcesEndpoint {
 	public Result<Record> listEmployees(
 										@QueryParam("site") final String site_pk,
 										@QueryParam("date") final String dateStr,
-										@QueryParam("training") final String trng_pk) throws ParseException {
+										@QueryParam("training") final String trng_pk)
+			throws ParseException {
 		if ((site_pk != null) && !this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
 			throw new ForbiddenException();
 		}
@@ -136,7 +137,8 @@ public class ResourcesEndpoint {
 									@QueryParam("department") final Integer dept_pk,
 									@QueryParam("employee") final String empl_pk,
 									@QueryParam("date") final String dateStr,
-									@QueryParam("unlisted") final boolean unlisted) throws ParseException {
+									@QueryParam("unlisted") final boolean unlisted)
+			throws ParseException {
 		if ((empl_pk != null) && !this.restrictions.canAccessEmployee(empl_pk)) {
 			throw new ForbiddenException();
 		}
@@ -151,9 +153,10 @@ public class ResourcesEndpoint {
 				final Select<? extends Record> employees = DSL
 						.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
 						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(update))) {
-			query.addSelect(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES, DSL.count(employees.field(SITES_EMPLOYEES.SIEM_SITE_FK)));
-			query.addGroupBy(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES);
+			query.addSelect(SITES.fields());
+			query.addGroupBy(SITES.fields());
 			query.addFrom(SITES);
+			query.addSelect(DSL.count(employees.field(SITES_EMPLOYEES.SIEM_SITE_FK)));
 			query.addJoin(
 							employees,
 							unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
@@ -224,7 +227,8 @@ public class ResourcesEndpoint {
 										@QueryParam("date") final String dateStr,
 										@QueryParam("from") final String fromStr,
 										@QueryParam("to") final String toStr,
-										@QueryParam("completed") final Boolean completedOnly) throws ParseException {
+										@QueryParam("completed") final Boolean completedOnly)
+			throws ParseException {
 		if (!this.restrictions.canAccessTrainings()) {
 			throw new ForbiddenException();
 		}
@@ -303,8 +307,13 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("departments")
-	public Result<? extends Record> listDepartments(@QueryParam("unlisted") final boolean unlisted) throws ParseException {
+	public Result<? extends Record> listDepartments(@QueryParam("site") final String site_pk, @QueryParam("unlisted") final boolean unlisted)
+			throws ParseException {
 		if (!this.restrictions.canAccessAllSites() && (this.restrictions.getAccessibleDepartment() == null)) {
+			throw new ForbiddenException();
+		}
+
+		if ((site_pk != null) && !this.restrictions.getAccessibleSites().contains(site_pk)) {
 			throw new ForbiddenException();
 		}
 
@@ -319,6 +328,10 @@ public class ResourcesEndpoint {
 			query.addFrom(DEPARTMENTS);
 			query.addGroupBy(DEPARTMENTS.fields());
 			query.addJoin(SITES, unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN, SITES.SITE_DEPT_FK.eq(DEPARTMENTS.DEPT_PK));
+			if (site_pk != null) {
+				query.addConditions(DEPARTMENTS.DEPT_PK.eq(DSL.select(SITES.SITE_DEPT_FK).from(SITES).where(SITES.SITE_PK.eq(site_pk))));
+			}
+
 			if (!unlisted) {
 				query.addJoin(employees, JoinType.JOIN, employees.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(SITES.SITE_PK));
 			}

@@ -75,12 +75,14 @@ public class UpdateEndpoint {
 			this.ctx.update(DEPARTMENTS)
 					.set(DEPARTMENTS.DEPT_NAME, dept.get(DEPARTMENTS.DEPT_NAME.getName()))
 					.set(DEPARTMENTS.DEPT_ID, dept.get(DEPARTMENTS.DEPT_ID.getName()))
+					.set(DEPARTMENTS.DEPT_NOTES, dept.get(DEPARTMENTS.DEPT_NOTES.getName()))
 					.where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).execute();
 			return false;
 		}
 
-		this.ctx.insertInto(DEPARTMENTS, DEPARTMENTS.DEPT_PK, DEPARTMENTS.DEPT_NAME, DEPARTMENTS.DEPT_ID)
-				.values(dept_pk, dept.get(DEPARTMENTS.DEPT_NAME.getName()), dept.get(DEPARTMENTS.DEPT_ID.getName())).execute();
+		this.ctx.insertInto(DEPARTMENTS, DEPARTMENTS.DEPT_PK, DEPARTMENTS.DEPT_NAME, DEPARTMENTS.DEPT_ID, DEPARTMENTS.DEPT_NOTES)
+				.values(dept_pk, dept.get(DEPARTMENTS.DEPT_NAME.getName()), dept.get(DEPARTMENTS.DEPT_ID.getName()), dept.get(DEPARTMENTS.DEPT_NOTES.getName()))
+				.execute();
 		return true;
 	}
 
@@ -94,16 +96,18 @@ public class UpdateEndpoint {
 					.set(SITES.SITE_NAME, site.get(SITES.SITE_NAME.getName()))
 					.set(SITES.SITE_DEPT_FK, Integer.valueOf(site.get(SITES.SITE_DEPT_FK.getName())))
 					.set(SITES.SITE_NOTES, site.get(SITES.SITE_NOTES.getName()))
+					.set(SITES.SITE_ADDRESS, site.get(SITES.SITE_ADDRESS.getName()))
 					.where(SITES.SITE_PK.eq(site_pk)).execute();
 			return false;
 		}
 
-		this.ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES)
+		this.ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES, SITES.SITE_ADDRESS)
 				.values(
 						site_pk,
 						site.get(SITES.SITE_NAME.getName()),
 						Integer.valueOf(site.get(SITES.SITE_DEPT_FK.getName())),
-						site.get(SITES.SITE_NOTES.getName()))
+						site.get(SITES.SITE_NOTES.getName()),
+						site.get(SITES.SITE_ADDRESS.getName()))
 				.execute();
 		return true;
 	}
@@ -195,7 +199,7 @@ public class UpdateEndpoint {
 		record.put(EMPLOYEES.EMPL_DOB, SafeDateFormat.parseAsSql(employee.get(EMPLOYEES.EMPL_DOB.getName())));
 		record.put(EMPLOYEES.EMPL_PERMANENT, Boolean.valueOf("CDI".equalsIgnoreCase(employee.get(EMPLOYEES.EMPL_PERMANENT.getName()))));
 		record.put(EMPLOYEES.EMPL_GENDER, Boolean.valueOf("Masculin".equalsIgnoreCase(employee.get(EMPLOYEES.EMPL_GENDER.getName()))));
-		record.put(EMPLOYEES.EMPL_ADDR, employee.get(EMPLOYEES.EMPL_ADDR.getName()));
+		record.put(EMPLOYEES.EMPL_ADDRESS, employee.get(EMPLOYEES.EMPL_ADDRESS.getName()));
 
 		if (context.fetchExists(EMPLOYEES, EMPLOYEES.EMPL_PK.eq(empl_pk))) {
 			context.update(EMPLOYEES).set(record).where(EMPLOYEES.EMPL_PK.eq(empl_pk)).execute();
