@@ -25,6 +25,7 @@ import org.ccjmne.faomaintenance.api.modules.ResourcesUnrestricted;
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
+import org.ccjmne.faomaintenance.jooq.classes.tables.Updates;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.UpdatesRecord;
@@ -39,6 +40,8 @@ import org.jooq.impl.DSL;
 
 @Path("resources")
 public class ResourcesEndpoint {
+
+	private static final Integer NO_UPDATE = Integer.valueOf(-1);
 
 	private final DSLContext ctx;
 	private final ResourcesUnrestricted unrestrictedResources;
@@ -355,7 +358,24 @@ public class ResourcesEndpoint {
 		return this.ctx.selectFrom(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).fetchOne();
 	}
 
+	/**
+	 * Returns the <strong>primary key</strong> of the {@link Updates} that is
+	 * or was relevant at a given date, or the latest one if no date is
+	 * specified.
+	 *
+	 * @param dateStr
+	 *            The date for which to compute the relevant {@link Updates}, in
+	 *            the <code>"YYYY-MM-DD"</code> format.
+	 * @return The relevant {@link Updates}'s primary key or
+	 *         {@value ResourcesEndpoint.NO_UPDATE} if no such update found.
+	 * @throws ParseException
+	 */
 	private Integer getUpdatePkFor(final String dateStr) throws ParseException {
-		return getUpdateFor(dateStr).getValue(UPDATES.UPDT_PK);
+		final Record update = getUpdateFor(dateStr);
+		if (update == null) {
+			return ResourcesEndpoint.NO_UPDATE;
+		}
+
+		return update.getValue(UPDATES.UPDT_PK);
 	}
 }
