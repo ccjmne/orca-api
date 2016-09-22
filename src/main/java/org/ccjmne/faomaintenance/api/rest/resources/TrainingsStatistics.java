@@ -17,6 +17,7 @@ import com.google.common.collect.Range;
 public class TrainingsStatistics {
 
 	public static class TrainingsStatisticsBuilder {
+
 		private final Map<Integer, List<Integer>> certificatesByTrainingType;
 		private final Map<Integer, TrainingsCertificateStatistics> certificates;
 		private Range<Date> dateRange;
@@ -117,6 +118,7 @@ public class TrainingsStatistics {
 	public static class TrainingsCertificateStatistics {
 
 		public static class TrainingsStatisticsData {
+
 			public int trainings;
 			public int trainingsExpired;
 			public int employeesRegistered;

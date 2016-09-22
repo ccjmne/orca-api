@@ -67,7 +67,8 @@ public class ClientEndpoint {
 	@POST
 	public void updateLogo(
 							@FormDataParam("file") final InputStream fileStream,
-							@FormDataParam("file") final FormDataContentDisposition fileDetail) throws IOException {
+							@FormDataParam("file") final FormDataContentDisposition fileDetail)
+			throws IOException {
 		if (!this.restrictions.canManageClient()) {
 			throw new ForbiddenException();
 		}

@@ -27,6 +27,7 @@ import com.fasterxml.jackson.annotation.JsonGetter;
  * provided an authenticated {@link HttpServletRequest} or a specific user ID.
  */
 public class Restrictions {
+
 	private final DSLContext ctx;
 
 	private final boolean accessTrainings;

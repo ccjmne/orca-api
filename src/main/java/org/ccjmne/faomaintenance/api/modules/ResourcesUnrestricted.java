@@ -32,6 +32,7 @@ import org.jooq.impl.DSL;
  * module.
  */
 public class ResourcesUnrestricted {
+
 	private final DSLContext ctx;
 
 	@Inject
@@ -99,15 +100,7 @@ public class ResourcesUnrestricted {
 	 */
 	public Result<Record> listEmployees(final String site_pk) {
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
-			query.addSelect(
-							EMPLOYEES.EMPL_PK,
-							EMPLOYEES.EMPL_FIRSTNAME,
-							EMPLOYEES.EMPL_SURNAME,
-							EMPLOYEES.EMPL_DOB,
-							EMPLOYEES.EMPL_PERMANENT,
-							EMPLOYEES.EMPL_GENDER,
-							EMPLOYEES.EMPL_NOTES,
-							EMPLOYEES.EMPL_ADDR);
+			query.addSelect(EMPLOYEES.fields());
 			query.addSelect(SITES_EMPLOYEES.fields());
 			query.addFrom(EMPLOYEES);
 			if (site_pk != null) {

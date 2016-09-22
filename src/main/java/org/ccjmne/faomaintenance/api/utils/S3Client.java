@@ -5,6 +5,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.Region;
 
 public class S3Client extends AmazonS3Client {
+
 	private static final Regions REGION = Regions.EU_WEST_1;
 
 	/**

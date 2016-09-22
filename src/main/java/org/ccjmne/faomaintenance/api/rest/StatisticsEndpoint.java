@@ -56,6 +56,7 @@ import com.google.common.collect.Range;
 
 @Path("statistics")
 public class StatisticsEndpoint {
+
 	private static final Integer DEFAULT_INTERVAL = Integer.valueOf(6);
 
 	private final DSLContext ctx;
@@ -96,7 +97,8 @@ public class StatisticsEndpoint {
 	public Map<Integer, Iterable<TrainingsStatistics>> getTrainingsStats(
 																			@QueryParam("from") final String fromStr,
 																			@QueryParam("to") final String toStr,
-																			@QueryParam("interval") final List<Integer> intervals) throws ParseException {
+																			@QueryParam("interval") final List<Integer> intervals)
+			throws ParseException {
 		if (!this.restrictions.canAccessTrainings()) {
 			throw new ForbiddenException();
 		}
@@ -145,7 +147,8 @@ public class StatisticsEndpoint {
 																@PathParam("dept_pk") final Integer dept_pk,
 																@QueryParam("date") final String dateStr,
 																@QueryParam("from") final String fromStr,
-																@QueryParam("interval") final Integer interval) throws ParseException {
+																@QueryParam("interval") final Integer interval)
+			throws ParseException {
 		if (!this.restrictions.canAccessAllSites() && !this.restrictions.canAccessDepartment(dept_pk)) {
 			throw new ForbiddenException();
 		}
@@ -165,7 +168,8 @@ public class StatisticsEndpoint {
 													@PathParam("site_pk") final String site_pk,
 													@QueryParam("date") final String dateStr,
 													@QueryParam("from") final String fromStr,
-													@QueryParam("interval") final Integer interval) throws ParseException {
+													@QueryParam("interval") final Integer interval)
+			throws ParseException {
 		if (!this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
 			throw new ForbiddenException();
 		}
@@ -183,7 +187,8 @@ public class StatisticsEndpoint {
 															@PathParam("empl_pk") final String empl_pk,
 															@QueryParam("date") final String dateStr,
 															@QueryParam("from") final String fromStr,
-															@QueryParam("interval") final Integer interval) throws ParseException {
+															@QueryParam("interval") final Integer interval)
+			throws ParseException {
 		if (!this.restrictions.canAccessEmployee(empl_pk)) {
 			throw new ForbiddenException();
 		}
@@ -204,7 +209,8 @@ public class StatisticsEndpoint {
 	public Map<Date, Map<Integer, DepartmentStatistics>> getDepartmentsStats(
 																				@QueryParam("date") final String dateStr,
 																				@QueryParam("from") final String fromStr,
-																				@QueryParam("interval") final Integer interval) throws ParseException {
+																				@QueryParam("interval") final Integer interval)
+			throws ParseException {
 		final Map<Date, Map<Integer, DepartmentStatistics>> res = new HashMap<>();
 		if (!this.restrictions.canAccessAllSites()) {
 			final Integer dept = this.restrictions.getAccessibleDepartment();
@@ -249,7 +255,8 @@ public class StatisticsEndpoint {
 																@QueryParam("employee") final String empl_pk,
 																@QueryParam("date") final String dateStr,
 																@QueryParam("from") final String fromStr,
-																@QueryParam("interval") final Integer interval) throws ParseException {
+																@QueryParam("interval") final Integer interval)
+			throws ParseException {
 		if ((empl_pk != null) && !this.restrictions.canAccessEmployee(empl_pk)) {
 			throw new ForbiddenException();
 		}
@@ -282,7 +289,8 @@ public class StatisticsEndpoint {
 																		@QueryParam("site") final String site_pk,
 																		@QueryParam("date") final String dateStr,
 																		@QueryParam("from") final String fromStr,
-																		@QueryParam("interval") final Integer interval) throws ParseException {
+																		@QueryParam("interval") final Integer interval)
+			throws ParseException {
 		if ((site_pk != null) && !this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
 			throw new ForbiddenException();
 		}
@@ -324,7 +332,8 @@ public class StatisticsEndpoint {
 																			final List<String> sites,
 																			final String dateStr,
 																			final String fromStr,
-																			final Integer interval) throws ParseException {
+																			final Integer interval)
+			throws ParseException {
 		final Map<Integer, TrainingtypesRecord> trainingTypes = this.commonResources.listTrainingTypes();
 		final Map<Integer, List<Integer>> trainingtypesCertificates = this.commonResources.listTrainingtypesCertificates();
 		final List<Date> dates = computeDates(fromStr, dateStr, interval);

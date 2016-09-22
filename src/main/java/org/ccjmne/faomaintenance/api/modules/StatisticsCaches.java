@@ -19,8 +19,8 @@ import javax.inject.Inject;
 
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeStatisticsBuilder;
-import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.rest.resources.SiteStatistics;
+import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
@@ -29,6 +29,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
 public class StatisticsCaches {
+
 	private final DSLContext ctx;
 	private final ResourcesUnrestricted unrestrictedResources;
 

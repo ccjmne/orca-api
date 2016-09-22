@@ -14,6 +14,7 @@ import org.jooq.Field;
 import org.jooq.impl.DSL;
 
 public class Constants {
+
 	public static final String STATUS_SUCCESS = "success";
 	public static final String STATUS_WARNING = "warning";
 	public static final String STATUS_DANGER = "danger";
