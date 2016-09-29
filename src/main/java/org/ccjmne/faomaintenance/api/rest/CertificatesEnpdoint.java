@@ -81,7 +81,8 @@ public class CertificatesEnpdoint {
 									cert.get(CERTIFICATES.CERT_SHORT.getName()),
 									Integer.valueOf(cert.get(CERTIFICATES.CERT_TARGET.getName())),
 									Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())),
-									transactionCtx.select(DSL.max(CERTIFICATES.CERT_ORDER).add(Integer.valueOf(1)).as("order"))
+									transactionCtx
+											.select(DSL.coalesce(DSL.max(CERTIFICATES.CERT_ORDER), Integer.valueOf(0)).add(Integer.valueOf(1)).as("order"))
 											.from(CERTIFICATES)
 											.fetchOne("order", Integer.class))
 							.execute();
@@ -128,7 +129,8 @@ public class CertificatesEnpdoint {
 									trty_pk,
 									trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString(),
 									(Integer) trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()),
-									transactionCtx.select(DSL.max(TRAININGTYPES.TRTY_ORDER).add(Integer.valueOf(1)).as("order"))
+									transactionCtx
+											.select(DSL.coalesce(DSL.max(TRAININGTYPES.TRTY_ORDER), Integer.valueOf(0)).add(Integer.valueOf(1)).as("order"))
 											.from(TRAININGTYPES)
 											.fetchOne("order", Integer.class))
 							.execute();
@@ -160,7 +162,7 @@ public class CertificatesEnpdoint {
 	}
 
 	@POST
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "null" })
 	@Path("reorder")
 	public void reassignCertificates(final Map<Integer, Integer> reassignmentMap) {
 		if (reassignmentMap.isEmpty()) {

@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- This web.xml file is not required when using Servlet 3.0 container, 
-	see implementation details http://jersey.java.net/nonav/documentation/latest/jax-rs.html -->
 <web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
@@ -26,7 +24,7 @@
 	<security-constraint>
 		<web-resource-collection>
 			<web-resource-name>Basic account access + unrestricted resources</web-resource-name>
-			
+
 			<url-pattern>/account/*</url-pattern>
 			<url-pattern>/resources-common/*</url-pattern>
 			<url-pattern>/resources-by-keys-common/*</url-pattern>
@@ -55,7 +53,7 @@
 	<security-constraint>
 		<web-resource-collection>
 			<web-resource-name>Account management API</web-resource-name>
-			
+
 			<url-pattern>/account/*</url-pattern>
 			<http-method>PUT</http-method>
 		</web-resource-collection>

@@ -19,8 +19,8 @@ import javax.inject.Inject;
 
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeStatisticsBuilder;
-import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.rest.resources.SiteStatistics;
+import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
@@ -29,6 +29,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
 public class StatisticsCaches {
+
 	private final DSLContext ctx;
 	private final ResourcesUnrestricted unrestrictedResources;
 
@@ -103,7 +104,6 @@ public class StatisticsCaches {
 		final SiteStatistics stats = new SiteStatistics(this.unrestrictedResources.listCertificates().intoMap(CERTIFICATES.CERT_PK));
 		for (final Record empl : this.unrestrictedResources.listEmployees(site_pk)) {
 			stats.register(
-							empl.getValue(EMPLOYEES.EMPL_PK),
 							empl.getValue(EMPLOYEES.EMPL_PERMANENT),
 							this.employeeStatisticsCache.getUnchecked(empl.getValue(EMPLOYEES.EMPL_PK)).getValue());
 		}

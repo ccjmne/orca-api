@@ -25,6 +25,7 @@ import org.ccjmne.faomaintenance.api.modules.ResourcesUnrestricted;
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
+import org.ccjmne.faomaintenance.jooq.classes.tables.Updates;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.UpdatesRecord;
@@ -39,6 +40,8 @@ import org.jooq.impl.DSL;
 
 @Path("resources")
 public class ResourcesEndpoint {
+
+	private static final Integer NO_UPDATE = Integer.valueOf(-1);
 
 	private final DSLContext ctx;
 	private final ResourcesUnrestricted unrestrictedResources;
@@ -63,7 +66,8 @@ public class ResourcesEndpoint {
 	public Result<Record> listEmployees(
 										@QueryParam("site") final String site_pk,
 										@QueryParam("date") final String dateStr,
-										@QueryParam("training") final String trng_pk) throws ParseException {
+										@QueryParam("training") final String trng_pk)
+			throws ParseException {
 		if ((site_pk != null) && !this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
 			throw new ForbiddenException();
 		}
@@ -136,7 +140,8 @@ public class ResourcesEndpoint {
 									@QueryParam("department") final Integer dept_pk,
 									@QueryParam("employee") final String empl_pk,
 									@QueryParam("date") final String dateStr,
-									@QueryParam("unlisted") final boolean unlisted) throws ParseException {
+									@QueryParam("unlisted") final boolean unlisted)
+			throws ParseException {
 		if ((empl_pk != null) && !this.restrictions.canAccessEmployee(empl_pk)) {
 			throw new ForbiddenException();
 		}
@@ -151,9 +156,10 @@ public class ResourcesEndpoint {
 				final Select<? extends Record> employees = DSL
 						.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
 						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(update))) {
-			query.addSelect(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES, DSL.count(employees.field(SITES_EMPLOYEES.SIEM_SITE_FK)));
-			query.addGroupBy(SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES);
+			query.addSelect(SITES.fields());
+			query.addGroupBy(SITES.fields());
 			query.addFrom(SITES);
+			query.addSelect(DSL.count(employees.field(SITES_EMPLOYEES.SIEM_SITE_FK)));
 			query.addJoin(
 							employees,
 							unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
@@ -224,7 +230,8 @@ public class ResourcesEndpoint {
 										@QueryParam("date") final String dateStr,
 										@QueryParam("from") final String fromStr,
 										@QueryParam("to") final String toStr,
-										@QueryParam("completed") final Boolean completedOnly) throws ParseException {
+										@QueryParam("completed") final Boolean completedOnly)
+			throws ParseException {
 		if (!this.restrictions.canAccessTrainings()) {
 			throw new ForbiddenException();
 		}
@@ -303,26 +310,72 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("departments")
-	public Result<? extends Record> listDepartments(@QueryParam("unlisted") final boolean unlisted) {
+	public Result<? extends Record> listDepartments(@QueryParam("site") final String site_pk, @QueryParam("unlisted") final boolean unlisted)
+			throws ParseException {
 		if (!this.restrictions.canAccessAllSites() && (this.restrictions.getAccessibleDepartment() == null)) {
 			throw new ForbiddenException();
 		}
 
-		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
+		if ((site_pk != null) && !this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
+			throw new ForbiddenException();
+		}
+
+		final Integer update = getUpdatePkFor(null);
+		try (
+				final SelectQuery<Record> query = this.ctx.selectQuery();
+				final Select<? extends Record> employees = DSL
+						.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
+						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(update))) {
 			query.addSelect(DEPARTMENTS.fields());
 			query.addSelect(DSL.count(SITES.SITE_PK));
 			query.addFrom(DEPARTMENTS);
 			query.addGroupBy(DEPARTMENTS.fields());
 			query.addJoin(SITES, unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN, SITES.SITE_DEPT_FK.eq(DEPARTMENTS.DEPT_PK));
+			if (site_pk != null) {
+				query.addConditions(DEPARTMENTS.DEPT_PK.eq(DSL.select(SITES.SITE_DEPT_FK).from(SITES).where(SITES.SITE_PK.eq(site_pk))));
+			}
+
+			if (!unlisted) {
+				query.addJoin(employees, JoinType.JOIN, employees.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(SITES.SITE_PK));
+			}
+
 			if (!this.restrictions.canAccessAllSites()) {
 				query.addConditions(DEPARTMENTS.DEPT_PK.eq(this.restrictions.getAccessibleDepartment()));
 			}
+
 			query.addConditions(DEPARTMENTS.DEPT_PK.ne(DSL.val(Constants.UNASSIGNED_DEPT)));
 			return query.fetch();
 		}
 	}
 
+	@GET
+	@Path("departments/{dept_pk}")
+	public Record lookupDepartment(@PathParam("dept_pk") final Integer dept_pk) {
+		if (!this.restrictions.canAccessAllSites() && !this.restrictions.canAccessDepartment(dept_pk)) {
+			throw new ForbiddenException();
+		}
+
+		return this.ctx.selectFrom(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).fetchOne();
+	}
+
+	/**
+	 * Returns the <strong>primary key</strong> of the {@link Updates} that is
+	 * or was relevant at a given date, or the latest one if no date is
+	 * specified.
+	 *
+	 * @param dateStr
+	 *            The date for which to compute the relevant {@link Updates}, in
+	 *            the <code>"YYYY-MM-DD"</code> format.
+	 * @return The relevant {@link Updates}'s primary key or
+	 *         {@value ResourcesEndpoint.NO_UPDATE} if no such update found.
+	 * @throws ParseException
+	 */
 	private Integer getUpdatePkFor(final String dateStr) throws ParseException {
-		return getUpdateFor(dateStr).getValue(UPDATES.UPDT_PK);
+		final Record update = getUpdateFor(dateStr);
+		if (update == null) {
+			return ResourcesEndpoint.NO_UPDATE;
+		}
+
+		return update.getValue(UPDATES.UPDT_PK);
 	}
 }

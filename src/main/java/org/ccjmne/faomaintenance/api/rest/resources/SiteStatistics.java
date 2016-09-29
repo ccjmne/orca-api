@@ -2,7 +2,6 @@ package org.ccjmne.faomaintenance.api.rest.resources;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeCertificateStatistics;
@@ -14,7 +13,6 @@ import com.google.common.collect.ImmutableMap;
 public class SiteStatistics {
 
 	private final Map<Integer, SiteCertificateStatistics> certificates;
-	private final Map<String, EmployeeStatistics> employeesStatistics;
 	private int employeesCount;
 	private int permanentsCount;
 
@@ -22,7 +20,6 @@ public class SiteStatistics {
 		final ImmutableMap.Builder<Integer, SiteCertificateStatistics> builder = ImmutableMap.<Integer, SiteCertificateStatistics> builder();
 		certificates.forEach((cert_pk, certificate) -> builder.put(cert_pk, new SiteCertificateStatistics(certificate)));
 		this.certificates = builder.build();
-		this.employeesStatistics = new HashMap<>();
 		this.employeesCount = 0;
 		this.permanentsCount = 0;
 	}
@@ -35,8 +32,7 @@ public class SiteStatistics {
 		return this.permanentsCount;
 	}
 
-	public void register(final String empl_pk, final Boolean permanent, final EmployeeStatistics stats) {
-		this.employeesStatistics.put(empl_pk, stats);
+	public void register(final Boolean permanent, final EmployeeStatistics stats) {
 		stats.getCertificates().forEach((cert, stat) -> {
 			if (this.certificates.containsKey(cert)) {
 				this.certificates.get(cert).register(stat);
@@ -89,7 +85,7 @@ public class SiteStatistics {
 				return Constants.STATUS_SUCCESS;
 			}
 
-			if (countPercentage >= ((2 * this.targetPercentage) / 3)) {
+			if (countPercentage >= ((2 / 3f) * this.targetPercentage)) {
 				return Constants.STATUS_WARNING;
 			}
 

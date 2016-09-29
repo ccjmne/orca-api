@@ -5,8 +5,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
 public class SafeDateFormat {
+
 	private static final String FORMAT = "yyyy-MM-dd";
 	private static final ThreadLocal<DateFormat> delegate = new ThreadLocal<DateFormat>() {
+
 		@Override
 		protected DateFormat initialValue() {
 			return new SimpleDateFormat(SafeDateFormat.FORMAT);

@@ -24,6 +24,7 @@ import org.jooq.impl.DSL;
 
 @Path("employees-notes")
 public class EmployeesNotesEndpoint {
+
 	private final DSLContext ctx;
 	private final StatisticsCaches statistics;
 

@@ -14,14 +14,17 @@ import org.jooq.Field;
 import org.jooq.impl.DSL;
 
 public class Constants {
+
 	public static final String STATUS_SUCCESS = "success";
 	public static final String STATUS_WARNING = "warning";
 	public static final String STATUS_DANGER = "danger";
 
 	// ---- DATABASE CONSTANTS
 	public static final String TRNG_OUTCOME_COMPLETED = "COMPLETED";
+	public static final String TRNG_OUTCOME_SCHEDULED = "SCHEDULED";
 	public static final String EMPL_OUTCOME_VALIDATED = "VALIDATED";
-	private static final String EMPL_OUTCOME_FLUNKED = "FLUNKED";
+	public static final String EMPL_OUTCOME_PENDING = "PENDING";
+	public static final String EMPL_OUTCOME_FLUNKED = "FLUNKED";
 
 	public static final String USER_ROOT = "root";
 

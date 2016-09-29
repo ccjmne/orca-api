@@ -5,7 +5,7 @@
 
 	<groupId>org.ccjmne.faomaintenance</groupId>
 	<artifactId>foamainteance_api</artifactId>
-	<version>1.5.4</version>
+	<version>1.6.0-RC1</version>
 	<packaging>war</packaging>
 	<name>api</name>
 
@@ -59,7 +59,7 @@
 		<dependency>
 			<groupId>org.ccjmne.faomaintenance</groupId>
 			<artifactId>foamainteance_jooqgeneration</artifactId>
-			<version>1.5.3</version>
+			<version>1.6.0-RC2</version>
 		</dependency>
 
 		<!-- AWS INTEGRATION -->
@@ -67,6 +67,19 @@
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-s3</artifactId>
 			<version>1.11.15</version>
+		</dependency>
+
+		<!-- SCHEDULER AND DATA SOURCE FOR DEMO DATA -->
+		<dependency>
+			<groupId>org.quartz-scheduler</groupId>
+			<artifactId>quartz</artifactId>
+			<version>2.2.3</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>io.codearte.jfairy</groupId>
+			<artifactId>jfairy</artifactId>
+			<version>0.5.3</version>
 		</dependency>
 
 		<!-- DB CONNECTIONS POOL -->
