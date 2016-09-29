@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Provider
-// TODO: rename class
 public class OrcaApplicationEventListener implements ApplicationEventListener {
 
 	private static final String DEMO_PROPERTY = "demo";
