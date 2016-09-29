@@ -5,6 +5,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS_CERTIFICATES;
 
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.jooq.DSLContext;
@@ -39,12 +40,19 @@ public class DemoCommonResources {
 						CERTIFICATES.CERT_NAME,
 						CERTIFICATES.CERT_TARGET,
 						CERTIFICATES.CERT_PERMANENTONLY)
-				.values(CERT_SST, "SST", "Sauveteur Secouriste du Travail", Integer.valueOf(10), Boolean.valueOf(false))
+				.values(CERT_SST, "SST", "Sauveteur Secouriste du Travail", Integer.valueOf(15), Boolean.valueOf(false))
 				.values(CERT_EPI, "EPI", "Équipement de Première Intervention", Integer.valueOf(66), Boolean.valueOf(false))
-				.values(CERT_DAE, "DAE", "Sensibilisation Défibrillation", Integer.valueOf(50), Boolean.valueOf(false))
-				.values(CERT_H0B0, "H0B0", "Habilitation Électrique", Integer.valueOf(15), Boolean.valueOf(false))
+				.values(CERT_DAE, "DAE", "Sensibilisation Défibrillation", Integer.valueOf(30), Boolean.valueOf(false))
+				.values(CERT_H0B0, "H0B0", "Habilitation Électrique", Integer.valueOf(20), Boolean.valueOf(false))
 				.values(CERT_EVAC, "EVAC", "Agent d'Évacuation", Integer.valueOf(30), Boolean.valueOf(false))
 				.values(CERT_FSST, "FSST", "Formateur SST", Integer.valueOf(0), Boolean.valueOf(false))
+				.execute();
+
+		// Set some relevant certificates
+		ctx.insertInto(USERS_CERTIFICATES, USERS_CERTIFICATES.USCE_USER_FK, USERS_CERTIFICATES.USCE_CERT_FK)
+				.values(Constants.USER_ROOT, CERT_SST)
+				.values(Constants.USER_ROOT, CERT_H0B0)
+				.values(Constants.USER_ROOT, CERT_EVAC)
 				.execute();
 
 		ctx.insertInto(TRAININGTYPES, TRAININGTYPES.TRTY_ORDER, TRAININGTYPES.TRTY_NAME, TRAININGTYPES.TRTY_VALIDITY)
