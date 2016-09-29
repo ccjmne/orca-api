@@ -76,6 +76,10 @@ public class DemoDataManager {
 						DemoBareWorkingState.restore(transactionCtx);
 						DemoCommonResources.generate(transactionCtx);
 						DemoDataSitesEmployees.generate(transactionCtx);
+						DemoDataTrainings.generate(transactionCtx);
+						DemoDataUsers.generate(transactionCtx);
+					} catch (final Exception e) {
+						LOGGER.error("An error occured during demo data restoration.", e);
 					}
 				});
 

@@ -26,8 +26,11 @@ public class DemoBareWorkingState {
 	private static final String DEMO_TRAINERPROFILE = "Tous types de formation";
 
 	public static void restore(final DSLContext ctx) {
+		// Clear all data
 		ctx.meta().getTables().forEach(table -> ctx.truncate(table).cascade().execute());
+		// Reset all sequences
 		CLIENT.getSchema().getSequences().forEach(sequence -> ctx.alterSequence(sequence).restart().execute());
+
 		ctx.insertInto(CLIENT, CLIENT.CLNT_ID, CLIENT.CLNT_NAME, CLIENT.CLNT_MAILTO, CLIENT.CLNT_LOGO)
 				.values(
 						DEMO_CLIENT_ID,
@@ -55,7 +58,7 @@ public class DemoBareWorkingState {
 				.values(
 						Constants.USER_ROOT,
 						Constants.USER_ROOT,
-						"",
+						DEMO_CLIENT_ID,
 						new java.sql.Date(new Date().getTime()),
 						Boolean.valueOf(false),
 						Boolean.valueOf(false))

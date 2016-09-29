@@ -21,8 +21,10 @@ public class Constants {
 
 	// ---- DATABASE CONSTANTS
 	public static final String TRNG_OUTCOME_COMPLETED = "COMPLETED";
+	public static final String TRNG_OUTCOME_SCHEDULED = "SCHEDULED";
 	public static final String EMPL_OUTCOME_VALIDATED = "VALIDATED";
-	private static final String EMPL_OUTCOME_FLUNKED = "FLUNKED";
+	public static final String EMPL_OUTCOME_PENDING = "PENDING";
+	public static final String EMPL_OUTCOME_FLUNKED = "FLUNKED";
 
 	public static final String USER_ROOT = "root";
 
