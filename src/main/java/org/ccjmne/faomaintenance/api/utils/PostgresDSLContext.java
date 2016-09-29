@@ -1,4 +1,4 @@
-package org.ccjmne.faomaintenance.api.db;
+package org.ccjmne.faomaintenance.api.utils;
 
 import org.jooq.SQLDialect;
 import org.jooq.conf.Settings;

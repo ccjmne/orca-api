@@ -316,7 +316,7 @@ public class ResourcesEndpoint {
 			throw new ForbiddenException();
 		}
 
-		if ((site_pk != null) && !this.restrictions.getAccessibleSites().contains(site_pk)) {
+		if ((site_pk != null) && !this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
 			throw new ForbiddenException();
 		}
 
