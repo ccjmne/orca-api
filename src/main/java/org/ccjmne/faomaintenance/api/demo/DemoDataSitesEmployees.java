@@ -33,10 +33,10 @@ import io.codearte.jfairy.producer.person.Person;
 
 public class DemoDataSitesEmployees {
 
-	public static final Fairy fairy = Fairy.create(Locale.FRENCH);
+	public static final Fairy FAIRY = Fairy.create(Locale.FRENCH);
 
 	public static void generate(final DSLContext ctx) {
-		addDepartments(ctx.insertInto(DEPARTMENTS, DEPARTMENTS.DEPT_ID, DEPARTMENTS.DEPT_NAME), 20, "DEPT%02d").execute();
+		addDepartments(ctx.insertInto(DEPARTMENTS, DEPARTMENTS.DEPT_ID, DEPARTMENTS.DEPT_NAME), 10, "DEPT%02d").execute();
 		addSites(ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_ADDRESS, SITES.SITE_DEPT_FK), 200, "SITE%03d").execute();
 		for (int i = 0; i < 10; i++) {
 			addEmployees(
@@ -78,7 +78,7 @@ public class DemoDataSitesEmployees {
 
 	@SuppressWarnings("unchecked")
 	private static Insert<?> addEmployees(final Insert<?> query, final int i, final String pk) {
-		final Person person = fairy.person();
+		final Person person = FAIRY.person();
 		return ((InsertValuesStep7<EmployeesRecord, String, String, String, Date, String, Boolean, Boolean>) (i == 1 ? query : addEmployees(query, i - 1, pk)))
 				.values(
 						String.format(pk, Integer.valueOf(i)),
@@ -87,12 +87,12 @@ public class DemoDataSitesEmployees {
 						new Date(person.dateOfBirth().toDate().getTime()),
 						person.companyEmail(),
 						Boolean.valueOf(person.isMale()),
-						Boolean.valueOf(fairy.baseProducer().trueOrFalse() || fairy.baseProducer().trueOrFalse()));
+						Boolean.valueOf(FAIRY.baseProducer().trueOrFalse() || FAIRY.baseProducer().trueOrFalse()));
 	}
 
 	@SuppressWarnings("unchecked")
 	private static Insert<?> addSites(final Insert<?> query, final int i, final String pk) {
-		final String city = fairy.person().getAddress().getCity();
+		final String city = FAIRY.person().getAddress().getCity();
 		return ((InsertValuesStep4<SitesRecord, String, String, String, Integer>) (i == 1 ? query : addSites(query, i - 1, pk)))
 				.values(asFields(
 									String.format(pk, Integer.valueOf(i)),
@@ -104,7 +104,7 @@ public class DemoDataSitesEmployees {
 	@SuppressWarnings("unchecked")
 	private static Insert<?> addDepartments(final Insert<?> query, final int i, final String pk) {
 		return ((InsertValuesStep2<DepartmentsRecord, String, String>) (i == 1 ? query : addDepartments(query, i - 1, pk)))
-				.values(String.format(pk, Integer.valueOf(i)), fairy.company().name());
+				.values(String.format(pk, Integer.valueOf(i)), FAIRY.company().name());
 	}
 
 	private static <R> Field<R> random(final Table<?> table, final Field<R> field, final Condition... conditions) {
