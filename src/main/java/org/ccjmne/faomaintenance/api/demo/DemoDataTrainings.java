@@ -121,8 +121,7 @@ public class DemoDataTrainings {
 		return DSL.select(field).from(table).where(conditions).orderBy(DSL.rand()).limit(1).asField();
 	}
 
-	@SuppressWarnings("unchecked")
 	private static List<? extends Field<?>> asFields(final Object... values) {
-		return (List<? extends Field<?>>) Arrays.asList(values).stream().map(v -> v instanceof Field<?> ? v : DSL.val(v)).collect(Collectors.toList());
+		return Arrays.asList(values).stream().map(v -> v instanceof Field<?> ? (Field<?>) v : DSL.val(v)).collect(Collectors.toList());
 	}
 }
