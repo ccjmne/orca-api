@@ -104,7 +104,7 @@ public class DemoDataSitesEmployees {
 	@SuppressWarnings("unchecked")
 	private static Insert<?> addDepartments(final Insert<?> query, final int i, final String pk) {
 		return ((InsertValuesStep2<DepartmentsRecord, String, String>) (i == 1 ? query : addDepartments(query, i - 1, pk)))
-				.values(String.format(pk, Integer.valueOf(i)), FAIRY.company().name());
+				.values(String.format(pk, Integer.valueOf(i)), String.format("Département %c", Integer.valueOf(('A' - 1) + i)));
 	}
 
 	private static <R> Field<R> random(final Table<?> table, final Field<R> field, final Condition... conditions) {
