@@ -30,17 +30,18 @@ public class DemoDataUsers {
 			ctx.insertInto(USERS, USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_PWD)
 					.values(asFields(empl_pk, Constants.USERTYPE_EMPLOYEE, empl_pk, GENERATED_PASSWORD)).execute();
 
+			final int access = RANDOM.nextInt(4) + 1;
 			try (InsertValuesStep4<UsersRolesRecord, String, String, Integer, Integer> roles = ctx
 					.insertInto(USERS_ROLES, USERS_ROLES.USER_ID, USERS_ROLES.USRO_TYPE, USERS_ROLES.USRO_LEVEL, USERS_ROLES.USRO_TRPR_FK)
 					.values(empl_pk, Constants.ROLE_USER, null, null)
-					.values(empl_pk, Constants.ROLE_ACCESS, Integer.valueOf(RANDOM.nextInt(4) + 1), null)) {
+					.values(empl_pk, Constants.ROLE_ACCESS, Integer.valueOf(access), null)) {
 
-				if (RANDOM.nextInt(3) == 0) {
+				if (access == 4) {
 					roles.values(asFields(empl_pk, Constants.ROLE_TRAINER, null, random(TRAINERPROFILES, TRAINERPROFILES.TRPR_PK)));
 				}
 
 				if (RANDOM.nextInt(3) == 0) {
-					roles.values(empl_pk, Constants.ROLE_ADMIN, Integer.valueOf(RANDOM.nextInt(4) + 1), null);
+					roles.values(empl_pk, Constants.ROLE_ADMIN, Integer.valueOf(java.lang.Math.max(1, RANDOM.nextInt(access))), null);
 				}
 
 				roles.execute();
@@ -51,13 +52,15 @@ public class DemoDataUsers {
 			ctx.insertInto(USERS, USERS.USER_ID, USERS.USER_TYPE, USERS.USER_SITE_FK, USERS.USER_PWD)
 					.values(asFields(site_pk, Constants.USERTYPE_SITE, site_pk, GENERATED_PASSWORD)).execute();
 
+			final int access = RANDOM.nextInt(4) + 1;
 			try (InsertValuesStep4<UsersRolesRecord, String, String, Integer, Integer> roles = ctx
 					.insertInto(USERS_ROLES, USERS_ROLES.USER_ID, USERS_ROLES.USRO_TYPE, USERS_ROLES.USRO_LEVEL, USERS_ROLES.USRO_TRPR_FK)
-					.values(site_pk, Constants.ROLE_ACCESS, Integer.valueOf(RANDOM.nextInt(4) + 1), null)) {
+					.values(site_pk, Constants.ROLE_ACCESS, Integer.valueOf(access), null)) {
 
-				if (RANDOM.nextInt(3) == 0) {
+				if (access == 4) {
 					roles.values(asFields(site_pk, Constants.ROLE_TRAINER, null, random(TRAINERPROFILES, TRAINERPROFILES.TRPR_PK)));
 				}
+
 				if (RANDOM.nextInt(3) == 0) {
 					roles.values(site_pk, Constants.ROLE_ADMIN, Integer.valueOf(1), null);
 				}
