@@ -3,6 +3,7 @@ package org.ccjmne.faomaintenance.api.demo;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_TRAINERS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
 
 import java.sql.Date;
@@ -37,6 +38,21 @@ public class DemoDataTrainings {
 								ctx.insertInto(TRAININGS, TRAININGS.TRNG_DATE, TRAININGS.TRNG_START, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_OUTCOME),
 								10)
 										.execute();
+
+		// Adding trainers - 1% of employees are trainers
+		ctx.insertInto(TRAININGS_TRAINERS, TRAININGS_TRAINERS.TRTR_TRNG_FK, TRAININGS_TRAINERS.TRTR_EMPL_FK)
+				.select(DSL.select(DSL.field("trng_pk", Integer.class), DSL.field("empl_pk", String.class))
+						.from(
+								DSL.select(
+											TRAININGS.TRNG_PK,
+											DSL.floor(DSL.rand().mul(DSL.select(DSL.count()).from(EMPLOYEES).asField()).div(DSL.val(100))).as("linked_empl_id"))
+										.from(TRAININGS).asTable("trainings2"))
+						.join(DSL.select(
+											EMPLOYEES.EMPL_PK,
+											DSL.rowNumber().over().orderBy(DSL.rand()).as("empl_id"))
+								.from(EMPLOYEES).asTable("employees2"))
+						.on(DSL.field("linked_empl_id").eq(DSL.field("empl_id"))))
+				.execute();
 
 		// Adding VALIDATED employees - 1/4 or them, five times
 		for (int i = 0; i < 4; i++) {
