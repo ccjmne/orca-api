@@ -85,7 +85,7 @@ public class DemoDataSitesEmployees {
 						person.firstName(),
 						person.lastName(),
 						new Date(person.dateOfBirth().toDate().getTime()),
-						person.companyEmail(),
+						person.companyEmail().replaceFirst("@.*$", "@orca-demo.com"),
 						Boolean.valueOf(person.isMale()),
 						Boolean.valueOf(FAIRY.baseProducer().trueOrFalse() || FAIRY.baseProducer().trueOrFalse()));
 	}
