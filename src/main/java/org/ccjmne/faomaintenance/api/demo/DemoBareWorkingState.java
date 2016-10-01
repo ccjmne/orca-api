@@ -72,8 +72,8 @@ public class DemoBareWorkingState {
 				.values(Constants.UNASSIGNED_TRAINERPROFILE, DEMO_TRAINERPROFILE)
 				.execute();
 
+		// All roles except account management
 		ctx.insertInto(USERS_ROLES, USERS_ROLES.USER_ID, USERS_ROLES.USRO_TYPE, USERS_ROLES.USRO_LEVEL, USERS_ROLES.USRO_TRPR_FK)
-				.values(Constants.USER_ROOT, Constants.ROLE_USER, null, null)
 				.values(Constants.USER_ROOT, Constants.ROLE_ACCESS, Integer.valueOf(4), null)
 				.values(Constants.USER_ROOT, Constants.ROLE_TRAINER, null, Constants.UNASSIGNED_TRAINERPROFILE)
 				.values(Constants.USER_ROOT, Constants.ROLE_ADMIN, Integer.valueOf(4), null)

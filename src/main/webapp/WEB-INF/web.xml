@@ -146,8 +146,9 @@
 
 	<security-constraint>
 		<web-resource-collection>
-			<web-resource-name>Client Endpoint</web-resource-name>
+			<web-resource-name>Client and Demo Endpoints</web-resource-name>
 			<url-pattern>/client/*</url-pattern>
+			<url-pattern>/demo/*</url-pattern>
 			<http-method>GET</http-method>
 			<!-- No authentication constraints here -->
 		</web-resource-collection>

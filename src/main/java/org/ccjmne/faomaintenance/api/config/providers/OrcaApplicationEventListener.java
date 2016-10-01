@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 @Provider
 public class OrcaApplicationEventListener implements ApplicationEventListener {
 
-	private static final String DEMO_PROPERTY = "demo";
 	private static final Logger LOGGER = LoggerFactory.getLogger(OrcaApplicationEventListener.class);
 
 	private final DemoDataManager demoDataManager;
@@ -27,10 +26,6 @@ public class OrcaApplicationEventListener implements ApplicationEventListener {
 
 	@Override
 	public void onEvent(final ApplicationEvent event) {
-		if (!Boolean.getBoolean(DEMO_PROPERTY)) {
-			return;
-		}
-
 		switch (event.getType()) {
 			case DESTROY_FINISHED:
 				try {
