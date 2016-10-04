@@ -6,7 +6,6 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS_ROLES;
 
 import java.text.ParseException;
 import java.util.Collections;
@@ -156,7 +155,7 @@ public class UpdateEndpoint {
 							.delete(USERS)
 							.where(USERS.USER_TYPE.eq(Constants.USERTYPE_EMPLOYEE).and(USERS.USER_EMPL_FK
 									.notIn(DSL.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES).where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(updt_pk)))))
-							.and(USERS_ROLES.USER_ID.ne(Constants.USER_ROOT))
+							.and(USERS.USER_ID.ne(Constants.USER_ROOT))
 							.execute();
 
 					// ... and set their site to #0 ('unassigned')
@@ -173,12 +172,12 @@ public class UpdateEndpoint {
 							.execute();
 				}
 			});
+
+			this.statistics.invalidateSitesStats();
+			return Response.ok().build();
 		} catch (final Exception e) {
 			return Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();
 		}
-
-		this.statistics.invalidateSitesStats();
-		return Response.ok().build();
 	}
 
 	private static String capitalise(final String str) {
