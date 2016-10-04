@@ -26,7 +26,7 @@ public class DemoDataUsers {
 	private static final Field<String> GENERATED_PASSWORD = DSL.md5("");
 
 	public static void generate(final DSLContext ctx) {
-		ctx.selectFrom(EMPLOYEES).orderBy(DSL.rand()).limit(30).fetch(EMPLOYEES.EMPL_PK).forEach(empl_pk -> {
+		ctx.selectFrom(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT)).orderBy(DSL.rand()).limit(30).fetch(EMPLOYEES.EMPL_PK).forEach(empl_pk -> {
 			ctx.insertInto(USERS, USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_PWD)
 					.values(asFields(empl_pk, Constants.USERTYPE_EMPLOYEE, empl_pk, GENERATED_PASSWORD)).execute();
 
@@ -48,7 +48,7 @@ public class DemoDataUsers {
 			}
 		});
 
-		ctx.selectFrom(SITES).orderBy(DSL.rand()).limit(10).fetch(SITES.SITE_PK).forEach(site_pk -> {
+		ctx.selectFrom(SITES).where(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE)).orderBy(DSL.rand()).limit(10).fetch(SITES.SITE_PK).forEach(site_pk -> {
 			ctx.insertInto(USERS, USERS.USER_ID, USERS.USER_TYPE, USERS.USER_SITE_FK, USERS.USER_PWD)
 					.values(asFields(site_pk, Constants.USERTYPE_SITE, site_pk, GENERATED_PASSWORD)).execute();
 
