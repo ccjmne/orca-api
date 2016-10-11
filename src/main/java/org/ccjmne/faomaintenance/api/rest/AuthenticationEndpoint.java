@@ -27,7 +27,7 @@ public class AuthenticationEndpoint {
 	public Response authenticate(final String authorization) {
 		final String[] split = new String(Base64.getDecoder().decode(authorization)).split(":");
 		if ((split.length == 2) && this.ctx.fetchExists(USERS, USERS.USER_ID.eq(split[0]).and(USERS.USER_PWD.eq(DSL.md5(split[1]))))) {
-			return Response.ok(AdministrationEndpoint.getUserInfoImpl(split[0], this.ctx)).build();
+			return Response.ok(UsersEndpoint.getUserInfoImpl(split[0], this.ctx)).build();
 		}
 
 		return Response.status(Status.UNAUTHORIZED).build();

@@ -38,8 +38,8 @@ import org.jooq.Row2;
 import org.jooq.SelectQuery;
 import org.jooq.impl.DSL;
 
-@Path("admin")
-public class AdministrationEndpoint {
+@Path("users-admin")
+public class UsersEndpoint {
 
 	private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 	private static final int PASSWORD_LENGTH = 8;
@@ -48,7 +48,7 @@ public class AdministrationEndpoint {
 	private final DSLContext ctx;
 
 	@Inject
-	public AdministrationEndpoint(final DSLContext ctx, final Restrictions restrictions) {
+	public UsersEndpoint(final DSLContext ctx, final Restrictions restrictions) {
 		this.ctx = ctx;
 		if (!restrictions.canManageUsers()) {
 			throw new ForbiddenException();
@@ -111,7 +111,7 @@ public class AdministrationEndpoint {
 	@GET
 	@Path("users/{user_id}")
 	public Map<String, Object> getUserInfo(@PathParam("user_id") final String user_id) {
-		return AdministrationEndpoint.getUserInfoImpl(user_id, this.ctx);
+		return UsersEndpoint.getUserInfoImpl(user_id, this.ctx);
 	}
 
 	/**
@@ -294,7 +294,7 @@ public class AdministrationEndpoint {
 	@POST
 	@Path("trainerprofiles")
 	@Consumes(MediaType.APPLICATION_JSON)
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "null" })
 	public Integer createTrainerprofile(final Map<String, Object> level) {
 		return this.ctx.transactionResult((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
@@ -315,7 +315,7 @@ public class AdministrationEndpoint {
 	public void updateTrainerprofile(@PathParam("trpr_pk") final Integer trpr_pk, final Map<String, Object> level) {
 		this.ctx.transaction((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
-				transactionCtx.update(TRAINERPROFILES).set(TRAINERPROFILES.TRPR_ID, (String) level.get(TRAINERPROFILES.TRPR_PK.getName()))
+				transactionCtx.update(TRAINERPROFILES).set(TRAINERPROFILES.TRPR_ID, (String) level.get(TRAINERPROFILES.TRPR_ID.getName()))
 						.where(TRAINERPROFILES.TRPR_PK.eq(trpr_pk)).execute();
 				insertTypes(trpr_pk, (List<Integer>) level.get("types"), transactionCtx);
 			}

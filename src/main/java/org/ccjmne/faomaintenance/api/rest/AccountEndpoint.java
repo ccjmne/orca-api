@@ -39,7 +39,7 @@ public class AccountEndpoint {
 
 	@GET
 	public Map<String, Object> getCurrentUserInfo(@Context final HttpServletRequest request) {
-		return AdministrationEndpoint.getUserInfoImpl(request.getRemoteUser(), this.ctx);
+		return UsersEndpoint.getUserInfoImpl(request.getRemoteUser(), this.ctx);
 	}
 
 	@GET
@@ -73,7 +73,7 @@ public class AccountEndpoint {
 	@PUT
 	@Path("id/{new_id}")
 	public void changeId(@Context final HttpServletRequest request, @PathParam("new_id") final String newId) {
-		AdministrationEndpoint.changeIdImpl(request.getRemoteUser(), newId, this.ctx);
+		UsersEndpoint.changeIdImpl(request.getRemoteUser(), newId, this.ctx);
 	}
 
 	@GET
