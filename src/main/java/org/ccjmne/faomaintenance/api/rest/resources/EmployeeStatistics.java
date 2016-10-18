@@ -132,7 +132,6 @@ public class EmployeeStatistics {
 			return Constants.STATUS_DANGER;
 		}
 
-		@JsonIgnore
 		public Collection<Record> getTrainings() {
 			return this.trainings;
 		}
