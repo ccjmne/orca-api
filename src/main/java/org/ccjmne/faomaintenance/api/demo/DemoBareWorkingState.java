@@ -21,7 +21,7 @@ public class DemoBareWorkingState {
 	private static final String DEMO_CLIENT_ID = "demo";
 	private static final String DEMO_CLIENT_NAME = "Version de démonstration";
 	private static final String DEMO_CLIENT_MAILTO = "nclsdevelopment@gmail.com";
-	private static final String DEMO_CLIENT_LOGO = "https://s3-eu-west-1.amazonaws.com/orca-resources/logo_complete2.png";
+	private static final String DEMO_CLIENT_LOGO = "https://s3-eu-west-1.amazonaws.com/orca-resources/logo_complete.png";
 
 	private static final String DEMO_TRAINERPROFILE = "Tous types de formation";
 
