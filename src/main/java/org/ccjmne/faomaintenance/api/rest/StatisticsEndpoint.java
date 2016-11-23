@@ -8,8 +8,8 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.text.ParseException;
 import java.time.LocalDate;
@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -48,9 +47,9 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Record;
-import org.jooq.Record4;
 import org.jooq.Record5;
 import org.jooq.Record7;
+import org.jooq.Record8;
 import org.jooq.RecordMapper;
 import org.jooq.Result;
 import org.jooq.Table;
@@ -171,26 +170,43 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
-	@Path("sites/{site_pk}")
-	public Map<Date, SiteStatistics> getSiteStats(
-													@PathParam("site_pk") final String site_pk,
-													@QueryParam("date") final String dateStr,
-													@QueryParam("from") final String fromStr,
-													@QueryParam("interval") final Integer interval)
-			throws ParseException {
-		if (!this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
-			throw new ForbiddenException();
-		}
+	@Path("departments/v2/{dept_pk}")
+	@SuppressWarnings("null")
+	public Map<Integer, Record8<Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> getDepartmentStatsV2(
+																																			@PathParam("dept_pk") final Integer dept_pk,
+																																			@QueryParam("date") final String dateStr,
+																																			@QueryParam("from") final String fromStr,
+																																			@QueryParam("interval") final Integer interval) {
 
-		if ((dateStr == null) && (fromStr == null)) {
-			return new ImmutableMap.Builder<Date, SiteStatistics>().put(this.statistics.getSiteStats(site_pk)).build();
-		}
+		final Table<Record7<String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
+				.selectSitesStats(
+									dateStr,
+									TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(null, dept_pk, dateStr)),
+									SITES_EMPLOYEES.SIEM_SITE_FK.in(this.resources.selectSites(dept_pk)))
+				.asTable();
 
-		return calculateSiteStats(site_pk, computeDates(fromStr, dateStr, interval));
+		return this.ctx.select(
+								sitesStats.field(CERTIFICATES.CERT_PK),
+								DSL.sum(sitesStats.field(Constants.STATUS_SUCCESS, Integer.class)).as(Constants.STATUS_SUCCESS),
+								DSL.sum(sitesStats.field(Constants.STATUS_WARNING, Integer.class)).as(Constants.STATUS_WARNING),
+								DSL.sum(sitesStats.field(Constants.STATUS_DANGER, Integer.class)).as(Constants.STATUS_DANGER),
+								DSL.count().filterWhere(sitesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS))
+										.as("sites_" + Constants.STATUS_SUCCESS),
+								DSL.count().filterWhere(sitesStats.field("validity", String.class).eq(Constants.STATUS_WARNING))
+										.as("sites_" + Constants.STATUS_WARNING),
+								DSL.count().filterWhere(sitesStats.field("validity", String.class).eq(Constants.STATUS_DANGER))
+										.as("sites_" + Constants.STATUS_DANGER),
+								DSL.round(DSL.sum(DSL
+										.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS), DSL.val(1f))
+										.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_WARNING), DSL.val(2 / 3f))
+										.otherwise(DSL.val(0f))).mul(DSL.val(100)).div(DSL.count())).as("score"))
+				.from(sitesStats)
+				.groupBy(sitesStats.field(CERTIFICATES.CERT_PK))
+				.fetchMap(sitesStats.field(CERTIFICATES.CERT_PK));
 	}
 
 	@GET
-	@Path("sites/v2/{site_pk}")
+	@Path("sites/{site_pk}")
 	public Result<Record7<String, Integer, Integer, Integer, Integer, Integer, String>> getSiteStatsV2(
 																										@PathParam("site_pk") final String site_pk,
 																										@QueryParam("date") final String dateStr,
@@ -323,6 +339,8 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("sites")
+	// TODO: remove
+	@Deprecated
 	public Map<Date, Map<String, SiteStatistics>> getSitesStats(
 																@QueryParam("department") final Integer dept_pk,
 																@QueryParam("employee") final String empl_pk,
@@ -452,50 +470,6 @@ public class StatisticsEndpoint {
 			} else {
 				res.put(date, Collections.EMPTY_MAP);
 			}
-		}
-
-		return res;
-	}
-
-	/**
-	 * Specifically allowed to directly use the {@link DSLContext} with
-	 * virtually no restriction.<br />
-	 * Reasons:
-	 * <ol>
-	 * <li><code>private</code> method <b>shielded</b> by the caller.</li>
-	 * <li>Can access employees that are not in the accessible sites anymore.
-	 * </li>
-	 * </ol>
-	 */
-	// TODO: remove?
-	@Deprecated
-	private Map<Date, SiteStatistics> calculateSiteStats(final String site_pk, final List<Date> dates) {
-		final Map<Integer, TrainingtypesRecord> trainingTypes = this.commonResources.listTrainingTypes();
-		final Map<Integer, List<Integer>> trainingtypesCertificates = this.commonResources.listTrainingtypesCertificates();
-		final Map<String, Map<Date, EmployeeStatistics>> employeesStats = new HashMap<>();
-		for (final String empl_pk : this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK)
-				.from(SITES_EMPLOYEES).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
-				.fetch(SITES_EMPLOYEES.SIEM_EMPL_FK)) {
-			employeesStats.put(empl_pk, buildEmployeeStats(empl_pk, dates, trainingTypes, trainingtypesCertificates));
-		}
-
-		final TreeSet<Date> updates = new TreeSet<>(this.resources.listUpdates().getValues(UPDATES.UPDT_DATE));
-		final Map<Date, Result<Record4<String, Boolean, String, Date>>> employeesHistory = this.resources.getSiteEmployeesHistory(site_pk);
-
-		final Map<Integer, CertificatesRecord> certificates = this.commonResources.listCertificates();
-		final Map<Date, SiteStatistics> res = new TreeMap<>();
-		for (final Date date : dates) {
-			final SiteStatistics stats = new SiteStatistics(certificates);
-			final Date mostAccurate = updates.floor(date);
-			if ((mostAccurate != null) && employeesHistory.containsKey(mostAccurate)) {
-				for (final Record empl : employeesHistory.get(mostAccurate)) {
-					stats.register(
-									empl.getValue(EMPLOYEES.EMPL_PERMANENT),
-									employeesStats.get(empl.getValue(EMPLOYEES.EMPL_PK)).get(date));
-				}
-			}
-
-			res.put(date, stats);
 		}
 
 		return res;
