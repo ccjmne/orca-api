@@ -135,6 +135,7 @@ public class ResourcesEndpoint {
 		// TODO: select by trng_pk;
 		final Collection<Condition> conditions = new ArrayList<>();
 		conditions.add(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)));
+		conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE));
 
 		if (!this.restrictions.canAccessAllSites()) {
 			conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.in(this.restrictions.getAccessibleSites()));
