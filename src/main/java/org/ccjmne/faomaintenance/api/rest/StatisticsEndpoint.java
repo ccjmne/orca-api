@@ -1,5 +1,6 @@
 package org.ccjmne.faomaintenance.api.rest;
 
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
@@ -9,6 +10,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
+import java.io.Serializable;
 import java.sql.Date;
 import java.text.ParseException;
 import java.time.LocalDate;
@@ -46,8 +48,11 @@ import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.Record;
+import org.jooq.Record3;
 import org.jooq.Record4;
+import org.jooq.Record6;
 import org.jooq.RecordMapper;
 import org.jooq.Result;
 import org.jooq.Table;
@@ -184,6 +189,68 @@ public class StatisticsEndpoint {
 		}
 
 		return calculateSiteStats(site_pk, computeDates(fromStr, dateStr, interval));
+	}
+
+	@GET
+	@Path("sites/v2/{site_pk}")
+	@SuppressWarnings("null")
+	public Result<Record6<Integer, Integer, Integer, Integer, Integer, String>> getSiteStatsV2(
+																								@PathParam("site_pk") final String site_pk,
+																								@QueryParam("date") final String dateStr,
+																								@QueryParam("from") final String fromStr,
+																								@QueryParam("interval") final Integer interval)
+			throws ParseException {
+		if (!this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
+			throw new ForbiddenException();
+		}
+
+		final Table<Record4<String, Integer, Date, String>> employeesStats = Constants
+				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(site_pk, null, dateStr)))
+				.asTable("employeesStats");
+
+		final Table<Record4<Integer, Integer, Integer, Integer>> certificatesStats = DSL
+				.select(
+						employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK),
+						DSL.count(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK))
+								.filterWhere(employeesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS))
+								.as(Constants.STATUS_SUCCESS),
+						DSL.count(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK))
+								.filterWhere(employeesStats.field("validity", String.class).eq(Constants.STATUS_WARNING))
+								.as(Constants.STATUS_WARNING),
+						DSL.count(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK))
+								.filterWhere(employeesStats.field("validity", String.class).eq(Constants.STATUS_DANGER))
+								.as(Constants.STATUS_DANGER))
+				.from(employeesStats)
+				.groupBy(employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
+				.asTable("certificatesStats");
+
+		final Table<Record3<Integer, Integer, Integer>> certificates = DSL
+				.select(
+						CERTIFICATES.CERT_PK,
+						CERTIFICATES.CERT_TARGET,
+						DSL.count().as("employeesCount"))
+				.from(this.resources.selectEmployees(site_pk, null, dateStr))
+				.rightJoin(CERTIFICATES).on(DSL.val(true))
+				.groupBy(CERTIFICATES.CERT_PK, CERTIFICATES.CERT_TARGET)
+				.asTable("certificates");
+
+		final Field<Integer> targetCount = DSL.ceil(certificates.field("employeesCount", Integer.class)
+				.mul(certificates.field(CERTIFICATES.CERT_TARGET).div(DSL.val(100f))));
+		final Field<Serializable> validCount = DSL
+				.coalesce(certificatesStats.field(Constants.STATUS_SUCCESS).add(certificatesStats.field(Constants.STATUS_WARNING)), Integer.valueOf(0));
+		return this.ctx.select(
+								certificates.field(CERTIFICATES.CERT_PK),
+								DSL.coalesce(certificatesStats.field(Constants.STATUS_SUCCESS, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_SUCCESS),
+								DSL.coalesce(certificatesStats.field(Constants.STATUS_WARNING, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_WARNING),
+								DSL.coalesce(certificatesStats.field(Constants.STATUS_DANGER, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_DANGER),
+								targetCount.as("target"),
+								DSL
+										.when(validCount.ge(targetCount), Constants.STATUS_SUCCESS)
+										.when(validCount.ge(DSL.floor(targetCount.mul(DSL.val(2 / 3f)))), Constants.STATUS_WARNING)
+										.otherwise(Constants.STATUS_DANGER).as("validity"))
+				.from(certificatesStats)
+				.rightJoin(certificates).on(certificates.field(CERTIFICATES.CERT_PK).eq(certificatesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)))
+				.fetch();
 	}
 
 	@GET
