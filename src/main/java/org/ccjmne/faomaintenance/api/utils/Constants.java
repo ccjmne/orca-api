@@ -1,6 +1,8 @@
 package org.ccjmne.faomaintenance.api.utils;
 
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_TRAINERS;
@@ -17,7 +19,9 @@ import org.jooq.Condition;
 import org.jooq.DatePart;
 import org.jooq.Field;
 import org.jooq.Record4;
-import org.jooq.SelectHavingStep;
+import org.jooq.Record7;
+import org.jooq.Select;
+import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.types.YearToMonth;
 
@@ -127,7 +131,7 @@ public class Constants {
 	 * The <code>Condition</code> should be on
 	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.
 	 */
-	public static SelectHavingStep<Record4<String, Integer, Date, String>> selectEmployeesStats(final String dateStr, final Condition employeesSelection) {
+	public static Select<Record4<String, Integer, Date, String>> selectEmployeesStats(final String dateStr, final Condition employeesSelection) {
 		return DSL
 				.select(
 						TRAININGS_EMPLOYEES.TREM_EMPL_FK,
@@ -145,5 +149,69 @@ public class Constants {
 				.and(TRAININGS.TRNG_DATE.le(Constants.fieldDate(dateStr)))
 				.and(employeesSelection)
 				.groupBy(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK, EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE);
+	}
+
+	/**
+	 * The <code>employeesSelection</code> condition should be on
+	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.<br />
+	 * The <code>sitesSelection</code> condition should be on
+	 * <code>SITES_EMPLOYEES.SIEM_SITE_FK</code>.
+	 */
+	@SuppressWarnings("null")
+	public static Select<Record7<String, Integer, Integer, Integer, Integer, Integer, String>> selectSitesStats(
+																												final String dateStr,
+																												final Condition employeesSelection,
+																												final Condition sitesSelection) {
+		final Table<Record4<String, Integer, Date, String>> employeesStats = Constants
+				.selectEmployeesStats(dateStr, employeesSelection)
+				.asTable();
+
+		final Table<Record4<Integer, Integer, Integer, Integer>> certificatesStats = DSL
+				.select(
+						employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK),
+						DSL.count(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK))
+								.filterWhere(employeesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS))
+								.as(Constants.STATUS_SUCCESS),
+						DSL.count(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK))
+								.filterWhere(employeesStats.field("validity", String.class).eq(Constants.STATUS_WARNING))
+								.as(Constants.STATUS_WARNING),
+						DSL.count(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK))
+								.filterWhere(employeesStats.field("validity", String.class).eq(Constants.STATUS_DANGER))
+								.as(Constants.STATUS_DANGER))
+				.from(employeesStats)
+				.groupBy(employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
+				.asTable();
+
+		final Table<Record4<String, Integer, Integer, Integer>> certificates = DSL
+				.select(
+						SITES_EMPLOYEES.SIEM_SITE_FK,
+						CERTIFICATES.CERT_PK,
+						CERTIFICATES.CERT_TARGET,
+						DSL.count().as("employeesCount"))
+				.from(SITES_EMPLOYEES)
+				.rightJoin(CERTIFICATES).on(DSL.val(true))
+				.where(sitesSelection)
+				.groupBy(SITES_EMPLOYEES.SIEM_SITE_FK, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_TARGET)
+				.asTable();
+
+		final Field<Integer> targetCount = DSL.ceil(certificates.field("employeesCount", Integer.class)
+				.mul(certificates.field(CERTIFICATES.CERT_TARGET).div(DSL.val(100f))));
+		final Field<Integer> validCount = DSL
+				.coalesce(
+							certificatesStats.field(Constants.STATUS_SUCCESS, Integer.class).add(certificatesStats.field(Constants.STATUS_WARNING)),
+							Integer.valueOf(0));
+		return DSL.select(
+							certificates.field(SITES_EMPLOYEES.SIEM_SITE_FK),
+							certificates.field(CERTIFICATES.CERT_PK),
+							DSL.coalesce(certificatesStats.field(Constants.STATUS_SUCCESS, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_SUCCESS),
+							DSL.coalesce(certificatesStats.field(Constants.STATUS_WARNING, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_WARNING),
+							DSL.coalesce(certificatesStats.field(Constants.STATUS_DANGER, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_DANGER),
+							targetCount.as("target"),
+							DSL
+									.when(validCount.ge(targetCount), Constants.STATUS_SUCCESS)
+									.when(validCount.ge(DSL.floor(targetCount.mul(DSL.val(2 / 3f)))), Constants.STATUS_WARNING)
+									.otherwise(Constants.STATUS_DANGER).as("validity"))
+				.from(certificatesStats)
+				.rightJoin(certificates).on(certificates.field(CERTIFICATES.CERT_PK).eq(certificatesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)));
 	}
 }
