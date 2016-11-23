@@ -85,7 +85,7 @@ public class TrainingsEndpoint {
 		});
 	}
 
-	private Boolean deleteTrainingImpl(final Integer trng_pk, final DSLContext transactionCtx) throws ParseException {
+	private Boolean deleteTrainingImpl(final Integer trng_pk, final DSLContext transactionCtx) {
 		final TrainingsRecord training = transactionCtx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).fetchOne();
 		if (training != null) {
 			if (!this.restrictions.getManageableTypes().contains(training.getTrngTrtyFk())) {

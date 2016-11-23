@@ -12,13 +12,13 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
 
 import java.sql.Date;
-import java.text.ParseException;
 
 import org.ccjmne.faomaintenance.jooq.classes.tables.Updates;
 import org.jooq.Condition;
 import org.jooq.DatePart;
 import org.jooq.Field;
 import org.jooq.Record4;
+import org.jooq.Record5;
 import org.jooq.Record7;
 import org.jooq.Select;
 import org.jooq.Table;
@@ -82,10 +82,8 @@ public class Constants {
 	 *            the <code>"YYYY-MM-DD"</code> format.
 	 * @return The relevant {@link Updates}'s primary key or
 	 *         {@value ResourcesEndpoint.NO_UPDATE} if no such update found.
-	 * @throws ParseException
-	 *             if the <code>dateStr</code> attribute can't be parsed.
 	 */
-	public static Field<Integer> selectUpdate(final String dateStr) throws ParseException {
+	public static Field<Integer> selectUpdate(final String dateStr) {
 		return DSL.coalesce(
 							DSL.select(UPDATES.UPDT_PK).from(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.select(DSL.max(UPDATES.UPDT_DATE)).from(UPDATES)
 									.where(UPDATES.UPDT_DATE.le(Constants.fieldDate(dateStr)))))
@@ -131,9 +129,10 @@ public class Constants {
 	 * The <code>Condition</code> should be on
 	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.
 	 */
-	public static Select<Record4<String, Integer, Date, String>> selectEmployeesStats(final String dateStr, final Condition employeesSelection) {
+	public static Select<Record5<String, String, Integer, Date, String>> selectEmployeesStats(final String dateStr, final Condition employeesSelection) {
 		return DSL
 				.select(
+						SITES_EMPLOYEES.SIEM_SITE_FK,
 						TRAININGS_EMPLOYEES.TREM_EMPL_FK,
 						TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
 						Constants.EXPIRY.as("expiry"),
@@ -145,10 +144,17 @@ public class Constants {
 				.leftJoin(EMPLOYEES_CERTIFICATES_OPTOUT)
 				.on(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(TRAININGS_EMPLOYEES.TREM_EMPL_FK)
 						.and(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK.eq(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)))
+				.join(SITES_EMPLOYEES)
+				.on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(TRAININGS_EMPLOYEES.TREM_EMPL_FK)
+						.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))))
 				.where(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_VALIDATED))
 				.and(TRAININGS.TRNG_DATE.le(Constants.fieldDate(dateStr)))
 				.and(employeesSelection)
-				.groupBy(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK, EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE);
+				.groupBy(
+							SITES_EMPLOYEES.SIEM_SITE_FK,
+							TRAININGS_EMPLOYEES.TREM_EMPL_FK,
+							TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
+							EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE);
 	}
 
 	/**
@@ -162,12 +168,13 @@ public class Constants {
 																												final String dateStr,
 																												final Condition employeesSelection,
 																												final Condition sitesSelection) {
-		final Table<Record4<String, Integer, Date, String>> employeesStats = Constants
+		final Table<Record5<String, String, Integer, Date, String>> employeesStats = Constants
 				.selectEmployeesStats(dateStr, employeesSelection)
 				.asTable();
 
-		final Table<Record4<Integer, Integer, Integer, Integer>> certificatesStats = DSL
+		final Table<Record5<String, Integer, Integer, Integer, Integer>> certificatesStats = DSL
 				.select(
+						employeesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK),
 						employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK),
 						DSL.count(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK))
 								.filterWhere(employeesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS))
@@ -179,7 +186,7 @@ public class Constants {
 								.filterWhere(employeesStats.field("validity", String.class).eq(Constants.STATUS_DANGER))
 								.as(Constants.STATUS_DANGER))
 				.from(employeesStats)
-				.groupBy(employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
+				.groupBy(employeesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK), employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
 				.asTable();
 
 		final Table<Record4<String, Integer, Integer, Integer>> certificates = DSL
@@ -191,6 +198,7 @@ public class Constants {
 				.from(SITES_EMPLOYEES)
 				.rightJoin(CERTIFICATES).on(DSL.val(true))
 				.where(sitesSelection)
+				.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)))
 				.groupBy(SITES_EMPLOYEES.SIEM_SITE_FK, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_TARGET)
 				.asTable();
 
@@ -212,6 +220,8 @@ public class Constants {
 									.when(validCount.ge(DSL.floor(targetCount.mul(DSL.val(2 / 3f)))), Constants.STATUS_WARNING)
 									.otherwise(Constants.STATUS_DANGER).as("validity"))
 				.from(certificatesStats)
-				.rightJoin(certificates).on(certificates.field(CERTIFICATES.CERT_PK).eq(certificatesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)));
+				.rightJoin(certificates)
+				.on(certificates.field(CERTIFICATES.CERT_PK).eq(certificatesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
+						.and(certificates.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(certificatesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK))));
 	}
 }

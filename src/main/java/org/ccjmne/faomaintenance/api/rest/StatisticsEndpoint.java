@@ -1,5 +1,6 @@
 package org.ccjmne.faomaintenance.api.rest;
 
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
@@ -48,6 +49,7 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record4;
+import org.jooq.Record5;
 import org.jooq.Record7;
 import org.jooq.RecordMapper;
 import org.jooq.Result;
@@ -193,8 +195,7 @@ public class StatisticsEndpoint {
 																										@PathParam("site_pk") final String site_pk,
 																										@QueryParam("date") final String dateStr,
 																										@QueryParam("from") final String fromStr,
-																										@QueryParam("interval") final Integer interval)
-			throws ParseException {
+																										@QueryParam("interval") final Integer interval) {
 		if (!this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
 			throw new ForbiddenException();
 		}
@@ -209,11 +210,11 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("employees/{empl_pk}")
-	public Map<Integer, Record4<String, Integer, Date, String>> getEmployeeStatsV2(
-																					@PathParam("empl_pk") final String empl_pk,
-																					@QueryParam("date") final String dateStr,
-																					@QueryParam("from") final String fromStr,
-																					@QueryParam("interval") final Integer interval) {
+	public Map<Integer, Record5<String, String, Integer, Date, String>> getEmployeeStatsV2(
+																							@PathParam("empl_pk") final String empl_pk,
+																							@QueryParam("date") final String dateStr,
+																							@QueryParam("from") final String fromStr,
+																							@QueryParam("interval") final Integer interval) {
 		if (!this.restrictions.canAccessEmployee(empl_pk)) {
 			throw new ForbiddenException();
 		}
@@ -268,6 +269,59 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
+	@Path("sites/v2")
+	public Map<String, Map<Integer, Object>> getSitesStatsV2(
+																@QueryParam("department") final Integer dept_pk,
+																@QueryParam("employee") final String empl_pk,
+																@QueryParam("date") final String dateStr,
+																@QueryParam("from") final String fromStr,
+																@QueryParam("interval") final Integer interval) {
+
+		final Table<Record7<String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
+				.selectSitesStats(
+									dateStr,
+									TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(null, dept_pk, dateStr)),
+									SITES_EMPLOYEES.SIEM_SITE_FK.in(this.resources.selectSites(dept_pk)))
+				.asTable();
+
+		return this.ctx.select(
+								sitesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK),
+								DSL.arrayAgg(sitesStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
+								DSL.arrayAgg(sitesStats.field(Constants.STATUS_SUCCESS)).as(Constants.STATUS_SUCCESS),
+								DSL.arrayAgg(sitesStats.field(Constants.STATUS_WARNING)).as(Constants.STATUS_WARNING),
+								DSL.arrayAgg(sitesStats.field(Constants.STATUS_DANGER)).as(Constants.STATUS_DANGER),
+								DSL.arrayAgg(sitesStats.field("target")).as("target"),
+								DSL.arrayAgg(sitesStats.field("validity")).as("validity"))
+				.from(sitesStats)
+				.groupBy(sitesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK))
+				.fetchMap(SITES_EMPLOYEES.SIEM_SITE_FK, new RecordMapper<Record, Map<Integer, Object>>() {
+
+					@Override
+					public Map<Integer, Object> map(final Record record) {
+						final Map<Integer, Object> res = new HashMap<>();
+						final Integer[] certificates = (Integer[]) record.get("cert_pk");
+						for (int i = 0; i < certificates.length; i++) {
+							final Integer cert_pk = certificates[i];
+							res.put(cert_pk, ImmutableMap
+									.<String, Object> of(
+															Constants.STATUS_SUCCESS,
+															((Object[]) record.get(Constants.STATUS_SUCCESS))[i],
+															Constants.STATUS_WARNING,
+															((Object[]) record.get(Constants.STATUS_WARNING))[i],
+															Constants.STATUS_DANGER,
+															((Object[]) record.get(Constants.STATUS_DANGER))[i],
+															"target",
+															((Object[]) record.get("target"))[i],
+															"validity",
+															((Object[]) record.get("validity"))[i]));
+						}
+
+						return res;
+					}
+				});
+	}
+
+	@GET
 	@Path("sites")
 	public Map<Date, Map<String, SiteStatistics>> getSitesStats(
 																@QueryParam("department") final Integer dept_pk,
@@ -307,10 +361,9 @@ public class StatisticsEndpoint {
 	public Map<String, Map<Integer, Object>> getEmployeesStatsV2(
 																	@QueryParam("site") final String site_pk,
 																	@QueryParam("department") final Integer dept_pk,
-																	@QueryParam("date") final String dateStr)
-			throws ParseException {
+																	@QueryParam("date") final String dateStr) {
 
-		final Table<Record4<String, Integer, Date, String>> employeesStats = Constants
+		final Table<Record5<String, String, Integer, Date, String>> employeesStats = Constants
 				.selectEmployeesStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(site_pk, dept_pk, dateStr)))
@@ -355,6 +408,8 @@ public class StatisticsEndpoint {
 	 * </li>
 	 * </ol>
 	 */
+	// TODO: remove?
+	@Deprecated
 	private TreeMap<Date, Map<String, SiteStatistics>> calculateSitesStats(
 																			final List<String> sites,
 																			final String dateStr,
@@ -412,6 +467,8 @@ public class StatisticsEndpoint {
 	 * </li>
 	 * </ol>
 	 */
+	// TODO: remove?
+	@Deprecated
 	private Map<Date, SiteStatistics> calculateSiteStats(final String site_pk, final List<Date> dates) {
 		final Map<Integer, TrainingtypesRecord> trainingTypes = this.commonResources.listTrainingTypes();
 		final Map<Integer, List<Integer>> trainingtypesCertificates = this.commonResources.listTrainingtypesCertificates();

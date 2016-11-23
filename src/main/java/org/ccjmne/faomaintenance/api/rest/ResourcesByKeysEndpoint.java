@@ -32,8 +32,7 @@ public class ResourcesByKeysEndpoint {
 												@QueryParam("site") final String site_pk,
 												@QueryParam("date") final String dateStr,
 												@QueryParam("training") final String trng_pk,
-												@QueryParam("fields") final String fields)
-			throws ParseException {
+												@QueryParam("fields") final String fields) {
 		return this.resources.listEmployees(site_pk, dateStr, trng_pk, fields).intoMap(EMPLOYEES.EMPL_PK);
 	}
 
@@ -43,8 +42,7 @@ public class ResourcesByKeysEndpoint {
 											@QueryParam("department") final Integer department,
 											@QueryParam("employee") final String employee,
 											@QueryParam("date") final String dateStr,
-											@QueryParam("unlisted") final boolean unlisted)
-			throws ParseException {
+											@QueryParam("unlisted") final boolean unlisted) {
 		return this.resources.listSites(department, employee, dateStr, unlisted).intoMap(SITES.SITE_PK);
 	}
 

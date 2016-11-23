@@ -38,7 +38,6 @@ import org.jooq.Record1;
 import org.jooq.Record4;
 import org.jooq.Result;
 import org.jooq.Select;
-import org.jooq.SelectConditionStep;
 import org.jooq.SelectQuery;
 import org.jooq.impl.DSL;
 
@@ -69,8 +68,7 @@ public class ResourcesEndpoint {
 										@QueryParam("site") final String site_pk,
 										@QueryParam("date") final String dateStr,
 										@QueryParam("training") final String trng_pk,
-										@QueryParam("fields") final String fields)
-			throws ParseException {
+										@QueryParam("fields") final String fields) {
 
 		// TODO: use selectEmployees();
 
@@ -131,7 +129,7 @@ public class ResourcesEndpoint {
 		}
 	}
 
-	public SelectConditionStep<Record1<String>> selectEmployees(final String site_pk, final Integer dept_pk, final String dateStr) throws ParseException {
+	public Select<Record1<String>> selectEmployees(final String site_pk, final Integer dept_pk, final String dateStr) {
 		// TODO: select by trng_pk;
 		final Collection<Condition> conditions = new ArrayList<>();
 		conditions.add(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)));
@@ -160,10 +158,25 @@ public class ResourcesEndpoint {
 			conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk));
 		}
 
-		return DSL
-				.select(SITES_EMPLOYEES.SIEM_EMPL_FK)
-				.from(SITES_EMPLOYEES)
-				.where(conditions);
+		return DSL.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES).where(conditions);
+	}
+
+	public Select<Record1<String>> selectSites(final Integer dept_pk) {
+		if ((dept_pk != null) && !this.restrictions.canAccessDepartment(dept_pk)) {
+			throw new ForbiddenException();
+		}
+
+		final Collection<Condition> conditions = new ArrayList<>();
+		conditions.add(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE));
+		if (dept_pk != null) {
+			conditions.add(SITES.SITE_DEPT_FK.eq(dept_pk));
+		}
+
+		if (!this.restrictions.canAccessAllSites()) {
+			conditions.add(SITES.SITE_PK.in(this.restrictions.getAccessibleSites()));
+		}
+
+		return DSL.select(SITES.SITE_PK).from(SITES).where(conditions);
 	}
 
 	@GET
@@ -192,8 +205,7 @@ public class ResourcesEndpoint {
 									@QueryParam("department") final Integer dept_pk,
 									@QueryParam("employee") final String empl_pk,
 									@QueryParam("date") final String dateStr,
-									@QueryParam("unlisted") final boolean unlisted)
-			throws ParseException {
+									@QueryParam("unlisted") final boolean unlisted) {
 		if ((empl_pk != null) && !this.restrictions.canAccessEmployee(empl_pk)) {
 			throw new ForbiddenException();
 		}
@@ -246,6 +258,8 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("sites/{site_pk}/history")
+	// TODO: remove?
+	@Deprecated
 	public Map<Date, Result<Record4<String, Boolean, String, Date>>> getSiteEmployeesHistory(@PathParam("site_pk") final String site_pk) {
 		if (!this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
 			throw new ForbiddenException();
