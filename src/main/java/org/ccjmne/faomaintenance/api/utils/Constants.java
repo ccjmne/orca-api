@@ -1,5 +1,6 @@
 package org.ccjmne.faomaintenance.api.utils;
 
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_TRAINERS;
@@ -105,17 +106,19 @@ public class Constants {
 	// --
 
 	// -- EMPLOYEES STATISTICS
-	public static final Field<Date> EXPIRY = DSL.max(TRAININGS.TRNG_DATE.plus(TRAININGTYPES.TRTY_VALIDITY.mul(new YearToMonth(0, 1))));
+	public static final Field<Date> EXPIRY = DSL
+			.when(
+					EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.le(DSL.max(TRAININGS.TRNG_DATE.plus(TRAININGTYPES.TRTY_VALIDITY.mul(new YearToMonth(0, 1))))),
+					EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE)
+			.otherwise(DSL.max(TRAININGS.TRNG_DATE.plus(TRAININGTYPES.TRTY_VALIDITY.mul(new YearToMonth(0, 1)))));
 
 	public static Field<String> fieldValidity(final String dateStr) {
 		return DSL
 				.when(
-						DSL.max(TRAININGS.TRNG_DATE.plus(TRAININGTYPES.TRTY_VALIDITY.mul(new YearToMonth(0, 1))))
-								.ge(Constants.fieldDate(dateStr).plus(new YearToMonth(0, 6))),
+						EXPIRY.ge(Constants.fieldDate(dateStr).plus(new YearToMonth(0, 6))),
 						Constants.STATUS_SUCCESS)
 				.when(
-						DSL.max(TRAININGS.TRNG_DATE.plus(TRAININGTYPES.TRTY_VALIDITY.mul(new YearToMonth(0, 1))))
-								.ge(Constants.fieldDate(dateStr)),
+						EXPIRY.ge(Constants.fieldDate(dateStr)),
 						Constants.STATUS_WARNING)
 				.otherwise(Constants.STATUS_DANGER);
 	}
@@ -131,9 +134,12 @@ public class Constants {
 				.join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK))
 				.join(TRAININGS).on(TRAININGS.TRNG_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
 				.join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
+				.leftJoin(EMPLOYEES_CERTIFICATES_OPTOUT)
+				.on(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(TRAININGS_EMPLOYEES.TREM_EMPL_FK)
+						.and(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK.eq(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)))
 				.where(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_VALIDATED))
 				.and(TRAININGS.TRNG_DATE.le(Constants.fieldDate(dateStr)))
 				.and(employeesSelection)
-				.groupBy(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
+				.groupBy(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK, EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE);
 	}
 }
