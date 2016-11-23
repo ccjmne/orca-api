@@ -187,7 +187,7 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
-	@Path("employees/v2/{empl_pk}")
+	@Path("employees/{empl_pk}")
 	public Map<Integer, Record4<String, Integer, Date, String>> getEmployeeStatsV2(
 																					@PathParam("empl_pk") final String empl_pk,
 																					@QueryParam("date") final String dateStr,
@@ -200,29 +200,6 @@ public class StatisticsEndpoint {
 		return this.ctx.selectQuery(Constants
 				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk)))
 				.fetchMap(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
-	}
-
-	@GET
-	@Path("employees/{empl_pk}")
-	public Map<Date, EmployeeStatistics> getEmployeeStats(
-															@PathParam("empl_pk") final String empl_pk,
-															@QueryParam("date") final String dateStr,
-															@QueryParam("from") final String fromStr,
-															@QueryParam("interval") final Integer interval)
-			throws ParseException {
-		if (!this.restrictions.canAccessEmployee(empl_pk)) {
-			throw new ForbiddenException();
-		}
-
-		if ((dateStr == null) && (fromStr == null)) {
-			return new ImmutableMap.Builder<Date, EmployeeStatistics>().put(this.statistics.getEmployeeStats(empl_pk)).build();
-		}
-
-		return buildEmployeeStats(
-									empl_pk,
-									computeDates(fromStr, dateStr, interval),
-									this.commonResources.listTrainingTypes(),
-									this.commonResources.listTrainingtypesCertificates());
 	}
 
 	@GET
@@ -305,7 +282,7 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
-	@Path("employees/v2")
+	@Path("employees")
 	public Map<String, Map<Integer, Object>> getEmployeesStatsV2(
 																	@QueryParam("site") final String site_pk,
 																	@QueryParam("department") final Integer dept_pk,
@@ -345,41 +322,6 @@ public class StatisticsEndpoint {
 						return res;
 					}
 				});
-	}
-
-	@GET
-	@Path("employees")
-	public Map<Date, Map<String, EmployeeStatistics>> getEmployeesStats(
-																		@QueryParam("site") final String site_pk,
-																		@QueryParam("date") final String dateStr,
-																		@QueryParam("from") final String fromStr,
-																		@QueryParam("interval") final Integer interval)
-			throws ParseException {
-		if ((site_pk != null) && !this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
-			throw new ForbiddenException();
-		}
-
-		final List<String> employees = this.resources.listEmployees(site_pk, dateStr, null, null).getValues(EMPLOYEES.EMPL_PK);
-		if ((dateStr == null) && (fromStr == null)) {
-			final Builder<String, EmployeeStatistics> employeesStats = new ImmutableMap.Builder<>();
-			for (final String empl_pk : employees) {
-				employeesStats.put(empl_pk, this.statistics.getEmployeeStats(empl_pk).getValue());
-			}
-
-			return Collections.singletonMap(new Date(new java.util.Date().getTime()), employeesStats.build());
-		}
-
-		// TODO: Bulk employees stats computing
-		final Map<Integer, TrainingtypesRecord> trainingTypes = this.commonResources.listTrainingTypes();
-		final Map<Integer, List<Integer>> trainingtypesCertificates = this.commonResources.listTrainingtypesCertificates();
-		final List<Date> dates = computeDates(fromStr, dateStr, interval);
-		final Map<Date, Map<String, EmployeeStatistics>> res = new TreeMap<>();
-		for (final String empl_pk : employees) {
-			buildEmployeeStats(empl_pk, dates, trainingTypes, trainingtypesCertificates)
-					.forEach((date, stats) -> res.computeIfAbsent(date, unused -> new HashMap<>()).put(empl_pk, stats));
-		}
-
-		return res;
 	}
 
 	/**
