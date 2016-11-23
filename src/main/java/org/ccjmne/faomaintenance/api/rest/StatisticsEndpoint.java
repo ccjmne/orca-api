@@ -5,6 +5,8 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICAT
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
@@ -46,7 +48,10 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record4;
+import org.jooq.RecordMapper;
 import org.jooq.Result;
+import org.jooq.Table;
+import org.jooq.impl.DSL;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -182,6 +187,22 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
+	@Path("employees/v2/{empl_pk}")
+	public Map<Integer, Record4<String, Integer, Date, String>> getEmployeeStatsV2(
+																					@PathParam("empl_pk") final String empl_pk,
+																					@QueryParam("date") final String dateStr,
+																					@QueryParam("from") final String fromStr,
+																					@QueryParam("interval") final Integer interval) {
+		if (!this.restrictions.canAccessEmployee(empl_pk)) {
+			throw new ForbiddenException();
+		}
+
+		return this.ctx.selectQuery(Constants
+				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk)))
+				.fetchMap(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
+	}
+
+	@GET
 	@Path("employees/{empl_pk}")
 	public Map<Date, EmployeeStatistics> getEmployeeStats(
 															@PathParam("empl_pk") final String empl_pk,
@@ -284,6 +305,49 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
+	@Path("employees/v2")
+	public Map<String, Map<Integer, Object>> getEmployeesStatsV2(
+																	@QueryParam("site") final String site_pk,
+																	@QueryParam("department") final Integer dept_pk,
+																	@QueryParam("date") final String dateStr)
+			throws ParseException {
+
+		final Table<Record4<String, Integer, Date, String>> employeesStats = Constants
+				.selectEmployeesStats(
+										dateStr,
+										TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(site_pk, dept_pk, dateStr)))
+				.asTable("employeesStats");
+
+		return this.ctx
+				.select(
+						employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK),
+						DSL.arrayAgg(employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)).as("cert_pk"),
+						DSL.arrayAgg(employeesStats.field("expiry")).as("expiry"),
+						DSL.arrayAgg(employeesStats.field("validity")).as("validity"))
+				.from(employeesStats)
+				.groupBy(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK))
+				.fetchMap(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK), new RecordMapper<Record, Map<Integer, Object>>() {
+
+					@Override
+					public Map<Integer, Object> map(final Record record) {
+						final Map<Integer, Object> res = new HashMap<>();
+						final Integer[] certificates = (Integer[]) record.get("cert_pk");
+						for (int i = 0; i < certificates.length; i++) {
+							final Integer cert_pk = certificates[i];
+							res.put(cert_pk, ImmutableMap
+									.<String, Object> of(
+															"expiry",
+															((Object[]) record.get("expiry"))[i],
+															"validity",
+															((Object[]) record.get("validity"))[i]));
+						}
+
+						return res;
+					}
+				});
+	}
+
+	@GET
 	@Path("employees")
 	public Map<Date, Map<String, EmployeeStatistics>> getEmployeesStats(
 																		@QueryParam("site") final String site_pk,
@@ -295,7 +359,7 @@ public class StatisticsEndpoint {
 			throw new ForbiddenException();
 		}
 
-		final List<String> employees = this.resources.listEmployees(site_pk, dateStr, null).getValues(EMPLOYEES.EMPL_PK);
+		final List<String> employees = this.resources.listEmployees(site_pk, dateStr, null, null).getValues(EMPLOYEES.EMPL_PK);
 		if ((dateStr == null) && (fromStr == null)) {
 			final Builder<String, EmployeeStatistics> employeesStats = new ImmutableMap.Builder<>();
 			for (final String empl_pk : employees) {

@@ -11,6 +11,8 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -25,23 +27,23 @@ import org.ccjmne.faomaintenance.api.modules.ResourcesUnrestricted;
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
-import org.ccjmne.faomaintenance.jooq.classes.tables.Updates;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.UpdatesRecord;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.JoinType;
 import org.jooq.Record;
+import org.jooq.Record1;
 import org.jooq.Record4;
 import org.jooq.Result;
 import org.jooq.Select;
+import org.jooq.SelectConditionStep;
 import org.jooq.SelectQuery;
 import org.jooq.impl.DSL;
 
 @Path("resources")
 public class ResourcesEndpoint {
-
-	private static final Integer NO_UPDATE = Integer.valueOf(-1);
 
 	private final DSLContext ctx;
 	private final ResourcesUnrestricted unrestrictedResources;
@@ -66,15 +68,30 @@ public class ResourcesEndpoint {
 	public Result<Record> listEmployees(
 										@QueryParam("site") final String site_pk,
 										@QueryParam("date") final String dateStr,
-										@QueryParam("training") final String trng_pk)
+										@QueryParam("training") final String trng_pk,
+										@QueryParam("fields") final String fields)
 			throws ParseException {
+
+		// TODO: use selectEmployees();
+
 		if ((site_pk != null) && !this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
 			throw new ForbiddenException();
 		}
 
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
-			query.addSelect(EMPLOYEES.fields());
-			query.addSelect(SITES_EMPLOYEES.fields());
+			if ((fields != null) && fields.equals(Constants.FIELDS_ALL)) {
+				query.addSelect(EMPLOYEES.fields());
+				query.addSelect(SITES_EMPLOYEES.fields());
+			} else {
+				query.addSelect(
+								EMPLOYEES.EMPL_PK,
+								EMPLOYEES.EMPL_FIRSTNAME,
+								EMPLOYEES.EMPL_SURNAME,
+								EMPLOYEES.EMPL_GENDER,
+								EMPLOYEES.EMPL_PERMANENT,
+								SITES_EMPLOYEES.SIEM_SITE_FK);
+			}
+
 			query.addFrom(EMPLOYEES);
 
 			if (site_pk != null) {
@@ -82,12 +99,12 @@ public class ResourcesEndpoint {
 								SITES_EMPLOYEES,
 								SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
 								SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk),
-								SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)));
+								SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)));
 			} else {
 				query.addJoin(
 								SITES_EMPLOYEES,
 								SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-								SITES_EMPLOYEES.SIEM_UPDT_FK.eq(getUpdatePkFor(dateStr)));
+								SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)));
 
 				if (trng_pk == null) {
 					query.addConditions(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE));
@@ -112,6 +129,36 @@ public class ResourcesEndpoint {
 
 			return query.fetch();
 		}
+	}
+
+	public SelectConditionStep<Record1<String>> selectEmployees(final String site_pk, final Integer dept_pk, final String dateStr) throws ParseException {
+		// TODO: select by trng_pk;
+		final Collection<Condition> conditions = new ArrayList<>();
+		if (!this.restrictions.canAccessAllSites()) {
+			if (dept_pk != null) {
+				if (!this.restrictions.getAccessibleDepartment().equals(dept_pk)) {
+					throw new ForbiddenException();
+				}
+
+				conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.in(DSL.select(SITES.SITE_PK).from(SITES).where(SITES.SITE_DEPT_FK.eq(dept_pk))));
+			}
+
+			if (site_pk != null) {
+				if (!this.restrictions.getAccessibleSites().contains(site_pk)) {
+					throw new ForbiddenException();
+				}
+
+				conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk));
+			}
+
+			conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.in(this.restrictions.getAccessibleSites()));
+		}
+
+		conditions.add(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)));
+		return DSL
+				.select(SITES_EMPLOYEES.SIEM_EMPL_FK)
+				.from(SITES_EMPLOYEES)
+				.where(conditions);
 	}
 
 	@GET
@@ -150,12 +197,11 @@ public class ResourcesEndpoint {
 			throw new ForbiddenException();
 		}
 
-		final Integer update = getUpdatePkFor(dateStr);
 		try (
 				final SelectQuery<Record> query = this.ctx.selectQuery();
 				final Select<? extends Record> employees = DSL
 						.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(update))) {
+						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)))) {
 			query.addSelect(SITES.fields());
 			query.addGroupBy(SITES.fields());
 			query.addFrom(SITES);
@@ -172,7 +218,7 @@ public class ResourcesEndpoint {
 
 			if (empl_pk != null) {
 				query.addConditions(SITES.SITE_PK.eq(DSL.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-						.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(update)))));
+						.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))))));
 			}
 
 			if (!this.restrictions.canAccessAllSites()) {
@@ -310,8 +356,7 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("departments")
-	public Result<? extends Record> listDepartments(@QueryParam("site") final String site_pk, @QueryParam("unlisted") final boolean unlisted)
-			throws ParseException {
+	public Result<? extends Record> listDepartments(@QueryParam("site") final String site_pk, @QueryParam("unlisted") final boolean unlisted) {
 		if (!this.restrictions.canAccessAllSites() && (this.restrictions.getAccessibleDepartment() == null)) {
 			throw new ForbiddenException();
 		}
@@ -320,12 +365,11 @@ public class ResourcesEndpoint {
 			throw new ForbiddenException();
 		}
 
-		final Integer update = getUpdatePkFor(null);
 		try (
 				final SelectQuery<Record> query = this.ctx.selectQuery();
 				final Select<? extends Record> employees = DSL
 						.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(update))) {
+						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE))) {
 			query.addSelect(DEPARTMENTS.fields());
 			query.addSelect(DSL.count(SITES.SITE_PK));
 			query.addFrom(DEPARTMENTS);
@@ -356,26 +400,5 @@ public class ResourcesEndpoint {
 		}
 
 		return this.ctx.selectFrom(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).fetchOne();
-	}
-
-	/**
-	 * Returns the <strong>primary key</strong> of the {@link Updates} that is
-	 * or was relevant at a given date, or the latest one if no date is
-	 * specified.
-	 *
-	 * @param dateStr
-	 *            The date for which to compute the relevant {@link Updates}, in
-	 *            the <code>"YYYY-MM-DD"</code> format.
-	 * @return The relevant {@link Updates}'s primary key or
-	 *         {@value ResourcesEndpoint.NO_UPDATE} if no such update found.
-	 * @throws ParseException
-	 */
-	private Integer getUpdatePkFor(final String dateStr) throws ParseException {
-		final Record update = getUpdateFor(dateStr);
-		if (update == null) {
-			return ResourcesEndpoint.NO_UPDATE;
-		}
-
-		return update.getValue(UPDATES.UPDT_PK);
 	}
 }

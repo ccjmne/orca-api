@@ -4,20 +4,32 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_TRAINERS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
 
 import java.sql.Date;
+import java.text.ParseException;
 
+import org.ccjmne.faomaintenance.jooq.classes.tables.Updates;
+import org.jooq.Condition;
 import org.jooq.DatePart;
 import org.jooq.Field;
+import org.jooq.Record4;
+import org.jooq.SelectHavingStep;
 import org.jooq.impl.DSL;
+import org.jooq.types.YearToMonth;
 
 public class Constants {
+
+	// ---- API CONSTANTS
+	public static final String FIELDS_ALL = "all";
+	private static final Integer NO_UPDATE = Integer.valueOf(-1);
 
 	public static final String STATUS_SUCCESS = "success";
 	public static final String STATUS_WARNING = "warning";
 	public static final String STATUS_DANGER = "danger";
+	// ----
 
 	// ---- DATABASE CONSTANTS
 	public static final String TRNG_OUTCOME_COMPLETED = "COMPLETED";
@@ -47,9 +59,36 @@ public class Constants {
 	// ----
 
 	// ---- SUBQUERIES AND FIELDS
-	public static final Field<Integer> LATEST_UPDATE = DSL.select(UPDATES.UPDT_PK)
-			.from(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.select(DSL.max(UPDATES.UPDT_DATE)).from(UPDATES))).asField();
+	public static Field<?>[] USERS_FIELDS = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK, USERS.USER_DEPT_FK };
+	public static final Field<Integer> LATEST_UPDATE = DSL.coalesce(DSL.select(UPDATES.UPDT_PK)
+			.from(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.select(DSL.max(UPDATES.UPDT_DATE)).from(UPDATES))).asField(), NO_UPDATE);
 
+	public static Field<Date> fieldDate(final String dateStr) {
+		return dateStr != null ? DSL.date(dateStr) : DSL.currentDate();
+	}
+
+	/**
+	 * Returns a sub-query selecting the <strong>primary key</strong> of the
+	 * {@link Updates} that is or was relevant at a given date, or today if no
+	 * date is specified.
+	 *
+	 * @param dateStr
+	 *            The date for which to compute the relevant {@link Updates}, in
+	 *            the <code>"YYYY-MM-DD"</code> format.
+	 * @return The relevant {@link Updates}'s primary key or
+	 *         {@value ResourcesEndpoint.NO_UPDATE} if no such update found.
+	 * @throws ParseException
+	 *             if the <code>dateStr</code> attribute can't be parsed.
+	 */
+	public static Field<Integer> selectUpdate(final String dateStr) throws ParseException {
+		return DSL.coalesce(
+							DSL.select(UPDATES.UPDT_PK).from(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.select(DSL.max(UPDATES.UPDT_DATE)).from(UPDATES)
+									.where(UPDATES.UPDT_DATE.le(Constants.fieldDate(dateStr)))))
+									.asField(),
+							NO_UPDATE);
+	}
+
+	// -- TRAININGS STATISTICS
 	public static final Field<Integer> TRAINING_REGISTERED = DSL.count(TRAININGS_EMPLOYEES.TREM_PK).as("registered");
 	public static final Field<Integer> TRAINING_VALIDATED = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
 			.filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(EMPL_OUTCOME_VALIDATED)).as("validated");
@@ -63,6 +102,38 @@ public class Constants {
 						DSL.field(DSL.select(TRAININGTYPES.TRTY_VALIDITY).from(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(TRAININGS.TRNG_TRTY_FK))),
 						DatePart.MONTH)
 			.as("expiry");
+	// --
 
-	public static Field<?>[] USERS_FIELDS = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK, USERS.USER_DEPT_FK };
+	// -- EMPLOYEES STATISTICS
+	public static final Field<Date> EXPIRY = DSL.max(TRAININGS.TRNG_DATE.plus(TRAININGTYPES.TRTY_VALIDITY.mul(new YearToMonth(0, 1))));
+
+	public static Field<String> fieldValidity(final String dateStr) {
+		return DSL
+				.when(
+						DSL.max(TRAININGS.TRNG_DATE.plus(TRAININGTYPES.TRTY_VALIDITY.mul(new YearToMonth(0, 1))))
+								.ge(Constants.fieldDate(dateStr).plus(new YearToMonth(0, 6))),
+						Constants.STATUS_SUCCESS)
+				.when(
+						DSL.max(TRAININGS.TRNG_DATE.plus(TRAININGTYPES.TRTY_VALIDITY.mul(new YearToMonth(0, 1))))
+								.ge(Constants.fieldDate(dateStr)),
+						Constants.STATUS_WARNING)
+				.otherwise(Constants.STATUS_DANGER);
+	}
+
+	public static SelectHavingStep<Record4<String, Integer, Date, String>> selectEmployeesStats(final String dateStr, final Condition employeesSelection) {
+		return DSL
+				.select(
+						TRAININGS_EMPLOYEES.TREM_EMPL_FK,
+						TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
+						Constants.EXPIRY.as("expiry"),
+						Constants.fieldValidity(dateStr).as("validity"))
+				.from(TRAININGTYPES_CERTIFICATES)
+				.join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK))
+				.join(TRAININGS).on(TRAININGS.TRNG_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
+				.join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
+				.where(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_VALIDATED))
+				.and(TRAININGS.TRNG_DATE.le(Constants.fieldDate(dateStr)))
+				.and(employeesSelection)
+				.groupBy(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
+	}
 }

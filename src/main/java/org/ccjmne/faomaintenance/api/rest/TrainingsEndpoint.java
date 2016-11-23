@@ -93,7 +93,8 @@ public class TrainingsEndpoint {
 			}
 
 			transactionCtx.delete(TRAININGS_TRAINERS).where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(trng_pk)).execute();
-			this.statistics.invalidateEmployeesStats(this.resources.listEmployees(null, null, String.valueOf(trng_pk.intValue())).getValues(EMPLOYEES.EMPL_PK));
+			this.statistics
+					.invalidateEmployeesStats(this.resources.listEmployees(null, null, String.valueOf(trng_pk.intValue()), null).getValues(EMPLOYEES.EMPL_PK));
 			transactionCtx.delete(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).execute();
 			return Boolean.TRUE;
 		}

@@ -31,9 +31,10 @@ public class ResourcesByKeysEndpoint {
 	public Map<String, Record> listEmployees(
 												@QueryParam("site") final String site_pk,
 												@QueryParam("date") final String dateStr,
-												@QueryParam("training") final String trng_pk)
+												@QueryParam("training") final String trng_pk,
+												@QueryParam("fields") final String fields)
 			throws ParseException {
-		return this.resources.listEmployees(site_pk, dateStr, trng_pk).intoMap(EMPLOYEES.EMPL_PK);
+		return this.resources.listEmployees(site_pk, dateStr, trng_pk, fields).intoMap(EMPLOYEES.EMPL_PK);
 	}
 
 	@GET
@@ -62,8 +63,7 @@ public class ResourcesByKeysEndpoint {
 
 	@GET
 	@Path("departments")
-	public Map<Integer, ? extends Record> listDepartments(@QueryParam("site") final String site_pk, @QueryParam("unlisted") final boolean unlisted)
-			throws ParseException {
+	public Map<Integer, ? extends Record> listDepartments(@QueryParam("site") final String site_pk, @QueryParam("unlisted") final boolean unlisted) {
 		return this.resources.listDepartments(site_pk, unlisted).intoMap(DEPARTMENTS.DEPT_PK);
 	}
 }
