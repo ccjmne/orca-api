@@ -9,7 +9,6 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
 
 import java.text.ParseException;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,7 +138,10 @@ public class UpdateEndpoint {
 			this.ctx.transaction(config -> {
 				try (final DSLContext transactionCtx = DSL.using(config)) {
 					final Integer updt_pk = new Integer(transactionCtx.nextval(Sequences.UPDATES_UPDT_PK_SEQ).intValue());
-					transactionCtx.insertInto(UPDATES).set(UPDATES.UPDT_PK, updt_pk).set(UPDATES.UPDT_DATE, new java.sql.Date(new Date().getTime())).execute();
+
+					// No more than ONE update per day
+					transactionCtx.delete(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.currentDate())).execute();
+					transactionCtx.insertInto(UPDATES).set(UPDATES.UPDT_PK, updt_pk).set(UPDATES.UPDT_DATE, DSL.currentDate()).execute();
 
 					try (final InsertValuesStep3<SitesEmployeesRecord, Integer, String, String> query = transactionCtx
 							.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_UPDT_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_EMPL_FK)) {
