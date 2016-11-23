@@ -134,27 +134,31 @@ public class ResourcesEndpoint {
 	public SelectConditionStep<Record1<String>> selectEmployees(final String site_pk, final Integer dept_pk, final String dateStr) throws ParseException {
 		// TODO: select by trng_pk;
 		final Collection<Condition> conditions = new ArrayList<>();
+		conditions.add(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)));
+
 		if (!this.restrictions.canAccessAllSites()) {
+			conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.in(this.restrictions.getAccessibleSites()));
 			if (dept_pk != null) {
 				if (!this.restrictions.getAccessibleDepartment().equals(dept_pk)) {
 					throw new ForbiddenException();
 				}
-
-				conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.in(DSL.select(SITES.SITE_PK).from(SITES).where(SITES.SITE_DEPT_FK.eq(dept_pk))));
 			}
 
 			if (site_pk != null) {
 				if (!this.restrictions.getAccessibleSites().contains(site_pk)) {
 					throw new ForbiddenException();
 				}
-
-				conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk));
 			}
-
-			conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.in(this.restrictions.getAccessibleSites()));
 		}
 
-		conditions.add(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)));
+		if (dept_pk != null) {
+			conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.in(DSL.select(SITES.SITE_PK).from(SITES).where(SITES.SITE_DEPT_FK.eq(dept_pk))));
+		}
+
+		if (site_pk != null) {
+			conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk));
+		}
+
 		return DSL
 				.select(SITES_EMPLOYEES.SIEM_EMPL_FK)
 				.from(SITES_EMPLOYEES)
