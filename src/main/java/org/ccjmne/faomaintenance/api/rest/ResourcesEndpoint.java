@@ -191,6 +191,7 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("employees/{empl_pk}/voiding")
+	// TODO: /voiding -> /voidings
 	public Result<EmployeesCertificatesOptoutRecord> getEmployeeVoiding(@PathParam("empl_pk") final String empl_pk) {
 		if (!this.restrictions.canAccessEmployee(empl_pk)) {
 			throw new ForbiddenException();
@@ -206,6 +207,9 @@ public class ResourcesEndpoint {
 									@QueryParam("employee") final String empl_pk,
 									@QueryParam("date") final String dateStr,
 									@QueryParam("unlisted") final boolean unlisted) {
+
+		// TODO: use selectSites()
+
 		if ((empl_pk != null) && !this.restrictions.canAccessEmployee(empl_pk)) {
 			throw new ForbiddenException();
 		}

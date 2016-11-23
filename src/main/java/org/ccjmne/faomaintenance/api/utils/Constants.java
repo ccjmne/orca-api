@@ -81,7 +81,7 @@ public class Constants {
 	 *            The date for which to compute the relevant {@link Updates}, in
 	 *            the <code>"YYYY-MM-DD"</code> format.
 	 * @return The relevant {@link Updates}'s primary key or
-	 *         {@value ResourcesEndpoint.NO_UPDATE} if no such update found.
+	 *         {@value Constants.NO_UPDATE} if no such update found.
 	 */
 	public static Field<Integer> selectUpdate(final String dateStr) {
 		return DSL.coalesce(
@@ -107,7 +107,7 @@ public class Constants {
 			.as("expiry");
 	// --
 
-	// -- EMPLOYEES STATISTICS
+	// -- EMPLOYEES, SITES AND DEPARTMENTS STATISTICS
 	public static final Field<Date> EXPIRY = DSL
 			.when(
 					EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.le(DSL.max(TRAININGS.TRNG_DATE.plus(TRAININGTYPES.TRTY_VALIDITY.mul(new YearToMonth(0, 1))))),
