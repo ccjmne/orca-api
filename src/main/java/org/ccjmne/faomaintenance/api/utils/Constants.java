@@ -217,7 +217,7 @@ public class Constants {
 							targetCount.as("target"),
 							DSL
 									.when(validCount.ge(targetCount), Constants.STATUS_SUCCESS)
-									.when(validCount.ge(DSL.floor(targetCount.mul(DSL.val(2 / 3f)))), Constants.STATUS_WARNING)
+									.when(validCount.ge(DSL.ceil(targetCount.mul(DSL.val(2).div(DSL.val(3f))))), Constants.STATUS_WARNING)
 									.otherwise(Constants.STATUS_DANGER).as("validity"))
 				.from(certificatesStats)
 				.rightJoin(certificates)
