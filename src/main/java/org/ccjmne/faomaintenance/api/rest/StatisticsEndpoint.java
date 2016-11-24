@@ -184,31 +184,15 @@ public class StatisticsEndpoint {
 								DSL.arrayAgg(departmentsStats.field("score")).as("score"))
 				.from(departmentsStats)
 				.groupBy(departmentsStats.field(SITES.SITE_DEPT_FK))
-				.fetchMap(departmentsStats.field(SITES.SITE_DEPT_FK), new RecordMapper<Record, Map<Integer, Object>>() {
-
-					@Override
-					public Map<Integer, Object> map(final Record record) {
-						final Map<Integer, Object> res = new HashMap<>();
-						final Integer[] certificates = (Integer[]) record.get("cert_pk");
-						for (int i = 0; i < certificates.length; i++) {
-							final int j = i;
-							final Integer cert_pk = certificates[i];
-							final Builder<String, Object> builder = ImmutableMap.<String, Object> builder();
-							Arrays.asList(
-											Constants.STATUS_SUCCESS,
-											Constants.STATUS_WARNING,
-											Constants.STATUS_DANGER,
-											"sites_" + Constants.STATUS_SUCCESS,
-											"sites_" + Constants.STATUS_WARNING,
-											"sites_" + Constants.STATUS_DANGER,
-											"score")
-									.forEach(field -> builder.put(field, ((Object[]) record.get(field))[j]));
-							res.put(cert_pk, builder.build());
-						}
-
-						return res;
-					}
-				});
+				.fetchMap(departmentsStats.field(SITES.SITE_DEPT_FK), getZipMapper(
+																					"cert_pk",
+																					Constants.STATUS_SUCCESS,
+																					Constants.STATUS_WARNING,
+																					Constants.STATUS_DANGER,
+																					"sites_" + Constants.STATUS_SUCCESS,
+																					"sites_" + Constants.STATUS_WARNING,
+																					"sites_" + Constants.STATUS_DANGER,
+																					"score"));
 	}
 
 	@GET
@@ -247,31 +231,9 @@ public class StatisticsEndpoint {
 								DSL.arrayAgg(sitesStats.field("validity")).as("validity"))
 				.from(sitesStats)
 				.groupBy(sitesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK))
-				.fetchGroups(SITES_EMPLOYEES.SIEM_SITE_FK, new RecordMapper<Record, Map<Integer, Object>>() {
-
-					@Override
-					public Map<Integer, Object> map(final Record record) {
-						final Map<Integer, Object> res = new HashMap<>();
-						final Integer[] certificates = (Integer[]) record.get("cert_pk");
-						for (int i = 0; i < certificates.length; i++) {
-							final Integer cert_pk = certificates[i];
-							res.put(cert_pk, ImmutableMap
-									.<String, Object> of(
-															Constants.STATUS_SUCCESS,
-															((Object[]) record.get(Constants.STATUS_SUCCESS))[i],
-															Constants.STATUS_WARNING,
-															((Object[]) record.get(Constants.STATUS_WARNING))[i],
-															Constants.STATUS_DANGER,
-															((Object[]) record.get(Constants.STATUS_DANGER))[i],
-															"target",
-															((Object[]) record.get("target"))[i],
-															"validity",
-															((Object[]) record.get("validity"))[i]));
-						}
-
-						return res;
-					}
-				});
+				.fetchGroups(
+								SITES_EMPLOYEES.SIEM_SITE_FK,
+								getZipMapper("cert_pk", Constants.STATUS_SUCCESS, Constants.STATUS_WARNING, Constants.STATUS_DANGER, "target", "validity"));
 	}
 
 	@GET
@@ -305,25 +267,26 @@ public class StatisticsEndpoint {
 						DSL.arrayAgg(employeesStats.field("validity")).as("validity"))
 				.from(employeesStats)
 				.groupBy(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK))
-				.fetchMap(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK), new RecordMapper<Record, Map<Integer, Object>>() {
+				.fetchMap(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK), getZipMapper("cert_pk", "expiry", "validity"));
+	}
 
-					@Override
-					public Map<Integer, Object> map(final Record record) {
-						final Map<Integer, Object> res = new HashMap<>();
-						final Integer[] certificates = (Integer[]) record.get("cert_pk");
-						for (int i = 0; i < certificates.length; i++) {
-							final Integer cert_pk = certificates[i];
-							res.put(cert_pk, ImmutableMap
-									.<String, Object> of(
-															"expiry",
-															((Object[]) record.get("expiry"))[i],
-															"validity",
-															((Object[]) record.get("validity"))[i]));
-						}
+	private static RecordMapper<Record, Map<Integer, Object>> getZipMapper(final String key, final String... fields) {
+		return new RecordMapper<Record, Map<Integer, Object>>() {
 
-						return res;
-					}
-				});
+			@Override
+			public Map<Integer, Object> map(final Record record) {
+				final Map<Integer, Object> res = new HashMap<>();
+				final Integer[] keys = (Integer[]) record.get(key);
+				for (int i = 0; i < keys.length; i++) {
+					final int idx = i;
+					final Builder<String, Object> builder = ImmutableMap.<String, Object> builder();
+					Arrays.asList(fields).forEach(field -> builder.put(field, ((Object[]) record.get(field))[idx]));
+					res.put(keys[i], builder.build());
+				}
+
+				return res;
+			}
+		};
 	}
 
 	private static void populateTrainingsStatsBuilders(
