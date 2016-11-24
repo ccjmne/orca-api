@@ -1,8 +1,6 @@
 package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
@@ -20,13 +18,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -35,18 +30,10 @@ import javax.ws.rs.QueryParam;
 
 import org.ccjmne.faomaintenance.api.modules.ResourcesUnrestricted;
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
-import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
-import org.ccjmne.faomaintenance.api.rest.resources.DepartmentStatistics;
-import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics;
-import org.ccjmne.faomaintenance.api.rest.resources.EmployeeStatistics.EmployeeStatisticsBuilder;
-import org.ccjmne.faomaintenance.api.rest.resources.SiteStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.faomaintenance.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
-import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record5;
@@ -72,17 +59,6 @@ public class StatisticsEndpoint {
 	private final ResourcesEndpoint resources;
 	private final ResourcesByKeysCommonEndpoint commonResources;
 
-	/**
-	 * Used to list trainings for sites and employees' statistics computing
-	 * purposes. Should the current {@link HttpServletRequest} not be able to
-	 * directly reach trainings, this would still allow providing statistics for
-	 * its accessible sites and employees.<br />
-	 * Should <b>not</b> be used within
-	 * {@link StatisticsEndpoint#getTrainingsStats(String, String, List)}.
-	 */
-	private final ResourcesUnrestricted resourcesUnrestricted;
-
-	private final StatisticsCaches statistics;
 	private final Restrictions restrictions;
 
 	@Inject
@@ -91,18 +67,16 @@ public class StatisticsEndpoint {
 								final ResourcesEndpoint resources,
 								final ResourcesByKeysCommonEndpoint resourcesByKeys,
 								final ResourcesUnrestricted resourcesUnrestricted,
-								final StatisticsCaches statisticsCaches,
 								final Restrictions restrictions) {
 		this.ctx = ctx;
 		this.resources = resources;
 		this.commonResources = resourcesByKeys;
-		this.resourcesUnrestricted = resourcesUnrestricted;
-		this.statistics = statisticsCaches;
 		this.restrictions = restrictions;
 	}
 
 	@GET
 	@Path("trainings")
+	// TODO: rewrite
 	public Map<Integer, Iterable<TrainingsStatistics>> getTrainingsStats(
 																			@QueryParam("from") final String fromStr,
 																			@QueryParam("to") final String toStr,
@@ -152,33 +126,12 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("departments/{dept_pk}")
-	public Map<Date, DepartmentStatistics> getDepartmentStats(
-																@PathParam("dept_pk") final Integer dept_pk,
-																@QueryParam("date") final String dateStr,
-																@QueryParam("from") final String fromStr,
-																@QueryParam("interval") final Integer interval)
-			throws ParseException {
-		if (!this.restrictions.canAccessAllSites() && !this.restrictions.canAccessDepartment(dept_pk)) {
-			throw new ForbiddenException();
-		}
-
-		final Map<Integer, CertificatesRecord> certificates = this.commonResources.listCertificates();
-		final Map<Date, DepartmentStatistics> res = new HashMap<>();
-		getSitesStats(dept_pk, null, dateStr, fromStr, interval).forEach((date, sitesStats) -> {
-			res.put(date, new DepartmentStatistics(certificates, sitesStats.values()));
-		});
-
-		return res;
-	}
-
-	@GET
-	@Path("departments/v2/{dept_pk}")
 	@SuppressWarnings("null")
-	public Map<Integer, Record8<Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> getDepartmentStatsV2(
-																																			@PathParam("dept_pk") final Integer dept_pk,
-																																			@QueryParam("date") final String dateStr,
-																																			@QueryParam("from") final String fromStr,
-																																			@QueryParam("interval") final Integer interval) {
+	public Map<Integer, Record8<Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> getDepartmentStats(
+																																		@PathParam("dept_pk") final Integer dept_pk,
+																																		@QueryParam("date") final String dateStr,
+																																		@QueryParam("from") final String fromStr,
+																																		@QueryParam("interval") final Integer interval) {
 
 		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
 				.selectSitesStats(
@@ -208,11 +161,8 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
-	@Path("departments/v2")
-	public Map<Integer, Map<Integer, Object>> getDepartmentsStatsV2(
-																	@QueryParam("date") final String dateStr,
-																	@QueryParam("from") final String fromStr,
-																	@QueryParam("interval") final Integer interval) {
+	@Path("departments")
+	public Map<Integer, Map<Integer, Object>> getDepartmentsStats(@QueryParam("date") final String dateStr) {
 
 		final Table<Record9<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> departmentsStats = Constants
 				.selectDepartments(
@@ -266,7 +216,7 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("sites/{site_pk}")
-	public Result<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> getSiteStatsV2(
+	public Result<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> getSiteStats(
 																												@PathParam("site_pk") final String site_pk,
 																												@QueryParam("date") final String dateStr,
 																												@QueryParam("from") final String fromStr,
@@ -285,7 +235,7 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("employees/{empl_pk}")
-	public Map<Integer, Record5<String, String, Integer, Date, String>> getEmployeeStatsV2(
+	public Map<Integer, Record5<String, String, Integer, Date, String>> getEmployeeStats(
 																							@PathParam("empl_pk") final String empl_pk,
 																							@QueryParam("date") final String dateStr,
 																							@QueryParam("from") final String fromStr,
@@ -300,59 +250,15 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
-	@Path("departments")
-	public Map<Date, Map<Integer, DepartmentStatistics>> getDepartmentsStats(
-																				@QueryParam("date") final String dateStr,
-																				@QueryParam("from") final String fromStr,
-																				@QueryParam("interval") final Integer interval)
-			throws ParseException {
-		final Map<Date, Map<Integer, DepartmentStatistics>> res = new HashMap<>();
-		if (!this.restrictions.canAccessAllSites()) {
-			final Integer dept = this.restrictions.getAccessibleDepartment();
-			getDepartmentStats(dept, dateStr, fromStr, interval).forEach((date, departmentStats) -> {
-				res.put(date, Collections.singletonMap(dept, departmentStats));
-			});
-
-			return res;
-		}
-
-		final Map<Integer, CertificatesRecord> certificates = this.commonResources.listCertificates();
-		final Map<Integer, List<String>> departmentsSites = this.resources.listSites(null, null, null, false).intoGroups(SITES.SITE_DEPT_FK, SITES.SITE_PK);
-		if ((dateStr == null) && (fromStr == null)) {
-			final Map<Integer, DepartmentStatistics> entry = new HashMap<>();
-			departmentsSites.entrySet().stream().forEach(deptSites -> {
-				final DepartmentStatistics deptStats = new DepartmentStatistics(certificates, deptSites.getValue().stream()
-						.map(site -> this.statistics.getSiteStats(site).getValue()).collect(Collectors.toList()));
-				entry.put(deptSites.getKey(), deptStats);
-			});
-
-			return Collections.singletonMap(new Date(new java.util.Date().getTime()), entry);
-		}
-
-		getSitesStats(null, null, dateStr, fromStr, interval).forEach((date, sitesStats) -> {
-			final Map<Integer, DepartmentStatistics> entry = new HashMap<>();
-			departmentsSites.entrySet().stream().forEach(deptSites -> {
-				final DepartmentStatistics deptStats = new DepartmentStatistics(certificates, deptSites.getValue().stream()
-						.map(site -> sitesStats.get(site)).collect(Collectors.toList()));
-				entry.put(deptSites.getKey(), deptStats);
-			});
-
-			res.put(date, entry);
-		});
-
-		return res;
-	}
-
-	@GET
-	@Path("sites/v2")
-	public Map<String, List<Map<Integer, Object>>> getSitesStatsV2(
+	@Path("sites")
+	public Map<String, List<Map<Integer, Object>>> getSitesStats(
 																	@QueryParam("department") final Integer dept_pk,
 																	@QueryParam("employee") final String empl_pk,
 																	@QueryParam("date") final String dateStr,
 																	@QueryParam("from") final String fromStr,
 																	@QueryParam("interval") final Integer interval) {
 
-		final Table<Record8<Integer, String, Integer, @NonNull Integer, @NonNull Integer, @NonNull Integer, Integer, String>> sitesStats = Constants
+		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
 				.selectSitesStats(
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(null, dept_pk, dateStr)),
@@ -397,48 +303,11 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
-	@Path("sites")
-	// TODO: remove
-	@Deprecated
-	public Map<Date, Map<String, SiteStatistics>> getSitesStats(
-																@QueryParam("department") final Integer dept_pk,
-																@QueryParam("employee") final String empl_pk,
-																@QueryParam("date") final String dateStr,
-																@QueryParam("from") final String fromStr,
-																@QueryParam("interval") final Integer interval)
-			throws ParseException {
-		if ((empl_pk != null) && !this.restrictions.canAccessEmployee(empl_pk)) {
-			throw new ForbiddenException();
-		}
-
-		if ((dept_pk != null) && !this.restrictions.canAccessDepartment(dept_pk)) {
-			throw new ForbiddenException();
-		}
-
-		final List<String> sites = this.resources.listSites(dept_pk, empl_pk, dateStr, false).getValues(SITES.SITE_PK);
-		if ((dateStr == null) && (fromStr == null)) {
-			final Builder<String, SiteStatistics> sitesStats = new ImmutableMap.Builder<>();
-			for (final String site_pk : sites) {
-				sitesStats.put(site_pk, this.statistics.getSiteStats(site_pk).getValue());
-			}
-
-			return Collections.singletonMap(new Date(new java.util.Date().getTime()), sitesStats.build());
-		}
-
-		final TreeMap<Date, Map<String, SiteStatistics>> res = calculateSitesStats(sites, dateStr, fromStr, interval);
-		if (dateStr == null) {
-			res.lastEntry().getValue().forEach((site_pk, stats) -> this.statistics.putSitesStats(site_pk, res.lastKey(), stats));
-		}
-
-		return res;
-	}
-
-	@GET
 	@Path("employees")
-	public Map<String, Map<Integer, Object>> getEmployeesStatsV2(
-																	@QueryParam("site") final String site_pk,
-																	@QueryParam("department") final Integer dept_pk,
-																	@QueryParam("date") final String dateStr) {
+	public Map<String, Map<Integer, Object>> getEmployeesStats(
+																@QueryParam("site") final String site_pk,
+																@QueryParam("department") final Integer dept_pk,
+																@QueryParam("date") final String dateStr) {
 
 		final Table<Record5<String, String, Integer, Date, String>> employeesStats = Constants
 				.selectEmployeesStats(
@@ -473,90 +342,6 @@ public class StatisticsEndpoint {
 						return res;
 					}
 				});
-	}
-
-	/**
-	 * Specifically allowed to directly use the {@link DSLContext} with
-	 * virtually no restriction.<br />
-	 * Reasons:
-	 * <ol>
-	 * <li><code>private</code> method <b>shielded</b> by the caller.</li>
-	 * <li>Can access employees that are not in the accessible sites anymore.
-	 * </li>
-	 * </ol>
-	 */
-	// TODO: remove?
-	@Deprecated
-	private TreeMap<Date, Map<String, SiteStatistics>> calculateSitesStats(
-																			final List<String> sites,
-																			final String dateStr,
-																			final String fromStr,
-																			final Integer interval)
-			throws ParseException {
-		final Map<Integer, TrainingtypesRecord> trainingTypes = this.commonResources.listTrainingTypes();
-		final Map<Integer, List<Integer>> trainingtypesCertificates = this.commonResources.listTrainingtypesCertificates();
-		final List<Date> dates = computeDates(fromStr, dateStr, interval);
-		final Map<String, Map<Date, EmployeeStatistics>> employeesStats = new HashMap<>();
-		for (final String empl_pk : this.ctx.selectDistinct(SITES_EMPLOYEES.SIEM_EMPL_FK)
-				.from(SITES_EMPLOYEES).where(SITES_EMPLOYEES.SIEM_SITE_FK.in(sites))
-				.fetch(SITES_EMPLOYEES.SIEM_EMPL_FK)) {
-			employeesStats.put(empl_pk, buildEmployeeStats(empl_pk, dates, trainingTypes, trainingtypesCertificates));
-		}
-
-		final TreeMap<Date, Map<String, Result<? extends Record>>> employeesHistory = new TreeMap<>();
-		for (final String site_pk : sites) {
-			this.resources.getSiteEmployeesHistory(site_pk)
-					.forEach((date, employees) -> {
-						employeesHistory.computeIfAbsent(date, unused -> new HashMap<>()).put(site_pk, employees);
-					});
-		}
-
-		final Map<Integer, CertificatesRecord> certificates = this.commonResources.listCertificates();
-		final TreeMap<Date, Map<String, SiteStatistics>> res = new TreeMap<>();
-		for (final Date date : dates) {
-			final Entry<Date, Map<String, Result<? extends Record>>> mostAccurate = employeesHistory.floorEntry(date);
-			if (mostAccurate != null) {
-				for (final Entry<String, Result<? extends Record>> sitesEmployeesHistory : mostAccurate.getValue().entrySet()) {
-					final SiteStatistics stats = new SiteStatistics(certificates);
-					for (final Record empl : sitesEmployeesHistory.getValue()) {
-						stats.register(
-										empl.getValue(EMPLOYEES.EMPL_PERMANENT),
-										employeesStats.get(empl.getValue(EMPLOYEES.EMPL_PK)).get(date));
-					}
-
-					res.computeIfAbsent(date, unused -> new HashMap<>()).put(sitesEmployeesHistory.getKey(), stats);
-				}
-			} else {
-				res.put(date, Collections.EMPTY_MAP);
-			}
-		}
-
-		return res;
-	}
-
-	private Map<Date, EmployeeStatistics> buildEmployeeStats(
-																final String empl_pk,
-																final Iterable<Date> dates,
-																final Map<Integer, TrainingtypesRecord> trainingTypes,
-																final Map<Integer, List<Integer>> certificatesByTrainingTypes) {
-		final EmployeeStatisticsBuilder builder = EmployeeStatistics
-				.builder(
-							certificatesByTrainingTypes,
-							this.resourcesUnrestricted.listCertificatesVoiding(empl_pk)
-									.intoMap(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK, EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE));
-		final Map<Date, EmployeeStatistics> res = new TreeMap<>();
-		final Iterator<Record> trainings = this.resourcesUnrestricted.listTrainings(empl_pk).iterator();
-		Record training = trainings.hasNext() ? trainings.next() : null;
-		for (final Date nextStop : dates) {
-			while ((training != null) && !nextStop.before(training.getValue(TRAININGS.TRNG_DATE))) {
-				builder.accept(training);
-				training = trainings.hasNext() ? trainings.next() : null;
-			}
-
-			res.put(nextStop, builder.buildFor(nextStop));
-		}
-
-		return res;
 	}
 
 	private static void populateTrainingsStatsBuilders(
