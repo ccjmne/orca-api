@@ -5,7 +5,6 @@ import javax.inject.Singleton;
 import org.ccjmne.faomaintenance.api.demo.DemoDataManager;
 import org.ccjmne.faomaintenance.api.modules.ResourcesUnrestricted;
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
-import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
 import org.ccjmne.faomaintenance.api.utils.CustomObjectMapper;
 import org.ccjmne.faomaintenance.api.utils.PostgresDSLContext;
 import org.ccjmne.faomaintenance.api.utils.S3Client;
@@ -31,7 +30,6 @@ public class ApplicationConfig extends ResourceConfig {
 				bind(PostgresDSLContext.class).to(DSLContext.class).in(Singleton.class);
 				bind(Restrictions.class).to(Restrictions.class).in(RequestScoped.class);
 				bind(ResourcesUnrestricted.class).to(ResourcesUnrestricted.class).in(Singleton.class);
-				bind(StatisticsCaches.class).to(StatisticsCaches.class).in(Singleton.class);
 				bind(S3Client.class).to(AmazonS3Client.class).in(Singleton.class);
 			}
 		});

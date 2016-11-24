@@ -20,7 +20,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
-import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.jooq.DSLContext;
@@ -32,16 +31,14 @@ import org.jooq.impl.DSL;
 public class CertificatesEnpdoint {
 
 	private final DSLContext ctx;
-	private final StatisticsCaches statistics;
 
 	@Inject
-	public CertificatesEnpdoint(final DSLContext ctx, final StatisticsCaches statistics, final Restrictions restrictions) {
+	public CertificatesEnpdoint(final DSLContext ctx, final Restrictions restrictions) {
 		if (!restrictions.canManageCertificates()) {
 			throw new ForbiddenException();
 		}
 
 		this.ctx = ctx;
-		this.statistics = statistics;
 	}
 
 	@POST
@@ -90,8 +87,6 @@ public class CertificatesEnpdoint {
 			}
 		});
 
-		this.statistics.invalidateEmployeesStats();
-		this.statistics.invalidateSitesStats();
 		return exists;
 	}
 
@@ -156,8 +151,6 @@ public class CertificatesEnpdoint {
 			}
 		});
 
-		this.statistics.invalidateEmployeesStats();
-		this.statistics.invalidateSitesStats();
 		return exists;
 	}
 

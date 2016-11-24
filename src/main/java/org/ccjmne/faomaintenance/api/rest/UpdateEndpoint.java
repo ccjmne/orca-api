@@ -8,7 +8,6 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
 
 import java.text.ParseException;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -29,7 +28,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
-import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
@@ -45,16 +43,14 @@ public class UpdateEndpoint {
 	private static final Pattern FIRST_LETTER = Pattern.compile("\\b(\\w)");
 
 	private final DSLContext ctx;
-	private final StatisticsCaches statistics;
 
 	@Inject
-	public UpdateEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final StatisticsCaches statistics, final Restrictions restrictions) {
+	public UpdateEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final Restrictions restrictions) {
 		if (!restrictions.canManageSites()) {
 			throw new ForbiddenException();
 		}
 
 		this.ctx = ctx;
-		this.statistics = statistics;
 	}
 
 	@POST
@@ -126,7 +122,6 @@ public class UpdateEndpoint {
 		if (exists) {
 			this.ctx.delete(SITES).where(SITES.SITE_PK.eq(site_pk)).execute();
 			this.ctx.delete(SITES_EMPLOYEES).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk)).execute();
-			this.statistics.invalidateSitesStats(Collections.singleton(site_pk));
 		}
 
 		return exists;
@@ -173,7 +168,6 @@ public class UpdateEndpoint {
 				}
 			});
 
-			this.statistics.invalidateSitesStats();
 			return Response.ok().build();
 		} catch (final Exception e) {
 			return Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();

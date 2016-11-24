@@ -3,7 +3,6 @@ package org.ccjmne.faomaintenance.api.rest;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 
-import java.util.Collections;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -18,7 +17,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
-import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
@@ -26,16 +24,14 @@ import org.jooq.impl.DSL;
 public class EmployeesNotesEndpoint {
 
 	private final DSLContext ctx;
-	private final StatisticsCaches statistics;
 
 	@Inject
-	public EmployeesNotesEndpoint(final DSLContext ctx, final StatisticsCaches statistics, final Restrictions restrictions) {
+	public EmployeesNotesEndpoint(final DSLContext ctx, final Restrictions restrictions) {
 		if (!restrictions.canManageEmployeeNotes()) {
 			throw new ForbiddenException();
 		}
 
 		this.ctx = ctx;
-		this.statistics = statistics;
 	}
 
 	@PUT
@@ -70,8 +66,6 @@ public class EmployeesNotesEndpoint {
 								EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_REASON)
 					.values(empl_pk, cert_pk, date, data.get(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_REASON.getName())).execute();
 		}
-
-		this.statistics.invalidateEmployeesStats(Collections.singletonList(empl_pk));
 	}
 
 	@DELETE
@@ -79,6 +73,5 @@ public class EmployeesNotesEndpoint {
 	public void optBackIn(@PathParam("empl_pk") final String empl_pk, @QueryParam("cert_pk") final Integer cert_pk) {
 		this.ctx.deleteFrom(EMPLOYEES_CERTIFICATES_OPTOUT).where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk))
 				.and(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK.eq(cert_pk)).execute();
-		this.statistics.invalidateEmployeesStats(Collections.singletonList(empl_pk));
 	}
 }

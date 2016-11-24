@@ -1,6 +1,5 @@
 package org.ccjmne.faomaintenance.api.rest;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_TRAINERS;
@@ -19,7 +18,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
 import org.ccjmne.faomaintenance.api.modules.Restrictions;
-import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.Sequences;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingsRecord;
@@ -30,15 +28,11 @@ import org.jooq.impl.DSL;
 public class TrainingsEndpoint {
 
 	private final DSLContext ctx;
-	private final ResourcesEndpoint resources;
-	private final StatisticsCaches statistics;
 	private final Restrictions restrictions;
 
 	@Inject
-	public TrainingsEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final StatisticsCaches statistics, final Restrictions restrictions) {
+	public TrainingsEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final Restrictions restrictions) {
 		this.ctx = ctx;
-		this.resources = resources;
-		this.statistics = statistics;
 		this.restrictions = restrictions;
 	}
 
@@ -93,8 +87,6 @@ public class TrainingsEndpoint {
 			}
 
 			transactionCtx.delete(TRAININGS_TRAINERS).where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(trng_pk)).execute();
-			this.statistics
-					.invalidateEmployeesStats(this.resources.listEmployees(null, null, String.valueOf(trng_pk.intValue()), null).getValues(EMPLOYEES.EMPL_PK));
 			transactionCtx.delete(TRAININGS).where(TRAININGS.TRNG_PK.equal(trng_pk)).execute();
 			return Boolean.TRUE;
 		}
@@ -126,7 +118,6 @@ public class TrainingsEndpoint {
 						(String) map.get(TRAININGS.TRNG_COMMENT.getName()))
 				.execute();
 		final Map<String, Map<String, String>> trainees = (Map<String, Map<String, String>>) map.getOrDefault("trainees", Collections.EMPTY_MAP);
-		this.statistics.invalidateEmployeesStats(trainees.keySet());
 		trainees.forEach((trem_empl_fk, data) -> transactionContext
 				.insertInto(
 							TRAININGS_EMPLOYEES,

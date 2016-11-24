@@ -1,10 +1,10 @@
 package org.ccjmne.faomaintenance.api.demo;
 
+import java.util.Collections;
 import java.util.Date;
 
 import javax.inject.Inject;
 
-import org.ccjmne.faomaintenance.api.modules.StatisticsCaches;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.quartz.CronScheduleBuilder;
@@ -22,8 +22,6 @@ import org.quartz.impl.DirectSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
-
 public class DemoDataManager {
 
 	private static final String DEMO_PROPERTY = "demo";
@@ -34,15 +32,13 @@ public class DemoDataManager {
 
 	private final Scheduler scheduler;
 	private final DSLContext ctx;
-	private final StatisticsCaches stats;
 
 	@Inject
-	public DemoDataManager(final DSLContext ctx, final StatisticsCaches stats) throws SchedulerException {
+	public DemoDataManager(final DSLContext ctx) throws SchedulerException {
 		final DirectSchedulerFactory schedulerFactory = DirectSchedulerFactory.getInstance();
 		schedulerFactory.createVolatileScheduler(1);
 		this.scheduler = schedulerFactory.getScheduler();
 		this.ctx = ctx;
-		this.stats = stats;
 	}
 
 	public boolean isDemoEnabled() {
@@ -67,8 +63,7 @@ public class DemoDataManager {
 		this.scheduler.scheduleJob(
 									JobBuilder
 											.newJob(DemoDataReset.class)
-											.usingJobData(new JobDataMap(ImmutableMap
-													.of(DSLContext.class.getName(), this.ctx, StatisticsCaches.class.getName(), this.stats)))
+											.usingJobData(new JobDataMap(Collections.singletonMap(DSLContext.class.getName(), this.ctx)))
 											.withIdentity(jobKey)
 											.build(),
 									TriggerBuilder
@@ -108,8 +103,6 @@ public class DemoDataManager {
 					}
 				});
 
-				// Clear statistics caches
-				((StatisticsCaches) context.getMergedJobDataMap().get(StatisticsCaches.class.getName())).invalidateEmployeesStats();
 				LOGGER.info("Demo data restoration successfully completed.");
 			} catch (final Exception e) {
 				LOGGER.error("An error occured during demo data restoration.", e);
