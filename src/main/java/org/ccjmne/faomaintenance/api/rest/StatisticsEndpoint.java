@@ -14,6 +14,7 @@ import java.sql.Date;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -45,11 +46,12 @@ import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
+import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record5;
-import org.jooq.Record7;
 import org.jooq.Record8;
+import org.jooq.Record9;
 import org.jooq.RecordMapper;
 import org.jooq.Result;
 import org.jooq.Table;
@@ -178,7 +180,7 @@ public class StatisticsEndpoint {
 																																			@QueryParam("from") final String fromStr,
 																																			@QueryParam("interval") final Integer interval) {
 
-		final Table<Record7<String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
+		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
 				.selectSitesStats(
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(null, dept_pk, dateStr)),
@@ -206,12 +208,69 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
+	@Path("departments/v2")
+	public Map<Integer, Map<Integer, Object>> getDepartmentsStatsV2(
+																	@QueryParam("date") final String dateStr,
+																	@QueryParam("from") final String fromStr,
+																	@QueryParam("interval") final Integer interval) {
+
+		final Table<Record9<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> departmentsStats = Constants
+				.selectDepartments(
+									dateStr,
+									TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(null, null, dateStr)),
+									SITES_EMPLOYEES.SIEM_SITE_FK.in(this.resources.selectSites(null)),
+									null)
+				.asTable();
+
+		return this.ctx.select(
+								departmentsStats.field(SITES.SITE_DEPT_FK),
+								DSL.arrayAgg(departmentsStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
+								DSL.arrayAgg(departmentsStats.field(Constants.STATUS_SUCCESS)).as(Constants.STATUS_SUCCESS),
+								DSL.arrayAgg(departmentsStats.field(Constants.STATUS_WARNING)).as(Constants.STATUS_WARNING),
+								DSL.arrayAgg(departmentsStats.field(Constants.STATUS_DANGER)).as(Constants.STATUS_DANGER),
+								DSL.arrayAgg(departmentsStats.field("sites_" +
+										Constants.STATUS_SUCCESS)).as("sites_" + Constants.STATUS_SUCCESS),
+								DSL.arrayAgg(departmentsStats.field("sites_" +
+										Constants.STATUS_WARNING)).as("sites_" + Constants.STATUS_WARNING),
+								DSL.arrayAgg(departmentsStats.field("sites_" +
+										Constants.STATUS_DANGER)).as("sites_" + Constants.STATUS_DANGER),
+								DSL.arrayAgg(departmentsStats.field("score")).as("score"))
+				.from(departmentsStats)
+				.groupBy(departmentsStats.field(SITES.SITE_DEPT_FK))
+				.fetchMap(departmentsStats.field(SITES.SITE_DEPT_FK), new RecordMapper<Record, Map<Integer, Object>>() {
+
+					@Override
+					public Map<Integer, Object> map(final Record record) {
+						final Map<Integer, Object> res = new HashMap<>();
+						final Integer[] certificates = (Integer[]) record.get("cert_pk");
+						for (int i = 0; i < certificates.length; i++) {
+							final int j = i;
+							final Integer cert_pk = certificates[i];
+							final Builder<String, Object> builder = ImmutableMap.<String, Object> builder();
+							Arrays.asList(
+											Constants.STATUS_SUCCESS,
+											Constants.STATUS_WARNING,
+											Constants.STATUS_DANGER,
+											"sites_" + Constants.STATUS_SUCCESS,
+											"sites_" + Constants.STATUS_WARNING,
+											"sites_" + Constants.STATUS_DANGER,
+											"score")
+									.forEach(field -> builder.put(field, ((Object[]) record.get(field))[j]));
+							res.put(cert_pk, builder.build());
+						}
+
+						return res;
+					}
+				});
+	}
+
+	@GET
 	@Path("sites/{site_pk}")
-	public Result<Record7<String, Integer, Integer, Integer, Integer, Integer, String>> getSiteStatsV2(
-																										@PathParam("site_pk") final String site_pk,
-																										@QueryParam("date") final String dateStr,
-																										@QueryParam("from") final String fromStr,
-																										@QueryParam("interval") final Integer interval) {
+	public Result<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> getSiteStatsV2(
+																												@PathParam("site_pk") final String site_pk,
+																												@QueryParam("date") final String dateStr,
+																												@QueryParam("from") final String fromStr,
+																												@QueryParam("interval") final Integer interval) {
 		if (!this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
 			throw new ForbiddenException();
 		}
@@ -286,14 +345,14 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("sites/v2")
-	public Map<String, Map<Integer, Object>> getSitesStatsV2(
-																@QueryParam("department") final Integer dept_pk,
-																@QueryParam("employee") final String empl_pk,
-																@QueryParam("date") final String dateStr,
-																@QueryParam("from") final String fromStr,
-																@QueryParam("interval") final Integer interval) {
+	public Map<String, List<Map<Integer, Object>>> getSitesStatsV2(
+																	@QueryParam("department") final Integer dept_pk,
+																	@QueryParam("employee") final String empl_pk,
+																	@QueryParam("date") final String dateStr,
+																	@QueryParam("from") final String fromStr,
+																	@QueryParam("interval") final Integer interval) {
 
-		final Table<Record7<String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
+		final Table<Record8<Integer, String, Integer, @NonNull Integer, @NonNull Integer, @NonNull Integer, Integer, String>> sitesStats = Constants
 				.selectSitesStats(
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(null, dept_pk, dateStr)),
@@ -310,7 +369,7 @@ public class StatisticsEndpoint {
 								DSL.arrayAgg(sitesStats.field("validity")).as("validity"))
 				.from(sitesStats)
 				.groupBy(sitesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK))
-				.fetchMap(SITES_EMPLOYEES.SIEM_SITE_FK, new RecordMapper<Record, Map<Integer, Object>>() {
+				.fetchGroups(SITES_EMPLOYEES.SIEM_SITE_FK, new RecordMapper<Record, Map<Integer, Object>>() {
 
 					@Override
 					public Map<Integer, Object> map(final Record record) {

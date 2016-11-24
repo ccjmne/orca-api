@@ -2,6 +2,7 @@ package org.ccjmne.faomaintenance.api.utils;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
@@ -11,6 +12,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIF
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 
 import org.ccjmne.faomaintenance.jooq.classes.tables.Updates;
@@ -19,8 +21,10 @@ import org.jooq.DatePart;
 import org.jooq.Field;
 import org.jooq.Record4;
 import org.jooq.Record5;
-import org.jooq.Record7;
+import org.jooq.Record8;
+import org.jooq.Record9;
 import org.jooq.Select;
+import org.jooq.SelectHavingStep;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.types.YearToMonth;
@@ -164,10 +168,10 @@ public class Constants {
 	 * <code>SITES_EMPLOYEES.SIEM_SITE_FK</code>.
 	 */
 	@SuppressWarnings("null")
-	public static Select<Record7<String, Integer, Integer, Integer, Integer, Integer, String>> selectSitesStats(
-																												final String dateStr,
-																												final Condition employeesSelection,
-																												final Condition sitesSelection) {
+	public static Select<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> selectSitesStats(
+																															final String dateStr,
+																															final Condition employeesSelection,
+																															final Condition sitesSelection) {
 		final Table<Record5<String, String, Integer, Date, String>> employeesStats = Constants
 				.selectEmployeesStats(dateStr, employeesSelection)
 				.asTable();
@@ -209,6 +213,7 @@ public class Constants {
 							certificatesStats.field(Constants.STATUS_SUCCESS, Integer.class).add(certificatesStats.field(Constants.STATUS_WARNING)),
 							Integer.valueOf(0));
 		return DSL.select(
+							SITES.SITE_DEPT_FK,
 							certificates.field(SITES_EMPLOYEES.SIEM_SITE_FK),
 							certificates.field(CERTIFICATES.CERT_PK),
 							DSL.coalesce(certificatesStats.field(Constants.STATUS_SUCCESS, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_SUCCESS),
@@ -222,6 +227,48 @@ public class Constants {
 				.from(certificatesStats)
 				.rightJoin(certificates)
 				.on(certificates.field(CERTIFICATES.CERT_PK).eq(certificatesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
-						.and(certificates.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(certificatesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK))));
+						.and(certificates.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(certificatesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK))))
+				.join(SITES).on(SITES.SITE_PK.eq(certificates.field(SITES_EMPLOYEES.SIEM_SITE_FK)));
+	}
+
+	/**
+	 * The <code>employeesSelection</code> condition should be on
+	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.<br />
+	 * The <code>sitesSelection</code> condition should be on
+	 * <code>SITES_EMPLOYEES.SIEM_SITE_FK</code>. The
+	 * <code>departmentsSelection</code> condition is ignored.
+	 */
+	@SuppressWarnings("null")
+	// TODO: remove departmentsSelection?
+	public static SelectHavingStep<Record9<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> selectDepartments(
+																																							final String dateStr,
+																																							final Condition employeesSelection,
+																																							final Condition sitesSelection,
+																																							final Condition departmentsSelection) {
+		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
+				.selectSitesStats(
+									dateStr,
+									employeesSelection,
+									sitesSelection)
+				.asTable();
+
+		return DSL.select(
+							sitesStats.field(SITES.SITE_DEPT_FK),
+							sitesStats.field(CERTIFICATES.CERT_PK),
+							DSL.sum(sitesStats.field(Constants.STATUS_SUCCESS, Integer.class)).as(Constants.STATUS_SUCCESS),
+							DSL.sum(sitesStats.field(Constants.STATUS_WARNING, Integer.class)).as(Constants.STATUS_WARNING),
+							DSL.sum(sitesStats.field(Constants.STATUS_DANGER, Integer.class)).as(Constants.STATUS_DANGER),
+							DSL.count().filterWhere(sitesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS))
+									.as("sites_" + Constants.STATUS_SUCCESS),
+							DSL.count().filterWhere(sitesStats.field("validity", String.class).eq(Constants.STATUS_WARNING))
+									.as("sites_" + Constants.STATUS_WARNING),
+							DSL.count().filterWhere(sitesStats.field("validity", String.class).eq(Constants.STATUS_DANGER))
+									.as("sites_" + Constants.STATUS_DANGER),
+							DSL.round(DSL.sum(DSL
+									.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS), DSL.val(1f))
+									.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_WARNING), DSL.val(2 / 3f))
+									.otherwise(DSL.val(0f))).mul(DSL.val(100)).div(DSL.count())).as("score"))
+				.from(sitesStats)
+				.groupBy(sitesStats.field(SITES.SITE_DEPT_FK), sitesStats.field(CERTIFICATES.CERT_PK));
 	}
 }
