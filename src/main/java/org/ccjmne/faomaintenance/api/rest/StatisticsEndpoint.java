@@ -129,10 +129,7 @@ public class StatisticsEndpoint {
 	@SuppressWarnings("null")
 	public Map<Integer, Record8<Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> getDepartmentStats(
 																																		@PathParam("dept_pk") final Integer dept_pk,
-																																		@QueryParam("date") final String dateStr,
-																																		@QueryParam("from") final String fromStr,
-																																		@QueryParam("interval") final Integer interval) {
-
+																																		@QueryParam("date") final String dateStr) {
 		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
 				.selectSitesStats(
 									dateStr,
@@ -163,7 +160,7 @@ public class StatisticsEndpoint {
 	@GET
 	@Path("departments")
 	public Map<Integer, Map<Integer, Object>> getDepartmentsStats(@QueryParam("date") final String dateStr) {
-
+		// TODO: implement and use resources#selectDepartments();
 		final Table<Record9<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> departmentsStats = Constants
 				.selectDepartments(
 									dateStr,
@@ -218,13 +215,7 @@ public class StatisticsEndpoint {
 	@Path("sites/{site_pk}")
 	public Result<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> getSiteStats(
 																												@PathParam("site_pk") final String site_pk,
-																												@QueryParam("date") final String dateStr,
-																												@QueryParam("from") final String fromStr,
-																												@QueryParam("interval") final Integer interval) {
-		if (!this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
-			throw new ForbiddenException();
-		}
-
+																												@QueryParam("date") final String dateStr) {
 		return this.ctx.selectQuery(Constants
 				.selectSitesStats(
 									dateStr,
@@ -237,13 +228,7 @@ public class StatisticsEndpoint {
 	@Path("employees/{empl_pk}")
 	public Map<Integer, Record5<String, String, Integer, Date, String>> getEmployeeStats(
 																							@PathParam("empl_pk") final String empl_pk,
-																							@QueryParam("date") final String dateStr,
-																							@QueryParam("from") final String fromStr,
-																							@QueryParam("interval") final Integer interval) {
-		if (!this.restrictions.canAccessEmployee(empl_pk)) {
-			throw new ForbiddenException();
-		}
-
+																							@QueryParam("date") final String dateStr) {
 		return this.ctx.selectQuery(Constants
 				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk)))
 				.fetchMap(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
@@ -253,10 +238,7 @@ public class StatisticsEndpoint {
 	@Path("sites")
 	public Map<String, List<Map<Integer, Object>>> getSitesStats(
 																	@QueryParam("department") final Integer dept_pk,
-																	@QueryParam("employee") final String empl_pk,
-																	@QueryParam("date") final String dateStr,
-																	@QueryParam("from") final String fromStr,
-																	@QueryParam("interval") final Integer interval) {
+																	@QueryParam("date") final String dateStr) {
 
 		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
 				.selectSitesStats(

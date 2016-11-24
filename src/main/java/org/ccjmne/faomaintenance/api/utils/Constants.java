@@ -129,6 +129,8 @@ public class Constants {
 				.otherwise(Constants.STATUS_DANGER);
 	}
 
+	// TODO: move everything below in StatisticsEndpoint?
+
 	/**
 	 * The <code>Condition</code> should be on
 	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.
