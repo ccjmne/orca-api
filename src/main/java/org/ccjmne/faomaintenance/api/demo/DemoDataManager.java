@@ -97,8 +97,6 @@ public class DemoDataManager {
 						DemoDataTrainings.generate(transactionCtx);
 						DemoDataUsers.generate(transactionCtx);
 					} catch (final Exception e) {
-						// TODO: remove
-						e.printStackTrace();
 						LOGGER.error("An error occured during demo data restoration.", e);
 					}
 				});
