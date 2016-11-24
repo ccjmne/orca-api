@@ -1,6 +1,7 @@
 package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
@@ -59,6 +60,7 @@ public class StatisticsEndpoint {
 	private final ResourcesEndpoint resources;
 	private final ResourcesByKeysCommonEndpoint commonResources;
 
+	// TODO: remove and delegate it all to ResourcesEndpoint
 	private final Restrictions restrictions;
 
 	@Inject
@@ -133,8 +135,9 @@ public class StatisticsEndpoint {
 		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
 				.selectSitesStats(
 									dateStr,
-									TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(null, dept_pk, dateStr)),
-									SITES_EMPLOYEES.SIEM_SITE_FK.in(this.resources.selectSites(dept_pk)))
+									TRAININGS_EMPLOYEES.TREM_EMPL_FK
+											.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, null, dept_pk, null, dateStr))),
+									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, dept_pk, false))))
 				.asTable();
 
 		return this.ctx.select(
@@ -162,11 +165,12 @@ public class StatisticsEndpoint {
 	public Map<Integer, Map<Integer, Object>> getDepartmentsStats(@QueryParam("date") final String dateStr) {
 		// TODO: implement and use resources#selectDepartments();
 		final Table<Record9<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> departmentsStats = Constants
-				.selectDepartments(
-									dateStr,
-									TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(null, null, dateStr)),
-									SITES_EMPLOYEES.SIEM_SITE_FK.in(this.resources.selectSites(null)),
-									null)
+				.selectDepartmentsStats(
+										dateStr,
+										TRAININGS_EMPLOYEES.TREM_EMPL_FK
+												.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, null, null, null, dateStr))),
+										SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, null, false))),
+										null)
 				.asTable();
 
 		return this.ctx.select(
@@ -203,8 +207,9 @@ public class StatisticsEndpoint {
 		return this.ctx.selectQuery(Constants
 				.selectSitesStats(
 									dateStr,
-									TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(site_pk, null, dateStr)),
-									SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)))))
+									TRAININGS_EMPLOYEES.TREM_EMPL_FK
+											.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, site_pk, null, null, dateStr))),
+									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(site_pk, null, false)))))
 				.fetch();
 	}
 
@@ -217,8 +222,9 @@ public class StatisticsEndpoint {
 		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
 				.selectSitesStats(
 									dateStr,
-									TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(null, dept_pk, dateStr)),
-									SITES_EMPLOYEES.SIEM_SITE_FK.in(this.resources.selectSites(dept_pk)))
+									TRAININGS_EMPLOYEES.TREM_EMPL_FK
+											.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, null, dept_pk, null, dateStr))),
+									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, dept_pk, false))))
 				.asTable();
 
 		return this.ctx.select(
@@ -256,7 +262,8 @@ public class StatisticsEndpoint {
 		final Table<Record5<String, String, Integer, Date, String>> employeesStats = Constants
 				.selectEmployeesStats(
 										dateStr,
-										TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(this.resources.selectEmployees(site_pk, dept_pk, dateStr)))
+										TRAININGS_EMPLOYEES.TREM_EMPL_FK
+												.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, site_pk, dept_pk, null, dateStr))))
 				.asTable();
 
 		return this.ctx

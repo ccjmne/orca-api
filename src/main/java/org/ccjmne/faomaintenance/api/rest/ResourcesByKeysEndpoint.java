@@ -28,40 +28,42 @@ public class ResourcesByKeysEndpoint {
 
 	@GET
 	@Path("employees")
-	public Map<String, Record> listEmployees(
-												@QueryParam("site") final String site_pk,
-												@QueryParam("date") final String dateStr,
-												@QueryParam("training") final String trng_pk,
-												@QueryParam("fields") final String fields) {
-		return this.resources.listEmployees(site_pk, dateStr, trng_pk, fields).intoMap(EMPLOYEES.EMPL_PK);
+	public Map<String, ? extends Record> listEmployees(
+														@QueryParam("employee") final String empl_pk,
+														@QueryParam("site") final String site_pk,
+														@QueryParam("department") final Integer dept_pk,
+														@QueryParam("training") final Integer trng_pk,
+														@QueryParam("date") final String dateStr,
+														@QueryParam("fields") final String fields) {
+		return this.resources.listEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr, fields).intoMap(EMPLOYEES.EMPL_PK);
 	}
 
 	@GET
 	@Path("sites")
-	public Map<String, Record> listSites(
-											@QueryParam("department") final Integer department,
-											@QueryParam("employee") final String employee,
-											@QueryParam("date") final String dateStr,
-											@QueryParam("unlisted") final boolean unlisted) {
-		return this.resources.listSites(department, employee, dateStr, unlisted).intoMap(SITES.SITE_PK);
-	}
-
-	@GET
-	@Path("trainings")
-	public Map<Integer, Record> listTrainingsByKeys(
-													@QueryParam("employee") final String empl_pk,
-													@QueryParam("type") final List<Integer> types,
+	public Map<String, ? extends Record> listSites(
+													@QueryParam("site") final String site_pk,
+													@QueryParam("department") final Integer dept_pk,
 													@QueryParam("date") final String dateStr,
-													@QueryParam("from") final String fromStr,
-													@QueryParam("to") final String toStr,
-													@QueryParam("completed") final Boolean completedOnly)
-			throws ParseException {
-		return this.resources.listTrainings(empl_pk, types, dateStr, fromStr, toStr, completedOnly).intoMap(TRAININGS.TRNG_PK);
+													@QueryParam("unlisted") final boolean unlisted) {
+		return this.resources.listSites(site_pk, dept_pk, dateStr, unlisted).intoMap(SITES.SITE_PK);
 	}
 
 	@GET
 	@Path("departments")
 	public Map<Integer, ? extends Record> listDepartments(@QueryParam("site") final String site_pk, @QueryParam("unlisted") final boolean unlisted) {
 		return this.resources.listDepartments(site_pk, unlisted).intoMap(DEPARTMENTS.DEPT_PK);
+	}
+
+	@GET
+	@Path("trainings")
+	public Map<Integer, Record> listTrainings(
+												@QueryParam("employee") final String empl_pk,
+												@QueryParam("type") final List<Integer> types,
+												@QueryParam("date") final String dateStr,
+												@QueryParam("from") final String fromStr,
+												@QueryParam("to") final String toStr,
+												@QueryParam("completed") final Boolean completedOnly)
+			throws ParseException {
+		return this.resources.listTrainings(empl_pk, types, dateStr, fromStr, toStr, completedOnly).intoMap(TRAININGS.TRNG_PK);
 	}
 }

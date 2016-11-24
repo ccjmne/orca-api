@@ -142,6 +142,16 @@ public class Restrictions {
 		return this.accessAllSites || ((this.accessibleDepartment != null) && this.accessibleDepartment.equals(dept_pk));
 	}
 
+	public boolean canAccessSite(final String site_pk) {
+		return this.accessAllSites || (this.accessibleSites.contains(site_pk));
+	}
+
+	/**
+	 * Queries the database every time it's used. Let's try to not use it and
+	 * see how it goes.
+	 */
+	@Deprecated
+	// TODO: remove?
 	public boolean canAccessEmployee(final String empl_pk) {
 		return this.accessAllSites || this.ctx.fetchExists(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk)
 				.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE))

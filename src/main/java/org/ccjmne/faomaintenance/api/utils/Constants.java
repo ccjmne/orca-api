@@ -19,13 +19,17 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.Updates;
 import org.jooq.Condition;
 import org.jooq.DatePart;
 import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.Record1;
 import org.jooq.Record4;
 import org.jooq.Record5;
 import org.jooq.Record8;
 import org.jooq.Record9;
 import org.jooq.Select;
 import org.jooq.SelectHavingStep;
+import org.jooq.SelectQuery;
 import org.jooq.Table;
+import org.jooq.TableLike;
 import org.jooq.impl.DSL;
 import org.jooq.types.YearToMonth;
 
@@ -71,6 +75,11 @@ public class Constants {
 	public static Field<?>[] USERS_FIELDS = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK, USERS.USER_DEPT_FK };
 	public static final Field<Integer> LATEST_UPDATE = DSL.coalesce(DSL.select(UPDATES.UPDT_PK)
 			.from(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.select(DSL.max(UPDATES.UPDT_DATE)).from(UPDATES))).asField(), NO_UPDATE);
+
+	public static <T> Select<Record1<T>> select(final Field<T> field, final SelectQuery<? extends Record> query) {
+		final TableLike<? extends Record> table = query.asTable();
+		return DSL.select(table.field(field)).from(table);
+	}
 
 	public static Field<Date> fieldDate(final String dateStr) {
 		return dateStr != null ? DSL.date(dateStr) : DSL.currentDate();
@@ -242,7 +251,7 @@ public class Constants {
 	 */
 	@SuppressWarnings("null")
 	// TODO: remove departmentsSelection?
-	public static SelectHavingStep<Record9<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> selectDepartments(
+	public static SelectHavingStep<Record9<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> selectDepartmentsStats(
 																																							final String dateStr,
 																																							final Condition employeesSelection,
 																																							final Condition sitesSelection,

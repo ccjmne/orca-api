@@ -2,6 +2,7 @@ package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
@@ -11,8 +12,6 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -28,14 +27,10 @@ import org.ccjmne.faomaintenance.api.modules.Restrictions;
 import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.UpdatesRecord;
-import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.JoinType;
 import org.jooq.Record;
-import org.jooq.Record1;
-import org.jooq.Record4;
 import org.jooq.Result;
 import org.jooq.Select;
 import org.jooq.SelectQuery;
@@ -45,39 +40,49 @@ import org.jooq.impl.DSL;
 public class ResourcesEndpoint {
 
 	private final DSLContext ctx;
-	private final ResourcesUnrestricted unrestrictedResources;
 	private final Restrictions restrictions;
 
 	@Inject
 	public ResourcesEndpoint(final DSLContext ctx, final ResourcesUnrestricted unrestrictedResources, final Restrictions restrictions) {
 		this.ctx = ctx;
-		this.unrestrictedResources = unrestrictedResources;
 		this.restrictions = restrictions;
 	}
 
-	@GET
-	@Path("updates")
-	// TODO: move to UpdateEndpoint?
-	public Result<UpdatesRecord> listUpdates() {
-		return this.ctx.selectFrom(UPDATES).orderBy(UPDATES.UPDT_DATE.desc()).fetch();
+	public SelectQuery<Record> selectEmployees(final String empl_pk, final String site_pk, final Integer dept_pk, final Integer trng_pk, final String dateStr) {
+		final SelectQuery<Record> query = DSL.select().getQuery();
+		query.addFrom(EMPLOYEES);
+		query.addJoin(
+						SITES_EMPLOYEES,
+						SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
+						SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)),
+						SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, selectSites(site_pk, dept_pk, trng_pk != null))));
+
+		if (trng_pk != null) {
+			if (!this.restrictions.canAccessTrainings()) {
+				throw new ForbiddenException();
+			}
+
+			query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK), TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(trng_pk));
+		}
+
+		if (empl_pk != null) {
+			query.addConditions(EMPLOYEES.EMPL_PK.eq(empl_pk));
+		}
+
+		return query;
 	}
 
 	@GET
 	@Path("employees")
-	public Result<Record> listEmployees(
-										@QueryParam("site") final String site_pk,
-										@QueryParam("date") final String dateStr,
-										@QueryParam("training") final String trng_pk,
-										@QueryParam("fields") final String fields) {
-
-		// TODO: use selectEmployees();
-
-		if ((site_pk != null) && !this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
-			throw new ForbiddenException();
-		}
-
-		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
-			if ((fields != null) && fields.equals(Constants.FIELDS_ALL)) {
+	public Result<? extends Record> listEmployees(
+													@QueryParam("employee") final String empl_pk,
+													@QueryParam("site") final String site_pk,
+													@QueryParam("department") final Integer dept_pk,
+													@QueryParam("training") final Integer trng_pk,
+													@QueryParam("date") final String dateStr,
+													@QueryParam("fields") final String fields) {
+		try (final SelectQuery<? extends Record> query = selectEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr)) {
+			if (Constants.FIELDS_ALL.equals(fields)) {
 				query.addSelect(EMPLOYEES.fields());
 				query.addSelect(SITES_EMPLOYEES.fields());
 			} else {
@@ -90,131 +95,103 @@ public class ResourcesEndpoint {
 								SITES_EMPLOYEES.SIEM_SITE_FK);
 			}
 
-			query.addFrom(EMPLOYEES);
-
-			if (site_pk != null) {
-				query.addJoin(
-								SITES_EMPLOYEES,
-								SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-								SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk),
-								SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)));
-			} else {
-				query.addJoin(
-								SITES_EMPLOYEES,
-								SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-								SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)));
-
-				if (trng_pk == null) {
-					query.addConditions(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE));
-				}
-
-				if (!this.restrictions.canAccessAllSites()) {
-					query.addConditions(SITES_EMPLOYEES.SIEM_SITE_FK.in(this.restrictions.getAccessibleSites()));
-				}
-			}
-
 			if (trng_pk != null) {
-				if (!this.restrictions.canAccessTrainings()) {
-					throw new ForbiddenException();
-				}
-
 				query.addSelect(TRAININGS_EMPLOYEES.fields());
-				query.addJoin(
-								TRAININGS_EMPLOYEES,
-								TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(Integer.valueOf(trng_pk)),
-								TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK));
 			}
 
-			return query.fetch();
+			return this.ctx.fetch(query);
 		}
-	}
-
-	public Select<Record1<String>> selectEmployees(final String site_pk, final Integer dept_pk, final String dateStr) {
-		// TODO: select by trng_pk;
-		final Collection<Condition> conditions = new ArrayList<>();
-		conditions.add(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)));
-		conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE));
-
-		if (!this.restrictions.canAccessAllSites()) {
-			conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.in(this.restrictions.getAccessibleSites()));
-			if (dept_pk != null) {
-				if (!this.restrictions.getAccessibleDepartment().equals(dept_pk)) {
-					throw new ForbiddenException();
-				}
-			}
-
-			if (site_pk != null) {
-				if (!this.restrictions.getAccessibleSites().contains(site_pk)) {
-					throw new ForbiddenException();
-				}
-			}
-		}
-
-		if (dept_pk != null) {
-			conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.in(DSL.select(SITES.SITE_PK).from(SITES).where(SITES.SITE_DEPT_FK.eq(dept_pk))));
-		}
-
-		if (site_pk != null) {
-			conditions.add(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk));
-		}
-
-		return DSL.select(SITES_EMPLOYEES.SIEM_EMPL_FK).from(SITES_EMPLOYEES).where(conditions);
-	}
-
-	public Select<Record1<String>> selectSites(final Integer dept_pk) {
-		if ((dept_pk != null) && !this.restrictions.canAccessDepartment(dept_pk)) {
-			throw new ForbiddenException();
-		}
-
-		final Collection<Condition> conditions = new ArrayList<>();
-		conditions.add(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE));
-		if (dept_pk != null) {
-			conditions.add(SITES.SITE_DEPT_FK.eq(dept_pk));
-		}
-
-		if (!this.restrictions.canAccessAllSites()) {
-			conditions.add(SITES.SITE_PK.in(this.restrictions.getAccessibleSites()));
-		}
-
-		return DSL.select(SITES.SITE_PK).from(SITES).where(conditions);
 	}
 
 	@GET
 	@Path("employees/{empl_pk}")
-	public EmployeesRecord lookupEmployee(@PathParam("empl_pk") final String empl_pk) {
-		if (!this.restrictions.canAccessEmployee(empl_pk)) {
-			throw new ForbiddenException();
-		}
-
-		return this.ctx.selectFrom(EMPLOYEES).where(EMPLOYEES.EMPL_PK.equal(empl_pk)).fetchOne();
+	public Record lookupEmployee(@PathParam("empl_pk") final String empl_pk, @QueryParam("date") final String dateStr) {
+		return listEmployees(empl_pk, null, null, null, dateStr, Constants.FIELDS_ALL).get(0);
 	}
 
 	@GET
 	@Path("employees/{empl_pk}/voiding")
 	// TODO: /voiding -> /voidings
-	public Result<EmployeesCertificatesOptoutRecord> getEmployeeVoiding(@PathParam("empl_pk") final String empl_pk) {
+	// TODO: merge with employees listing/lookup?
+	public Map<Integer, EmployeesCertificatesOptoutRecord> getEmployeeVoiding(@PathParam("empl_pk") final String empl_pk) {
 		if (!this.restrictions.canAccessEmployee(empl_pk)) {
 			throw new ForbiddenException();
 		}
 
-		return this.unrestrictedResources.listCertificatesVoiding(empl_pk);
+		return this.ctx
+				.selectFrom(EMPLOYEES_CERTIFICATES_OPTOUT).where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk))
+				.fetchMap(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK);
+	}
+
+	public SelectQuery<Record> selectSites(final String site_pk, final Integer dept_pk, final boolean unlisted) {
+		final SelectQuery<Record> query = DSL.select().getQuery();
+		query.addFrom(SITES);
+		if (site_pk != null) {
+			if (!this.restrictions.canAccessSite(site_pk)) {
+				throw new ForbiddenException();
+			}
+
+			query.addConditions(SITES.SITE_PK.eq(site_pk));
+		}
+
+		if (dept_pk != null) {
+			if (!this.restrictions.canAccessDepartment(dept_pk)) {
+				throw new ForbiddenException();
+			}
+
+			query.addConditions(SITES.SITE_DEPT_FK.eq(dept_pk));
+		}
+
+		if ((site_pk == null) && (dept_pk == null) && !this.restrictions.canAccessAllSites()) {
+			query.addConditions(SITES.SITE_PK.in(this.restrictions.getAccessibleSites()));
+		}
+
+		if (!unlisted || !this.restrictions.canAccessAllSites()) {
+			query.addConditions(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE));
+		}
+
+		return query;
 	}
 
 	@GET
 	@Path("sites")
 	public Result<Record> listSites(
+									@QueryParam("site") final String site_pk,
 									@QueryParam("department") final Integer dept_pk,
-									@QueryParam("employee") final String empl_pk,
 									@QueryParam("date") final String dateStr,
 									@QueryParam("unlisted") final boolean unlisted) {
 
-		// TODO: use selectSites()
+		try (final SelectQuery<Record> query = selectSites(site_pk, dept_pk, unlisted)) {
+			query.addSelect(SITES.fields());
+			query.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
+			query.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));
+			query.addJoin(
+							SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)),
+							unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
+							SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))));
+			query.addGroupBy(SITES.fields());
+			return this.ctx.fetch(query);
+		}
+	}
 
-		if ((empl_pk != null) && !this.restrictions.canAccessEmployee(empl_pk)) {
+	@GET
+	@Path("sites/{site_pk}")
+	public Record lookupSite(
+								@PathParam("site_pk") final String site_pk,
+								@QueryParam("date") final String dateStr) {
+		return listSites(site_pk, null, dateStr, true).get(0);
+	}
+
+	// TODO: REWRITE EVERYTHING BELOW
+
+	@GET
+	@Path("departments")
+	public Result<? extends Record> listDepartments(@QueryParam("site") final String site_pk, @QueryParam("unlisted") final boolean unlisted) {
+		if (!this.restrictions.canAccessAllSites() && (this.restrictions.getAccessibleDepartment() == null)) {
 			throw new ForbiddenException();
 		}
 
-		if ((dept_pk != null) && !this.restrictions.canAccessDepartment(dept_pk)) {
+		if ((site_pk != null) && !this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
 			throw new ForbiddenException();
 		}
 
@@ -222,73 +199,37 @@ public class ResourcesEndpoint {
 				final SelectQuery<Record> query = this.ctx.selectQuery();
 				final Select<? extends Record> employees = DSL
 						.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)))) {
-			query.addSelect(SITES.fields());
-			query.addGroupBy(SITES.fields());
-			query.addFrom(SITES);
-			query.addSelect(DSL.count(employees.field(SITES_EMPLOYEES.SIEM_SITE_FK)));
-			query.addJoin(
-							employees,
-							unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
-							employees.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(SITES.SITE_PK));
-			query.addConditions(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE));
-
-			if (dept_pk != null) {
-				query.addConditions(SITES.SITE_DEPT_FK.eq(dept_pk));
+						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE))) {
+			query.addSelect(DEPARTMENTS.fields());
+			query.addSelect(DSL.count(SITES.SITE_PK));
+			query.addFrom(DEPARTMENTS);
+			query.addGroupBy(DEPARTMENTS.fields());
+			query.addJoin(SITES, unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN, SITES.SITE_DEPT_FK.eq(DEPARTMENTS.DEPT_PK));
+			if (site_pk != null) {
+				query.addConditions(DEPARTMENTS.DEPT_PK.eq(DSL.select(SITES.SITE_DEPT_FK).from(SITES).where(SITES.SITE_PK.eq(site_pk))));
 			}
 
-			if (empl_pk != null) {
-				query.addConditions(SITES.SITE_PK.eq(DSL.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-						.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))))));
+			if (!unlisted) {
+				query.addJoin(employees, JoinType.JOIN, employees.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(SITES.SITE_PK));
 			}
 
 			if (!this.restrictions.canAccessAllSites()) {
-				query.addConditions(SITES.SITE_PK.in(this.restrictions.getAccessibleSites()));
+				query.addConditions(DEPARTMENTS.DEPT_PK.eq(this.restrictions.getAccessibleDepartment()));
 			}
 
+			query.addConditions(DEPARTMENTS.DEPT_PK.ne(DSL.val(Constants.UNASSIGNED_DEPT)));
 			return query.fetch();
 		}
 	}
 
 	@GET
-	@Path("sites/{site_pk}")
-	public Record lookupSite(@PathParam("site_pk") final String site_pk) {
-		if (!this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
+	@Path("departments/{dept_pk}")
+	public Record lookupDepartment(@PathParam("dept_pk") final Integer dept_pk) {
+		if (!this.restrictions.canAccessAllSites() && !this.restrictions.canAccessDepartment(dept_pk)) {
 			throw new ForbiddenException();
 		}
 
-		return this.ctx.selectFrom(SITES).where(SITES.SITE_PK.eq(site_pk)).fetchOne();
-	}
-
-	@GET
-	@Path("sites/{site_pk}/history")
-	// TODO: remove?
-	@Deprecated
-	public Map<Date, Result<Record4<String, Boolean, String, Date>>> getSiteEmployeesHistory(@PathParam("site_pk") final String site_pk) {
-		if (!this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
-			throw new ForbiddenException();
-		}
-
-		return this.ctx.select(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_PERMANENT, SITES_EMPLOYEES.SIEM_SITE_FK, UPDATES.UPDT_DATE).from(SITES_EMPLOYEES)
-				.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK))
-				.join(UPDATES).on(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(UPDATES.UPDT_PK))
-				.where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk))
-				.fetchGroups(UPDATES.UPDT_DATE);
-	}
-
-	@GET
-	@Path("update")
-	// TODO: move to UpdateEndpoint?
-	public Record getUpdateFor(@QueryParam("date") final String dateStr) throws ParseException {
-		if (dateStr != null) {
-			return this.ctx.selectFrom(UPDATES)
-					.where(UPDATES.UPDT_DATE.eq(DSL
-							.select(DSL.max(UPDATES.UPDT_DATE)).from(UPDATES)
-							.where(UPDATES.UPDT_DATE.le(SafeDateFormat.parseAsSql(dateStr)))))
-					.fetchAny();
-		}
-
-		return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.select(DSL.max(UPDATES.UPDT_DATE)).from(UPDATES))).fetchAny();
+		return this.ctx.selectFrom(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).fetchOne();
 	}
 
 	@GET
@@ -378,50 +319,16 @@ public class ResourcesEndpoint {
 	}
 
 	@GET
-	@Path("departments")
-	public Result<? extends Record> listDepartments(@QueryParam("site") final String site_pk, @QueryParam("unlisted") final boolean unlisted) {
-		if (!this.restrictions.canAccessAllSites() && (this.restrictions.getAccessibleDepartment() == null)) {
-			throw new ForbiddenException();
-		}
-
-		if ((site_pk != null) && !this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
-			throw new ForbiddenException();
-		}
-
-		try (
-				final SelectQuery<Record> query = this.ctx.selectQuery();
-				final Select<? extends Record> employees = DSL
-						.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE))) {
-			query.addSelect(DEPARTMENTS.fields());
-			query.addSelect(DSL.count(SITES.SITE_PK));
-			query.addFrom(DEPARTMENTS);
-			query.addGroupBy(DEPARTMENTS.fields());
-			query.addJoin(SITES, unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN, SITES.SITE_DEPT_FK.eq(DEPARTMENTS.DEPT_PK));
-			if (site_pk != null) {
-				query.addConditions(DEPARTMENTS.DEPT_PK.eq(DSL.select(SITES.SITE_DEPT_FK).from(SITES).where(SITES.SITE_PK.eq(site_pk))));
-			}
-
-			if (!unlisted) {
-				query.addJoin(employees, JoinType.JOIN, employees.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(SITES.SITE_PK));
-			}
-
-			if (!this.restrictions.canAccessAllSites()) {
-				query.addConditions(DEPARTMENTS.DEPT_PK.eq(this.restrictions.getAccessibleDepartment()));
-			}
-
-			query.addConditions(DEPARTMENTS.DEPT_PK.ne(DSL.val(Constants.UNASSIGNED_DEPT)));
-			return query.fetch();
-		}
+	@Path("updates")
+	// TODO: move to UpdateEndpoint?
+	public Result<UpdatesRecord> listUpdates() {
+		return this.ctx.selectFrom(UPDATES).orderBy(UPDATES.UPDT_DATE.desc()).fetch();
 	}
 
 	@GET
-	@Path("departments/{dept_pk}")
-	public Record lookupDepartment(@PathParam("dept_pk") final Integer dept_pk) {
-		if (!this.restrictions.canAccessAllSites() && !this.restrictions.canAccessDepartment(dept_pk)) {
-			throw new ForbiddenException();
-		}
-
-		return this.ctx.selectFrom(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).fetchOne();
+	@Path("updates/{date}")
+	// TODO: move to UpdateEndpoint?
+	public Record getUpdateFor(@PathParam("date") final String dateStr) {
+		return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_PK.eq(Constants.selectUpdate(dateStr))).fetchAny();
 	}
 }
