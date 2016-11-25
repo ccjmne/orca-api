@@ -213,6 +213,19 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
+	@Path("sites/{site_pk}/history")
+	public Map<Object, Object> getSiteStatsHistory(
+													@PathParam("site_pk") final String site_pk,
+													@QueryParam("from") final String from,
+													@QueryParam("to") final String to,
+													@QueryParam("interval") final Integer interval)
+			throws ParseException {
+		return StatisticsEndpoint.computeDates(from, to, interval).stream()
+				.map(date -> Collections.singletonMap(date, getSiteStats(site_pk, date.toString())))
+				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
+	}
+
+	@GET
 	@Path("sites")
 	public Map<String, Map<Integer, Object>> getSitesStats(
 															@QueryParam("department") final Integer dept_pk,
@@ -318,7 +331,8 @@ public class StatisticsEndpoint {
 		}
 	}
 
-	private static List<Date> computeDates(final String fromStr, final String toStr, final Integer intervalRaw) throws ParseException {
+	public static List<Date> computeDates(final String fromStr, final String toStr, final Integer intervalRaw)
+			throws ParseException {
 		final Date utmost = (toStr == null) ? new Date(new java.util.Date().getTime()) : SafeDateFormat.parseAsSql(toStr);
 		if (fromStr == null) {
 			return Collections.singletonList(utmost);
