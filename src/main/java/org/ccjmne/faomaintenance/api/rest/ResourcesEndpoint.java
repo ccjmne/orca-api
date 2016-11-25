@@ -8,6 +8,7 @@ import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
@@ -101,6 +102,25 @@ public class ResourcesEndpoint {
 
 			return this.ctx.fetch(query);
 		}
+	}
+
+	@GET
+	@Path("employees/trainings")
+	public Map<String, Result<Record>> listEmployeesTrainings(
+																@QueryParam("employee") final String empl_pk,
+																@QueryParam("site") final String site_pk,
+																@QueryParam("department") final Integer dept_pk,
+																@QueryParam("training") final Integer trng_pk,
+																@QueryParam("date") final String dateStr) {
+		return this.ctx
+				.select(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS.TRNG_DATE)
+				.select(DSL.arrayAgg(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK).as("certificates"))
+				.from(TRAININGS_EMPLOYEES)
+				.join(TRAININGS).on(TRAININGS.TRNG_PK.eq(TRAININGS_EMPLOYEES.TREM_TRNG_FK))
+				.join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGS.TRNG_TRTY_FK))
+				.where(TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(Constants.select(EMPLOYEES.EMPL_PK, selectEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr))))
+				.groupBy(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS.TRNG_DATE)
+				.fetchGroups(TRAININGS_EMPLOYEES.TREM_EMPL_FK);
 	}
 
 	@GET
