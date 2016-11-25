@@ -116,7 +116,7 @@ public class UsersEndpoint {
 
 	/**
 	 * Not part of the exposed API. Used by {@link AccountEndpoint} only.<br />
-	 * Return account information and corresponding {@link Restrictions} for a
+	 * Returns account information and corresponding {@link Restrictions} for a
 	 * given user ID.
 	 */
 	public static Map<String, Object> getUserInfoImpl(final String user_id, final DSLContext ctx) {

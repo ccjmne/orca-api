@@ -73,15 +73,14 @@ public class Constants {
 
 	// ---- SUBQUERIES AND FIELDS
 	public static Field<?>[] USERS_FIELDS = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK, USERS.USER_DEPT_FK };
-	public static final Field<Integer> LATEST_UPDATE = DSL.coalesce(DSL.select(UPDATES.UPDT_PK)
-			.from(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.select(DSL.max(UPDATES.UPDT_DATE)).from(UPDATES))).asField(), NO_UPDATE);
+	public static final Field<Integer> CURRENT_UPDATE = Constants.selectUpdate(null);
 
 	public static <T> Select<Record1<T>> select(final Field<T> field, final SelectQuery<? extends Record> query) {
 		final TableLike<? extends Record> table = query.asTable();
 		return DSL.select(table.field(field)).from(table);
 	}
 
-	public static Field<Date> fieldDate(final String dateStr) {
+	private static Field<Date> fieldDate(final String dateStr) {
 		return dateStr != null ? DSL.date(dateStr) : DSL.currentDate();
 	}
 
@@ -252,10 +251,10 @@ public class Constants {
 	@SuppressWarnings("null")
 	// TODO: remove departmentsSelection?
 	public static SelectHavingStep<Record9<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> selectDepartmentsStats(
-																																							final String dateStr,
-																																							final Condition employeesSelection,
-																																							final Condition sitesSelection,
-																																							final Condition departmentsSelection) {
+																																								final String dateStr,
+																																								final Condition employeesSelection,
+																																								final Condition sitesSelection,
+																																								final Condition departmentsSelection) {
 		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
 				.selectSitesStats(
 									dateStr,

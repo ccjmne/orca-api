@@ -199,7 +199,7 @@ public class ResourcesEndpoint {
 				final SelectQuery<Record> query = this.ctx.selectQuery();
 				final Select<? extends Record> employees = DSL
 						.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE))) {
+						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.CURRENT_UPDATE))) {
 			query.addSelect(DEPARTMENTS.fields());
 			query.addSelect(DSL.count(SITES.SITE_PK));
 			query.addFrom(DEPARTMENTS);

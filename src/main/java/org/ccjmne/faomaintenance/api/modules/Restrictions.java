@@ -86,7 +86,7 @@ public class Restrictions {
 						.where(SITES.SITE_PK.eq(DSL
 								.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
 								.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(user.getUserEmplFk())
-										.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE))
+										.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.CURRENT_UPDATE))
 										.and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE)))
 								.asField()))
 						.fetchOne(SITES.SITE_DEPT_FK);
@@ -110,7 +110,7 @@ public class Restrictions {
 			case Constants.USERTYPE_EMPLOYEE:
 				site = this.ctx.selectFrom(SITES_EMPLOYEES)
 						.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(user.getUserEmplFk())
-								.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE))
+								.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.CURRENT_UPDATE))
 								.and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE)))
 						.fetchOne(SITES_EMPLOYEES.SIEM_SITE_FK);
 				break;
@@ -154,7 +154,7 @@ public class Restrictions {
 	// TODO: remove?
 	public boolean canAccessEmployee(final String empl_pk) {
 		return this.accessAllSites || this.ctx.fetchExists(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk)
-				.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LATEST_UPDATE))
+				.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.CURRENT_UPDATE))
 				.and(SITES_EMPLOYEES.SIEM_SITE_FK.in(this.accessibleSites)));
 	}
 
