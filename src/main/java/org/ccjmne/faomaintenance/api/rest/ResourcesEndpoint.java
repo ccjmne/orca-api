@@ -328,7 +328,7 @@ public class ResourcesEndpoint {
 	@GET
 	@Path("updates/{date}")
 	// TODO: move to UpdateEndpoint?
-	public Record getUpdateFor(@PathParam("date") final String dateStr) {
+	public Record lookupUpdate(@PathParam("date") final String dateStr) {
 		return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_PK.eq(Constants.selectUpdate(dateStr))).fetchAny();
 	}
 }
