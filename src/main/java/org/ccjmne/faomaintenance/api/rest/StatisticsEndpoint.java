@@ -41,7 +41,6 @@ import org.jooq.Record5;
 import org.jooq.Record8;
 import org.jooq.Record9;
 import org.jooq.RecordMapper;
-import org.jooq.Result;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 
@@ -201,23 +200,23 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("sites/{site_pk}")
-	public Result<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> getSiteStats(
-																												@PathParam("site_pk") final String site_pk,
-																												@QueryParam("date") final String dateStr) {
+	public Map<Integer, Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> getSiteStats(
+																													@PathParam("site_pk") final String site_pk,
+																													@QueryParam("date") final String dateStr) {
 		return this.ctx.selectQuery(Constants
 				.selectSitesStats(
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
 											.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, site_pk, null, null, dateStr))),
 									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(site_pk, null, false)))))
-				.fetch();
+				.fetchMap(CERTIFICATES.CERT_PK);
 	}
 
 	@GET
 	@Path("sites")
-	public Map<String, List<Map<Integer, Object>>> getSitesStats(
-																	@QueryParam("department") final Integer dept_pk,
-																	@QueryParam("date") final String dateStr) {
+	public Map<String, Map<Integer, Object>> getSitesStats(
+															@QueryParam("department") final Integer dept_pk,
+															@QueryParam("date") final String dateStr) {
 
 		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
 				.selectSitesStats(
@@ -237,9 +236,9 @@ public class StatisticsEndpoint {
 								DSL.arrayAgg(sitesStats.field("validity")).as("validity"))
 				.from(sitesStats)
 				.groupBy(sitesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK))
-				.fetchGroups(
-								SITES_EMPLOYEES.SIEM_SITE_FK,
-								getZipMapper("cert_pk", Constants.STATUS_SUCCESS, Constants.STATUS_WARNING, Constants.STATUS_DANGER, "target", "validity"));
+				.fetchMap(
+							SITES_EMPLOYEES.SIEM_SITE_FK,
+							getZipMapper("cert_pk", Constants.STATUS_SUCCESS, Constants.STATUS_WARNING, Constants.STATUS_DANGER, "target", "validity"));
 	}
 
 	@GET
