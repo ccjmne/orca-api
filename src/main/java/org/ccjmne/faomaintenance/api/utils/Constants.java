@@ -218,6 +218,8 @@ public class Constants {
 
 		final Field<Integer> targetCount = DSL.ceil(certificates.field("employeesCount", Integer.class)
 				.mul(certificates.field(CERTIFICATES.CERT_TARGET).div(DSL.val(100f))));
+		final Field<Integer> warningTargetCount = DSL.ceil(certificates.field("employeesCount", Integer.class)
+				.mul(certificates.field(CERTIFICATES.CERT_TARGET).div(DSL.val(300 / 2f))));
 		final Field<Integer> validCount = DSL
 				.coalesce(
 							certificatesStats.field(Constants.STATUS_SUCCESS, Integer.class).add(certificatesStats.field(Constants.STATUS_WARNING)),
@@ -232,7 +234,7 @@ public class Constants {
 							targetCount.as("target"),
 							DSL
 									.when(validCount.ge(targetCount), Constants.STATUS_SUCCESS)
-									.when(validCount.ge(DSL.ceil(targetCount.mul(DSL.val(2).div(DSL.val(3f))))), Constants.STATUS_WARNING)
+									.when(validCount.ge(warningTargetCount), Constants.STATUS_WARNING)
 									.otherwise(Constants.STATUS_DANGER).as("validity"))
 				.from(certificatesStats)
 				.rightJoin(certificates)
