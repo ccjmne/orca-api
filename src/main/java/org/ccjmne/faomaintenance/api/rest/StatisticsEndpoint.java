@@ -142,6 +142,19 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
+	@Path("departments/{dept_pk}/history")
+	public Map<Object, Object> getDepartmentStatsHistory(
+															@PathParam("dept_pk") final Integer dept_pk,
+															@QueryParam("from") final String from,
+															@QueryParam("to") final String to,
+															@QueryParam("interval") final Integer interval)
+			throws ParseException {
+		return StatisticsEndpoint.computeDates(from, to, interval).stream()
+				.map(date -> Collections.singletonMap(date, getDepartmentStats(dept_pk, date.toString())))
+				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
+	}
+
+	@GET
 	@Path("departments")
 	public Map<Integer, Map<Integer, Object>> getDepartmentsStats(@QueryParam("date") final String dateStr) {
 		final Table<Record10<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal, String>> departmentsStats = Constants
