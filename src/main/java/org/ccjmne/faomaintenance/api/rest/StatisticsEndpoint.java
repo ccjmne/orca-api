@@ -38,9 +38,9 @@ import org.ccjmne.faomaintenance.api.utils.Constants;
 import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.Record10;
 import org.jooq.Record5;
 import org.jooq.Record8;
-import org.jooq.Record9;
 import org.jooq.RecordMapper;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
@@ -128,42 +128,23 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("departments/{dept_pk}")
-	@SuppressWarnings("null")
-	public Map<Integer, Record8<Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> getDepartmentStats(
-																																		@PathParam("dept_pk") final Integer dept_pk,
-																																		@QueryParam("date") final String dateStr) {
-		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
-				.selectSitesStats(
-									dateStr,
-									TRAININGS_EMPLOYEES.TREM_EMPL_FK
-											.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, null, dept_pk, null, dateStr))),
-									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, dept_pk, false))))
-				.asTable();
-
-		return this.ctx.select(
-								sitesStats.field(CERTIFICATES.CERT_PK),
-								DSL.sum(sitesStats.field(Constants.STATUS_SUCCESS, Integer.class)).as(Constants.STATUS_SUCCESS),
-								DSL.sum(sitesStats.field(Constants.STATUS_WARNING, Integer.class)).as(Constants.STATUS_WARNING),
-								DSL.sum(sitesStats.field(Constants.STATUS_DANGER, Integer.class)).as(Constants.STATUS_DANGER),
-								DSL.count().filterWhere(sitesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS))
-										.as("sites_" + Constants.STATUS_SUCCESS),
-								DSL.count().filterWhere(sitesStats.field("validity", String.class).eq(Constants.STATUS_WARNING))
-										.as("sites_" + Constants.STATUS_WARNING),
-								DSL.count().filterWhere(sitesStats.field("validity", String.class).eq(Constants.STATUS_DANGER))
-										.as("sites_" + Constants.STATUS_DANGER),
-								DSL.round(DSL.sum(DSL
-										.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS), DSL.val(1f))
-										.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_WARNING), DSL.val(2 / 3f))
-										.otherwise(DSL.val(0f))).mul(DSL.val(100)).div(DSL.count())).as("score"))
-				.from(sitesStats)
-				.groupBy(sitesStats.field(CERTIFICATES.CERT_PK))
-				.fetchMap(sitesStats.field(CERTIFICATES.CERT_PK));
+	public Map<Integer, Record10<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal, String>> getDepartmentStats(
+																																							@PathParam("dept_pk") final Integer dept_pk,
+																																							@QueryParam("date") final String dateStr) {
+		return this.ctx.selectQuery(Constants
+				.selectDepartmentsStats(
+										dateStr,
+										TRAININGS_EMPLOYEES.TREM_EMPL_FK
+												.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, null, dept_pk, null, dateStr))),
+										SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, dept_pk, false))),
+										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.resources.selectDepartments(dept_pk, false)))))
+				.fetchMap(CERTIFICATES.CERT_PK);
 	}
 
 	@GET
 	@Path("departments")
 	public Map<Integer, Map<Integer, Object>> getDepartmentsStats(@QueryParam("date") final String dateStr) {
-		final Table<Record9<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> departmentsStats = Constants
+		final Table<Record10<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal, String>> departmentsStats = Constants
 				.selectDepartmentsStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
@@ -184,7 +165,8 @@ public class StatisticsEndpoint {
 										Constants.STATUS_WARNING)).as("sites_" + Constants.STATUS_WARNING),
 								DSL.arrayAgg(departmentsStats.field("sites_" +
 										Constants.STATUS_DANGER)).as("sites_" + Constants.STATUS_DANGER),
-								DSL.arrayAgg(departmentsStats.field("score")).as("score"))
+								DSL.arrayAgg(departmentsStats.field("score")).as("score"),
+								DSL.arrayAgg(departmentsStats.field("validity")).as("validity"))
 				.from(departmentsStats)
 				.groupBy(departmentsStats.field(DEPARTMENTS.DEPT_PK))
 				.fetchMap(departmentsStats.field(DEPARTMENTS.DEPT_PK), getZipMapper(
@@ -195,7 +177,8 @@ public class StatisticsEndpoint {
 																					"sites_" + Constants.STATUS_SUCCESS,
 																					"sites_" + Constants.STATUS_WARNING,
 																					"sites_" + Constants.STATUS_DANGER,
-																					"score"));
+																					"score",
+																					"validity"));
 	}
 
 	@GET

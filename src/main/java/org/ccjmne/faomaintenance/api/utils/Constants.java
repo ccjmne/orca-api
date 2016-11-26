@@ -22,10 +22,10 @@ import org.jooq.DatePart;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Record1;
+import org.jooq.Record10;
 import org.jooq.Record4;
 import org.jooq.Record5;
 import org.jooq.Record8;
-import org.jooq.Record9;
 import org.jooq.Select;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
@@ -252,17 +252,22 @@ public class Constants {
 	 * <code>DEPARTMENTS.DEPT_PK</code>.
 	 */
 	@SuppressWarnings("null")
-	public static Select<Record9<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> selectDepartmentsStats(
-																																						final String dateStr,
-																																						final Condition employeesSelection,
-																																						final Condition sitesSelection,
-																																						final Condition departmentsSelection) {
+	public static Select<Record10<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal, String>> selectDepartmentsStats(
+																																								final String dateStr,
+																																								final Condition employeesSelection,
+																																								final Condition sitesSelection,
+																																								final Condition departmentsSelection) {
 		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
 				.selectSitesStats(
 									dateStr,
 									employeesSelection,
 									sitesSelection)
 				.asTable();
+
+		final Field<BigDecimal> score = DSL.round(DSL.sum(DSL
+				.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS), DSL.val(1f))
+				.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_WARNING), DSL.val(2 / 3f))
+				.otherwise(DSL.val(0f))).mul(DSL.val(100)).div(DSL.count()));
 
 		return DSL.select(
 							DEPARTMENTS.DEPT_PK,
@@ -276,10 +281,10 @@ public class Constants {
 									.as("sites_" + Constants.STATUS_WARNING),
 							DSL.count().filterWhere(sitesStats.field("validity", String.class).eq(Constants.STATUS_DANGER))
 									.as("sites_" + Constants.STATUS_DANGER),
-							DSL.round(DSL.sum(DSL
-									.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS), DSL.val(1f))
-									.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_WARNING), DSL.val(2 / 3f))
-									.otherwise(DSL.val(0f))).mul(DSL.val(100)).div(DSL.count())).as("score"))
+							score.as("score"),
+							DSL.when(score.eq(DSL.val(BigDecimal.valueOf(100))), Constants.STATUS_SUCCESS)
+									.when(score.ge(DSL.val(BigDecimal.valueOf(67))), Constants.STATUS_WARNING)
+									.otherwise(Constants.STATUS_DANGER).as("validity"))
 				.from(sitesStats)
 				.join(DEPARTMENTS).on(DEPARTMENTS.DEPT_PK.eq(sitesStats.field(SITES.SITE_DEPT_FK)))
 				.where(departmentsSelection)
