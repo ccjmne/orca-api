@@ -17,6 +17,7 @@ import javax.ws.rs.QueryParam;
 import org.jooq.Record;
 
 @Path("resources-by-keys")
+// TODO: merge with ResourcesEndpoint?
 public class ResourcesByKeysEndpoint {
 
 	final ResourcesEndpoint resources;

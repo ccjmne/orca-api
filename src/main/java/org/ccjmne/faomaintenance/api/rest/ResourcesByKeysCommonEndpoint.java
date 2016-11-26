@@ -16,6 +16,8 @@ import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
 
 @Path("resources-by-keys-common")
+// TODO: resources-common-by-keys?
+// TODO: merge with ResourcesCommonEndpoint?
 public class ResourcesByKeysCommonEndpoint {
 
 	private final ResourcesUnrestricted resources;

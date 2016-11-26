@@ -129,10 +129,10 @@ public class Constants {
 	public static Field<String> fieldValidity(final String dateStr) {
 		return DSL
 				.when(
-						EXPIRY.ge(Constants.fieldDate(dateStr).plus(new YearToMonth(0, 6))),
+						Constants.EXPIRY.ge(Constants.fieldDate(dateStr).plus(new YearToMonth(0, 6))),
 						Constants.STATUS_SUCCESS)
 				.when(
-						EXPIRY.ge(Constants.fieldDate(dateStr)),
+						Constants.EXPIRY.ge(Constants.fieldDate(dateStr)),
 						Constants.STATUS_WARNING)
 				.otherwise(Constants.STATUS_DANGER);
 	}
