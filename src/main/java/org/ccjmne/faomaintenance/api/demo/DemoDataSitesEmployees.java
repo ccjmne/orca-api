@@ -98,7 +98,7 @@ public class DemoDataSitesEmployees {
 									String.format(pk, Integer.valueOf(i)),
 									city,
 									city.replaceAll("[\\s']", "").toLowerCase() + "@orca-demo.com",
-									random(DEPARTMENTS, DEPARTMENTS.DEPT_PK, DEPARTMENTS.DEPT_PK.ne(Constants.UNASSIGNED_DEPT))));
+									random(DEPARTMENTS, DEPARTMENTS.DEPT_PK, DEPARTMENTS.DEPT_PK.ne(Constants.UNASSIGNED_DEPARTMENT))));
 	}
 
 	@SuppressWarnings("unchecked")

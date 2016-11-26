@@ -40,11 +40,11 @@ public class DemoBareWorkingState {
 				.execute();
 
 		ctx.insertInto(DEPARTMENTS, DEPARTMENTS.DEPT_PK, DEPARTMENTS.DEPT_ID, DEPARTMENTS.DEPT_NAME)
-				.values(Constants.UNASSIGNED_DEPT, "", "")
+				.values(Constants.UNASSIGNED_DEPARTMENT, "", "")
 				.execute();
 
 		ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK)
-				.values(Constants.UNASSIGNED_SITE, "", Constants.UNASSIGNED_DEPT)
+				.values(Constants.UNASSIGNED_SITE, "", Constants.UNASSIGNED_DEPARTMENT)
 				.execute();
 
 		ctx.insertInto(

@@ -1,6 +1,7 @@
 package org.ccjmne.faomaintenance.api.utils;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
@@ -26,7 +27,6 @@ import org.jooq.Record5;
 import org.jooq.Record8;
 import org.jooq.Record9;
 import org.jooq.Select;
-import org.jooq.SelectHavingStep;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.TableLike;
@@ -54,7 +54,7 @@ public class Constants {
 	public static final String USER_ROOT = "root";
 
 	public static final String UNASSIGNED_SITE = "0";
-	public static final Integer UNASSIGNED_DEPT = Integer.valueOf(0);
+	public static final Integer UNASSIGNED_DEPARTMENT = Integer.valueOf(0);
 	public static final Integer UNASSIGNED_TRAINERPROFILE = Integer.valueOf(0);
 
 	public static final String ROLE_USER = "user";
@@ -247,16 +247,16 @@ public class Constants {
 	 * The <code>employeesSelection</code> condition should be on
 	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.<br />
 	 * The <code>sitesSelection</code> condition should be on
-	 * <code>SITES_EMPLOYEES.SIEM_SITE_FK</code>. The
-	 * <code>departmentsSelection</code> condition is ignored.
+	 * <code>SITES_EMPLOYEES.SIEM_SITE_FK</code>.<br />
+	 * The <code>departmentsSelection</code> condition should be on
+	 * <code>DEPARTMENTS.DEPT_PK</code>.
 	 */
 	@SuppressWarnings("null")
-	// TODO: remove departmentsSelection?
-	public static SelectHavingStep<Record9<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> selectDepartmentsStats(
-																																								final String dateStr,
-																																								final Condition employeesSelection,
-																																								final Condition sitesSelection,
-																																								final Condition departmentsSelection) {
+	public static Select<Record9<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> selectDepartmentsStats(
+																																						final String dateStr,
+																																						final Condition employeesSelection,
+																																						final Condition sitesSelection,
+																																						final Condition departmentsSelection) {
 		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
 				.selectSitesStats(
 									dateStr,
@@ -265,7 +265,7 @@ public class Constants {
 				.asTable();
 
 		return DSL.select(
-							sitesStats.field(SITES.SITE_DEPT_FK),
+							DEPARTMENTS.DEPT_PK,
 							sitesStats.field(CERTIFICATES.CERT_PK),
 							DSL.sum(sitesStats.field(Constants.STATUS_SUCCESS, Integer.class)).as(Constants.STATUS_SUCCESS),
 							DSL.sum(sitesStats.field(Constants.STATUS_WARNING, Integer.class)).as(Constants.STATUS_WARNING),
@@ -281,6 +281,8 @@ public class Constants {
 									.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_WARNING), DSL.val(2 / 3f))
 									.otherwise(DSL.val(0f))).mul(DSL.val(100)).div(DSL.count())).as("score"))
 				.from(sitesStats)
-				.groupBy(sitesStats.field(SITES.SITE_DEPT_FK), sitesStats.field(CERTIFICATES.CERT_PK));
+				.join(DEPARTMENTS).on(DEPARTMENTS.DEPT_PK.eq(sitesStats.field(SITES.SITE_DEPT_FK)))
+				.where(departmentsSelection)
+				.groupBy(DEPARTMENTS.DEPT_PK, sitesStats.field(CERTIFICATES.CERT_PK));
 	}
 }

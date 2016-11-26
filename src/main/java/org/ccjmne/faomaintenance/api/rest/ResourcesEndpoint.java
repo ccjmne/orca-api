@@ -33,8 +33,8 @@ import org.jooq.DSLContext;
 import org.jooq.JoinType;
 import org.jooq.Record;
 import org.jooq.Result;
-import org.jooq.Select;
 import org.jooq.SelectQuery;
+import org.jooq.Table;
 import org.jooq.impl.DSL;
 
 @Path("resources")
@@ -152,18 +152,8 @@ public class ResourcesEndpoint {
 			}
 
 			query.addConditions(SITES.SITE_PK.eq(site_pk));
-		}
-
-		if (dept_pk != null) {
-			if (!this.restrictions.canAccessDepartment(dept_pk)) {
-				throw new ForbiddenException();
-			}
-
-			query.addConditions(SITES.SITE_DEPT_FK.eq(dept_pk));
-		}
-
-		if ((site_pk == null) && (dept_pk == null) && !this.restrictions.canAccessAllSites()) {
-			query.addConditions(SITES.SITE_PK.in(this.restrictions.getAccessibleSites()));
+		} else {
+			query.addConditions(SITES.SITE_DEPT_FK.in(Constants.select(DEPARTMENTS.DEPT_PK, selectDepartments(dept_pk, unlisted))));
 		}
 
 		if (!unlisted || !this.restrictions.canAccessAllSites()) {
@@ -180,7 +170,6 @@ public class ResourcesEndpoint {
 									@QueryParam("department") final Integer dept_pk,
 									@QueryParam("date") final String dateStr,
 									@QueryParam("unlisted") final boolean unlisted) {
-
 		try (final SelectQuery<Record> query = selectSites(site_pk, dept_pk, unlisted)) {
 			query.addSelect(SITES.fields());
 			query.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
@@ -202,55 +191,65 @@ public class ResourcesEndpoint {
 		return listSites(site_pk, null, dateStr, true).get(0);
 	}
 
-	// TODO: REWRITE EVERYTHING BELOW
+	public SelectQuery<Record> selectDepartments(final Integer dept_pk, final boolean unlisted) {
+		final SelectQuery<Record> query = DSL.select().getQuery();
+		query.addFrom(DEPARTMENTS);
+		if ((dept_pk == null) && !this.restrictions.canAccessAllSites()) {
+			throw new ForbiddenException();
+		}
+
+		if (dept_pk != null) {
+			if (!this.restrictions.canAccessDepartment(dept_pk)) {
+				throw new ForbiddenException();
+			}
+
+			query.addConditions(DEPARTMENTS.DEPT_PK.eq(dept_pk));
+		}
+
+		if (!unlisted || !this.restrictions.canAccessAllSites()) {
+			query.addConditions(DEPARTMENTS.DEPT_PK.ne(Constants.UNASSIGNED_DEPARTMENT));
+		}
+
+		return query;
+	}
 
 	@GET
 	@Path("departments")
-	public Result<? extends Record> listDepartments(@QueryParam("site") final String site_pk, @QueryParam("unlisted") final boolean unlisted) {
-		if (!this.restrictions.canAccessAllSites() && (this.restrictions.getAccessibleDepartment() == null)) {
-			throw new ForbiddenException();
-		}
-
-		if ((site_pk != null) && !this.restrictions.canAccessAllSites() && !this.restrictions.getAccessibleSites().contains(site_pk)) {
-			throw new ForbiddenException();
-		}
-
-		try (
-				final SelectQuery<Record> query = this.ctx.selectQuery();
-				final Select<? extends Record> employees = DSL
-						.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-						.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.CURRENT_UPDATE))) {
+	public Result<? extends Record> listDepartments(
+													@QueryParam("department") final Integer dept_pk,
+													@QueryParam("date") final String dateStr,
+													@QueryParam("unlisted") final boolean unlisted) {
+		final Table<Record> counts = DSL.select(SITES_EMPLOYEES.SIEM_SITE_FK)
+				.select(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"))
+				.select(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"))
+				.from(SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)))
+				.where(SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, selectSites(null, dept_pk, unlisted))))
+				.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)))
+				.groupBy(SITES_EMPLOYEES.SIEM_SITE_FK).asTable();
+		try (final SelectQuery<Record> query = selectDepartments(dept_pk, unlisted)) {
 			query.addSelect(DEPARTMENTS.fields());
-			query.addSelect(DSL.count(SITES.SITE_PK));
-			query.addFrom(DEPARTMENTS);
+			query.addSelect(DSL.sum(counts.field("count", Integer.class)).as("count"));
+			query.addSelect(DSL.sum(counts.field("permanent", Integer.class)).as("permanent"));
+			query.addSelect(DSL.count(counts.field(SITES_EMPLOYEES.SIEM_SITE_FK)).as("sites_count"));
+			query.addJoin(SITES, SITES.SITE_DEPT_FK.eq(DEPARTMENTS.DEPT_PK));
+			query.addJoin(
+							counts,
+							unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
+							counts.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(SITES.SITE_PK));
 			query.addGroupBy(DEPARTMENTS.fields());
-			query.addJoin(SITES, unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN, SITES.SITE_DEPT_FK.eq(DEPARTMENTS.DEPT_PK));
-			if (site_pk != null) {
-				query.addConditions(DEPARTMENTS.DEPT_PK.eq(DSL.select(SITES.SITE_DEPT_FK).from(SITES).where(SITES.SITE_PK.eq(site_pk))));
-			}
-
-			if (!unlisted) {
-				query.addJoin(employees, JoinType.JOIN, employees.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(SITES.SITE_PK));
-			}
-
-			if (!this.restrictions.canAccessAllSites()) {
-				query.addConditions(DEPARTMENTS.DEPT_PK.eq(this.restrictions.getAccessibleDepartment()));
-			}
-
-			query.addConditions(DEPARTMENTS.DEPT_PK.ne(DSL.val(Constants.UNASSIGNED_DEPT)));
-			return query.fetch();
+			return this.ctx.fetch(query);
 		}
 	}
 
 	@GET
 	@Path("departments/{dept_pk}")
-	public Record lookupDepartment(@PathParam("dept_pk") final Integer dept_pk) {
-		if (!this.restrictions.canAccessAllSites() && !this.restrictions.canAccessDepartment(dept_pk)) {
-			throw new ForbiddenException();
-		}
-
-		return this.ctx.selectFrom(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).fetchOne();
+	public Record lookupDepartment(
+									@PathParam("dept_pk") final Integer dept_pk,
+									@QueryParam("date") final String dateStr) {
+		return listDepartments(dept_pk, dateStr, true).get(0);
 	}
+
+	// TODO: REWRITE EVERYTHING BELOW
 
 	@GET
 	@Path("trainings")

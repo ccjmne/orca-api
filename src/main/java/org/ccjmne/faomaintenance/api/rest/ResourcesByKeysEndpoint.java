@@ -51,8 +51,11 @@ public class ResourcesByKeysEndpoint {
 
 	@GET
 	@Path("departments")
-	public Map<Integer, ? extends Record> listDepartments(@QueryParam("site") final String site_pk, @QueryParam("unlisted") final boolean unlisted) {
-		return this.resources.listDepartments(site_pk, unlisted).intoMap(DEPARTMENTS.DEPT_PK);
+	public Map<Integer, ? extends Record> listDepartments(
+															@QueryParam("department") final Integer dept_pk,
+															@QueryParam("date") final String dateStr,
+															@QueryParam("unlisted") final boolean unlisted) {
+		return this.resources.listDepartments(dept_pk, dateStr, unlisted).intoMap(DEPARTMENTS.DEPT_PK);
 	}
 
 	@GET

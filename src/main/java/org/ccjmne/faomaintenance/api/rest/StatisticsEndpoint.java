@@ -1,6 +1,7 @@
 package org.ccjmne.faomaintenance.api.rest;
 
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
+import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
 import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
@@ -162,18 +163,17 @@ public class StatisticsEndpoint {
 	@GET
 	@Path("departments")
 	public Map<Integer, Map<Integer, Object>> getDepartmentsStats(@QueryParam("date") final String dateStr) {
-		// TODO: implement and use resources#selectDepartments();
 		final Table<Record9<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal>> departmentsStats = Constants
 				.selectDepartmentsStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
 												.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, null, null, null, dateStr))),
 										SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, null, false))),
-										null)
+										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.resources.selectDepartments(null, false))))
 				.asTable();
 
 		return this.ctx.select(
-								departmentsStats.field(SITES.SITE_DEPT_FK),
+								departmentsStats.field(DEPARTMENTS.DEPT_PK),
 								DSL.arrayAgg(departmentsStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
 								DSL.arrayAgg(departmentsStats.field(Constants.STATUS_SUCCESS)).as(Constants.STATUS_SUCCESS),
 								DSL.arrayAgg(departmentsStats.field(Constants.STATUS_WARNING)).as(Constants.STATUS_WARNING),
@@ -186,8 +186,8 @@ public class StatisticsEndpoint {
 										Constants.STATUS_DANGER)).as("sites_" + Constants.STATUS_DANGER),
 								DSL.arrayAgg(departmentsStats.field("score")).as("score"))
 				.from(departmentsStats)
-				.groupBy(departmentsStats.field(SITES.SITE_DEPT_FK))
-				.fetchMap(departmentsStats.field(SITES.SITE_DEPT_FK), getZipMapper(
+				.groupBy(departmentsStats.field(DEPARTMENTS.DEPT_PK))
+				.fetchMap(departmentsStats.field(DEPARTMENTS.DEPT_PK), getZipMapper(
 																					"cert_pk",
 																					Constants.STATUS_SUCCESS,
 																					Constants.STATUS_WARNING,
