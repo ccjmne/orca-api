@@ -195,7 +195,11 @@ public class ResourcesEndpoint {
 		final SelectQuery<Record> query = DSL.select().getQuery();
 		query.addFrom(DEPARTMENTS);
 		if ((dept_pk == null) && !this.restrictions.canAccessAllSites()) {
-			throw new ForbiddenException();
+			if (this.restrictions.getAccessibleDepartment() == null) {
+				throw new ForbiddenException();
+			}
+
+			query.addConditions(DEPARTMENTS.DEPT_PK.eq(this.restrictions.getAccessibleDepartment()));
 		}
 
 		if (dept_pk != null) {
