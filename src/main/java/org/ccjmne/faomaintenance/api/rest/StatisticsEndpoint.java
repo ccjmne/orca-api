@@ -136,8 +136,8 @@ public class StatisticsEndpoint {
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
 												.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, null, dept_pk, null, dateStr))),
-										SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, dept_pk, false))),
-										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.resources.selectDepartments(dept_pk, false)))))
+										SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, dept_pk))),
+										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.resources.selectDepartments(dept_pk)))))
 				.fetchMap(CERTIFICATES.CERT_PK);
 	}
 
@@ -162,8 +162,8 @@ public class StatisticsEndpoint {
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
 												.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, null, null, null, dateStr))),
-										SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, null, false))),
-										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.resources.selectDepartments(null, false))))
+										SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, null))),
+										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.resources.selectDepartments(null))))
 				.asTable();
 
 		return this.ctx.select(
@@ -204,7 +204,7 @@ public class StatisticsEndpoint {
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
 											.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, site_pk, null, null, dateStr))),
-									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(site_pk, null, false)))))
+									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(site_pk, null)))))
 				.fetchMap(CERTIFICATES.CERT_PK);
 	}
 
@@ -232,7 +232,7 @@ public class StatisticsEndpoint {
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
 											.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, null, dept_pk, null, dateStr))),
-									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, dept_pk, false))))
+									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, dept_pk))))
 				.asTable();
 
 		return this.ctx.select(
