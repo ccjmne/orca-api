@@ -146,14 +146,20 @@ public class ResourcesEndpoint {
 	public SelectQuery<Record> selectSites(final String site_pk, final Integer dept_pk, final boolean unlisted) {
 		final SelectQuery<Record> query = DSL.select().getQuery();
 		query.addFrom(SITES);
+		if ((site_pk == null) && !this.restrictions.canAccessAllSites()) {
+			if (this.restrictions.getAccessibleSites().isEmpty()) {
+				throw new ForbiddenException();
+			}
+
+			query.addConditions(SITES.SITE_PK.in(this.restrictions.getAccessibleSites()));
+		}
+
 		if (site_pk != null) {
 			if (!this.restrictions.canAccessSite(site_pk)) {
 				throw new ForbiddenException();
 			}
 
 			query.addConditions(SITES.SITE_PK.eq(site_pk));
-		} else {
-			query.addConditions(SITES.SITE_DEPT_FK.in(Constants.select(DEPARTMENTS.DEPT_PK, selectDepartments(dept_pk, unlisted))));
 		}
 
 		if (!unlisted || !this.restrictions.canAccessAllSites()) {
