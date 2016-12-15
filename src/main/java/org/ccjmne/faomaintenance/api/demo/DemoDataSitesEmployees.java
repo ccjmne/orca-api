@@ -83,7 +83,7 @@ public class DemoDataSitesEmployees {
 				.values(
 						String.format(pk, Integer.valueOf(i)),
 						person.firstName(),
-						person.lastName(),
+						person.lastName().toUpperCase(),
 						new Date(person.dateOfBirth().toDate().getTime()),
 						person.companyEmail().replaceFirst("@.*$", "@orca-demo.com"),
 						Boolean.valueOf(person.isMale()),
