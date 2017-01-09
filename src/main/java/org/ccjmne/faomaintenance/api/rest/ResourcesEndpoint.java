@@ -155,6 +155,14 @@ public class ResourcesEndpoint {
 			query.addConditions(SITES.SITE_PK.in(this.restrictions.getAccessibleSites()));
 		}
 
+		if (dept_pk != null) {
+			if (!this.restrictions.canAccessDepartment(dept_pk)) {
+				throw new ForbiddenException();
+			}
+
+			query.addConditions(SITES.SITE_DEPT_FK.eq(dept_pk));
+		}
+
 		if (site_pk != null) {
 			if (!this.restrictions.canAccessSite(site_pk)) {
 				throw new ForbiddenException();
