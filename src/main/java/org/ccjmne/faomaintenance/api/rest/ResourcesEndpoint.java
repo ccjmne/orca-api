@@ -242,8 +242,11 @@ public class ResourcesEndpoint {
 			query.addSelect(DEPARTMENTS.fields());
 			query.addSelect(DSL.sum(counts.field("count", Integer.class)).as("count"));
 			query.addSelect(DSL.sum(counts.field("permanent", Integer.class)).as("permanent"));
-			query.addSelect(DSL.count(counts.field(SITES_EMPLOYEES.SIEM_SITE_FK)).as("sites_count"));
-			query.addJoin(SITES, SITES.SITE_DEPT_FK.eq(DEPARTMENTS.DEPT_PK));
+			query.addSelect(DSL.count(SITES.SITE_PK).as("sites_count"));
+			query.addJoin(
+							SITES,
+							unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
+							SITES.SITE_DEPT_FK.eq(DEPARTMENTS.DEPT_PK));
 			query.addJoin(
 							counts,
 							unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
