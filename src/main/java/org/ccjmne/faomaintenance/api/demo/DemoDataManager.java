@@ -27,7 +27,7 @@ public class DemoDataManager {
 	private static final String DEMO_PROPERTY = "demo";
 
 	// Defaults to every SUNDAY at 3:00 AM
-	private static final String SCHEDULE_CRON_EXPRESSION = System.getProperty("demo-cronwipe", "0 0 3 ? * SUN");
+	private static final String SCHEDULE_CRON_EXPRESSION = System.getProperty("demo-cronwipe", "0 0 3 ? * *");
 	private static final TriggerKey TRIGGER_KEY = new TriggerKey("trigger");
 
 	private final Scheduler scheduler;
