@@ -39,7 +39,7 @@ public class PostgresDSLContext extends DefaultDSLContext {
 		config.setJdbcUrl(DB_URL);
 		config.setUsername(DB_USER);
 		config.setPassword(DB_PASS);
-		config.setMaximumPoolSize(16);
+		config.setMaximumPoolSize(8);
 		config.addDataSourceProperty("cachePrepStmts", "true");
 		config.addDataSourceProperty("prepStmtCacheSize", "250");
 		config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
