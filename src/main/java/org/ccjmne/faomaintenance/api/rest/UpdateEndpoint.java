@@ -187,11 +187,12 @@ public class UpdateEndpoint {
 	private static String updateEmployee(final Map<String, String> employee, final DSLContext context) throws ParseException {
 		final String empl_pk = employee.get(EMPLOYEES.EMPL_PK.getName());
 		final Map<TableField<?, ?>, Object> record = new HashMap<>();
+		final Pattern genderRegex = Pattern.compile("^\\s*m", Pattern.CASE_INSENSITIVE);
 		record.put(EMPLOYEES.EMPL_FIRSTNAME, capitalise(employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName())));
 		record.put(EMPLOYEES.EMPL_SURNAME, employee.get(EMPLOYEES.EMPL_SURNAME.getName()).toUpperCase());
 		record.put(EMPLOYEES.EMPL_DOB, SafeDateFormat.parseAsSql(employee.get(EMPLOYEES.EMPL_DOB.getName())));
 		record.put(EMPLOYEES.EMPL_PERMANENT, Boolean.valueOf("CDI".equalsIgnoreCase(employee.get(EMPLOYEES.EMPL_PERMANENT.getName()))));
-		record.put(EMPLOYEES.EMPL_GENDER, Boolean.valueOf("Masculin".equalsIgnoreCase(employee.get(EMPLOYEES.EMPL_GENDER.getName()))));
+		record.put(EMPLOYEES.EMPL_GENDER, Boolean.valueOf(genderRegex.matcher(employee.get(EMPLOYEES.EMPL_GENDER.getName())).matches()));
 		record.put(EMPLOYEES.EMPL_ADDRESS, employee.get(EMPLOYEES.EMPL_ADDRESS.getName()));
 
 		if (context.fetchExists(EMPLOYEES, EMPLOYEES.EMPL_PK.eq(empl_pk))) {
