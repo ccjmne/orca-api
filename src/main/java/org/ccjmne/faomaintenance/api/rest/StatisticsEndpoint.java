@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -47,7 +46,6 @@ import org.jooq.Table;
 import org.jooq.impl.DSL;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -299,7 +297,6 @@ public class StatisticsEndpoint {
 				return ((null != o) && !Boolean.FALSE.equals(o));
 			}
 
-			@SuppressWarnings("unchecked")
 			@Override
 			public Map<Integer, Object> map(final Record record) {
 				final Map<Integer, Object> res = new HashMap<>();
@@ -310,7 +307,7 @@ public class StatisticsEndpoint {
 					Arrays.asList(fields).stream()
 							.filter(
 									ignoreFalsey	? field -> checkTruthy(((Object[]) record.get(field))[idx])
-													: (Predicate<? super String>) Predicates.alwaysTrue())
+													: unused -> true)
 							.forEach(field -> builder.put(field, ((Object[]) record.get(field))[idx]));
 					res.put(keys[i], builder.build());
 				}
