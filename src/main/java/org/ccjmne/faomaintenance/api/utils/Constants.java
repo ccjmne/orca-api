@@ -139,7 +139,7 @@ public class Constants {
 	}
 
 	public static Field<Boolean> fieldOptedOut(final String dateStr) {
-		return DSL.field(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.isNotNull().and(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.le(Constants.fieldDate(dateStr))));
+		return DSL.field(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.isNotNull());
 	}
 
 	// TODO: move everything below in StatisticsEndpoint?
