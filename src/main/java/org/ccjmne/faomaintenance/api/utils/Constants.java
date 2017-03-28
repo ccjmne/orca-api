@@ -25,6 +25,7 @@ import org.jooq.Record1;
 import org.jooq.Record10;
 import org.jooq.Record4;
 import org.jooq.Record5;
+import org.jooq.Record6;
 import org.jooq.Record8;
 import org.jooq.Select;
 import org.jooq.SelectQuery;
@@ -137,19 +138,26 @@ public class Constants {
 				.otherwise(Constants.STATUS_DANGER);
 	}
 
+	public static Field<Boolean> fieldOptedOut(final String dateStr) {
+		return DSL.field(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.isNotNull().and(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.le(Constants.fieldDate(dateStr))));
+	}
+
 	// TODO: move everything below in StatisticsEndpoint?
 
 	/**
 	 * The <code>Condition</code> should be on
 	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.
 	 */
-	public static Select<Record5<String, String, Integer, Date, String>> selectEmployeesStats(final String dateStr, final Condition employeesSelection) {
+	public static Select<Record6<String, String, Integer, Date, Boolean, String>> selectEmployeesStats(
+																										final String dateStr,
+																										final Condition employeesSelection) {
 		return DSL
 				.select(
 						SITES_EMPLOYEES.SIEM_SITE_FK,
 						TRAININGS_EMPLOYEES.TREM_EMPL_FK,
 						TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
 						Constants.EXPIRY.as("expiry"),
+						Constants.fieldOptedOut(dateStr).as("opted_out"),
 						Constants.fieldValidity(dateStr).as("validity"))
 				.from(TRAININGTYPES_CERTIFICATES)
 				.join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK))
@@ -182,7 +190,7 @@ public class Constants {
 																															final String dateStr,
 																															final Condition employeesSelection,
 																															final Condition sitesSelection) {
-		final Table<Record5<String, String, Integer, Date, String>> employeesStats = Constants
+		final Table<Record6<String, String, Integer, Date, Boolean, String>> employeesStats = Constants
 				.selectEmployeesStats(dateStr, employeesSelection)
 				.asTable();
 

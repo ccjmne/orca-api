@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -39,13 +40,14 @@ import org.ccjmne.faomaintenance.api.utils.SafeDateFormat;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record10;
-import org.jooq.Record5;
+import org.jooq.Record6;
 import org.jooq.Record8;
 import org.jooq.RecordMapper;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -252,9 +254,9 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("employees/{empl_pk}")
-	public Map<Integer, Record5<String, String, Integer, Date, String>> getEmployeeStats(
-																							@PathParam("empl_pk") final String empl_pk,
-																							@QueryParam("date") final String dateStr) {
+	public Map<Integer, Record6<String, String, Integer, Date, Boolean, String>> getEmployeeStats(
+																									@PathParam("empl_pk") final String empl_pk,
+																									@QueryParam("date") final String dateStr) {
 		return this.ctx.selectQuery(Constants
 				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk)))
 				.fetchMap(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
@@ -267,7 +269,7 @@ public class StatisticsEndpoint {
 																@QueryParam("department") final Integer dept_pk,
 																@QueryParam("date") final String dateStr) {
 
-		final Table<Record5<String, String, Integer, Date, String>> employeesStats = Constants
+		final Table<Record6<String, String, Integer, Date, Boolean, String>> employeesStats = Constants
 				.selectEmployeesStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
@@ -279,15 +281,25 @@ public class StatisticsEndpoint {
 						employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK),
 						DSL.arrayAgg(employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)).as("cert_pk"),
 						DSL.arrayAgg(employeesStats.field("expiry")).as("expiry"),
+						DSL.arrayAgg(employeesStats.field("opted_out")).as("opted_out"),
 						DSL.arrayAgg(employeesStats.field("validity")).as("validity"))
 				.from(employeesStats)
 				.groupBy(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK))
-				.fetchMap(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK), getZipMapper("cert_pk", "expiry", "validity"));
+				.fetchMap(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK), getZipMapper(true, "cert_pk", "expiry", "opted_out", "validity"));
 	}
 
 	private static RecordMapper<Record, Map<Integer, Object>> getZipMapper(final String key, final String... fields) {
+		return getZipMapper(false, key, fields);
+	}
+
+	private static RecordMapper<Record, Map<Integer, Object>> getZipMapper(final boolean ignoreFalsey, final String key, final String... fields) {
 		return new RecordMapper<Record, Map<Integer, Object>>() {
 
+			private final boolean checkTruthy(final Object o) {
+				return ((null != o) && !Boolean.FALSE.equals(o));
+			}
+
+			@SuppressWarnings("unchecked")
 			@Override
 			public Map<Integer, Object> map(final Record record) {
 				final Map<Integer, Object> res = new HashMap<>();
@@ -295,7 +307,11 @@ public class StatisticsEndpoint {
 				for (int i = 0; i < keys.length; i++) {
 					final int idx = i;
 					final Builder<String, Object> builder = ImmutableMap.<String, Object> builder();
-					Arrays.asList(fields).forEach(field -> builder.put(field, ((Object[]) record.get(field))[idx]));
+					Arrays.asList(fields).stream()
+							.filter(
+									ignoreFalsey	? field -> checkTruthy(((Object[]) record.get(field))[idx])
+													: (Predicate<? super String>) Predicates.alwaysTrue())
+							.forEach(field -> builder.put(field, ((Object[]) record.get(field))[idx]));
 					res.put(keys[i], builder.build());
 				}
 
