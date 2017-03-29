@@ -32,6 +32,7 @@ import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.TableLike;
 import org.jooq.impl.DSL;
+import org.jooq.types.DayToSecond;
 import org.jooq.types.YearToMonth;
 
 public class Constants {
@@ -124,7 +125,7 @@ public class Constants {
 	public static final Field<Date> EXPIRY = DSL
 			.when(
 					EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.le(DSL.max(TRAININGS.TRNG_DATE.plus(TRAININGTYPES.TRTY_VALIDITY.mul(new YearToMonth(0, 1))))),
-					EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE)
+					EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.sub(new DayToSecond(1)))
 			.otherwise(DSL.max(TRAININGS.TRNG_DATE.plus(TRAININGTYPES.TRTY_VALIDITY.mul(new YearToMonth(0, 1)))));
 
 	public static Field<String> fieldValidity(final String dateStr) {
