@@ -252,9 +252,9 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("employees/{empl_pk}")
-	public Map<Integer, Record6<String, String, Integer, Date, Boolean, String>> getEmployeeStats(
-																									@PathParam("empl_pk") final String empl_pk,
-																									@QueryParam("date") final String dateStr) {
+	public Map<Integer, Record6<String, String, Integer, Date, Date, String>> getEmployeeStats(
+																								@PathParam("empl_pk") final String empl_pk,
+																								@QueryParam("date") final String dateStr) {
 		return this.ctx.selectQuery(Constants
 				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk)))
 				.fetchMap(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
@@ -267,7 +267,7 @@ public class StatisticsEndpoint {
 																@QueryParam("department") final Integer dept_pk,
 																@QueryParam("date") final String dateStr) {
 
-		final Table<Record6<String, String, Integer, Date, Boolean, String>> employeesStats = Constants
+		final Table<Record6<String, String, Integer, Date, Date, String>> employeesStats = Constants
 				.selectEmployeesStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK

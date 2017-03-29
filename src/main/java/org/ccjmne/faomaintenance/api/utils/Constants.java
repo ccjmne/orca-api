@@ -138,8 +138,8 @@ public class Constants {
 				.otherwise(Constants.STATUS_DANGER);
 	}
 
-	public static Field<Boolean> fieldOptedOut(final String dateStr) {
-		return DSL.field(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.isNotNull());
+	public static Field<Date> fieldOptedOut(final String dateStr) {
+		return DSL.field(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE);
 	}
 
 	// TODO: move everything below in StatisticsEndpoint?
@@ -148,9 +148,9 @@ public class Constants {
 	 * The <code>Condition</code> should be on
 	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.
 	 */
-	public static Select<Record6<String, String, Integer, Date, Boolean, String>> selectEmployeesStats(
-																										final String dateStr,
-																										final Condition employeesSelection) {
+	public static Select<Record6<String, String, Integer, Date, Date, String>> selectEmployeesStats(
+																									final String dateStr,
+																									final Condition employeesSelection) {
 		return DSL
 				.select(
 						SITES_EMPLOYEES.SIEM_SITE_FK,
@@ -190,7 +190,7 @@ public class Constants {
 																															final String dateStr,
 																															final Condition employeesSelection,
 																															final Condition sitesSelection) {
-		final Table<Record6<String, String, Integer, Date, Boolean, String>> employeesStats = Constants
+		final Table<Record6<String, String, Integer, Date, Date, String>> employeesStats = Constants
 				.selectEmployeesStats(dateStr, employeesSelection)
 				.asTable();
 
