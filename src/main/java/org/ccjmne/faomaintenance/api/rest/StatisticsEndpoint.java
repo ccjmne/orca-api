@@ -287,14 +287,15 @@ public class StatisticsEndpoint {
 	}
 
 	private static RecordMapper<Record, Map<Integer, Object>> getZipMapper(final String key, final String... fields) {
-		return getZipMapper(false, key, fields);
+		return getZipMapper(true, key, fields);
 	}
 
+	// TODO: remove and always set ignoreFalsey?
 	private static RecordMapper<Record, Map<Integer, Object>> getZipMapper(final boolean ignoreFalsey, final String key, final String... fields) {
 		return new RecordMapper<Record, Map<Integer, Object>>() {
 
 			private final boolean checkTruthy(final Object o) {
-				return ((null != o) && !Boolean.FALSE.equals(o));
+				return ((null != o) && !Boolean.FALSE.equals(o)) && !Integer.valueOf(0).equals(o);
 			}
 
 			@Override
