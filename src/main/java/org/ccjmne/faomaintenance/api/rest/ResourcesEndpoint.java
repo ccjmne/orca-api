@@ -19,6 +19,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
@@ -126,7 +127,11 @@ public class ResourcesEndpoint {
 	@GET
 	@Path("employees/{empl_pk}")
 	public Record lookupEmployee(@PathParam("empl_pk") final String empl_pk, @QueryParam("date") final String dateStr) {
-		return listEmployees(empl_pk, null, null, null, dateStr, Constants.FIELDS_ALL).get(0);
+		try {
+			return listEmployees(empl_pk, null, null, null, dateStr, Constants.FIELDS_ALL).get(0);
+		} catch (final IndexOutOfBoundsException e) {
+			throw new NotFoundException();
+		}
 	}
 
 	@GET
@@ -198,8 +203,13 @@ public class ResourcesEndpoint {
 	@Path("sites/{site_pk}")
 	public Record lookupSite(
 								@PathParam("site_pk") final String site_pk,
-								@QueryParam("date") final String dateStr) {
-		return listSites(site_pk, null, dateStr, true).get(0);
+								@QueryParam("date") final String dateStr,
+								@QueryParam("unlisted") final boolean unlisted) {
+		try {
+			return listSites(site_pk, null, dateStr, unlisted).get(0);
+		} catch (final IndexOutOfBoundsException e) {
+			throw new NotFoundException();
+		}
 	}
 
 	public SelectQuery<Record> selectDepartments(final Integer dept_pk) {
@@ -260,8 +270,13 @@ public class ResourcesEndpoint {
 	@Path("departments/{dept_pk}")
 	public Record lookupDepartment(
 									@PathParam("dept_pk") final Integer dept_pk,
-									@QueryParam("date") final String dateStr) {
-		return listDepartments(dept_pk, dateStr, true).get(0);
+									@QueryParam("date") final String dateStr,
+									@QueryParam("unlisted") final boolean unlisted) {
+		try {
+			return listDepartments(dept_pk, dateStr, unlisted).get(0);
+		} catch (final IndexOutOfBoundsException e) {
+			throw new NotFoundException();
+		}
 	}
 
 	// TODO: REWRITE EVERYTHING BELOW
