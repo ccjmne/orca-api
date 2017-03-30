@@ -50,11 +50,38 @@ public class ResourcesEndpoint {
 		this.restrictions = restrictions;
 	}
 
+	/**
+	 * Unassigned employees should only ever be accessed through their
+	 * trainings, since they only need to keep existing there for history
+	 * purposes.<br />
+	 * Thus, employees that aren't assigned to any site can be accessed if and
+	 * only if:
+	 * <ul>
+	 * <li><code>dept_pk</code> is <code>null</code></li>
+	 * <li><code>site_pk</code> is <code>null</code></li>
+	 * <li><code>trng_pk</code> is <strong>defined</strong></li>
+	 * </ul>
+	 * Or:
+	 * <ul>
+	 * <li><code>empl_pk</code> is <strong>defined</strong></li>
+	 * <li>{@link Restrictions#canAccessTrainings()} is <code>true</code></li>
+	 * </ul>
+	 */
+	private boolean accessUnassignedEmployees(final String empl_pk, final String site_pk, final Integer dept_pk, final Integer trng_pk) {
+		if ((empl_pk != null) && this.restrictions.canAccessTrainings()) {
+			return true;
+		}
+
+		return (dept_pk == null) && (site_pk == null) && (trng_pk != null);
+	}
+
 	public SelectQuery<Record> selectEmployees(final String empl_pk, final String site_pk, final Integer dept_pk, final Integer trng_pk, final String dateStr) {
 		final SelectQuery<Record> query = DSL.select().getQuery();
 		query.addFrom(EMPLOYEES);
+		query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT));
 		query.addJoin(
 						SITES_EMPLOYEES,
+						accessUnassignedEmployees(empl_pk, site_pk, dept_pk, trng_pk) ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
 						SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
 						SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)),
 						SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, selectSites(site_pk, dept_pk))));
@@ -105,6 +132,10 @@ public class ResourcesEndpoint {
 		}
 	}
 
+	/**
+	 * Used in order to load all trainings outcomes for the employees' advanced
+	 * search module.
+	 */
 	@GET
 	@Path("employees/trainings")
 	public Map<String, Result<Record>> listEmployeesTrainings(
