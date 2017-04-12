@@ -70,7 +70,7 @@
 		<dependency>
 			<groupId>io.codearte.jfairy</groupId>
 			<artifactId>jfairy</artifactId>
-			<version>0.5.6</version>
+			<version>0.5.3</version>
 		</dependency>
 
 		<!-- DB CONNECTIONS POOL -->
