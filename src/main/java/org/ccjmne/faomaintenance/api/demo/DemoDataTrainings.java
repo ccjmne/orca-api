@@ -38,7 +38,7 @@ public class DemoDataTrainings {
 										.execute();
 		addScheduledTrainings(
 								ctx.insertInto(TRAININGS, TRAININGS.TRNG_DATE, TRAININGS.TRNG_START, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_OUTCOME),
-								10)
+								8)
 										.execute();
 
 		// Adding trainers - 1% of employees are trainers
