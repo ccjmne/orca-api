@@ -81,7 +81,6 @@ public class DemoDataTrainings {
 														"Absent(e)",
 														"A quitté la formation avant la fin",
 														"En congés",
-														"En arrêt maladie",
 														"A été muté(e)")
 				.stream().map(DSL::row).toArray(Row1[]::new);
 
