@@ -30,7 +30,6 @@ public class DemoDataTrainings {
 
 	public static final Fairy FAIRY = Fairy.create(Locale.FRENCH);
 
-	@SuppressWarnings("unchecked")
 	public static void generate(final DSLContext ctx) {
 		addCompletedTrainings(
 								ctx.insertInto(TRAININGS, TRAININGS.TRNG_DATE, TRAININGS.TRNG_START, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_OUTCOME),
@@ -77,14 +76,14 @@ public class DemoDataTrainings {
 		}
 
 		// Adding FLUNKED employees - 1/4 of them
-		final Table<?> comments = DSL.values(Arrays.asList(
-															"En incapacité physique d'effectuer certains gestes techniques",
-															"Absent(e)",
-															"A quitté la formation avant la fin",
-															"En congés",
-															"En arrêt maladie",
-															"A été muté(e)")
-				.stream().map(DSL::row).toArray(Row1[]::new)).as("unused", "trem_comment");
+		final Row1<String>[] comments = Arrays.asList(
+														"En incapacité physique d'effectuer certains gestes techniques",
+														"Absent(e)",
+														"A quitté la formation avant la fin",
+														"En congés",
+														"En arrêt maladie",
+														"A été muté(e)")
+				.stream().map(DSL::row).toArray(Row1[]::new);
 
 		ctx.insertInto(
 						TRAININGS_EMPLOYEES,
@@ -98,20 +97,22 @@ public class DemoDataTrainings {
 									DSL.field("empl_pk", String.class),
 									DSL.field("trem_comment", String.class),
 									DSL.val(Constants.EMPL_OUTCOME_FLUNKED))
-								.from(
-										DSL.select(
+								.from(DSL.select(
 													EMPLOYEES.EMPL_PK,
 													DSL.floor(DSL.rand().mul(DSL.select(DSL.count()).from(TRAININGS)
 															.where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_COMPLETED))
 															.asField()).mul(DSL.val(4))).as("linked_trng_id"),
-													DSL.ceil(DSL.rand().mul(DSL.select(DSL.count()).from(comments).asField())).as("linked_trem_comment_id"))
-												.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT)).asTable("employees2"))
+													DSL.ceil(DSL.rand().mul(Integer.valueOf(comments.length))).as("linked_trem_comment_id"))
+										.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT)).asTable("employees2"))
 								.join(DSL.select(
 													TRAININGS.TRNG_PK,
 													DSL.rowNumber().over().orderBy(DSL.rand()).as("trng_id"))
 										.from(TRAININGS).where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_COMPLETED)).asTable("trainings2"))
 								.on(DSL.field("linked_trng_id").eq(DSL.field("trng_id")))
-								.join(DSL.select(DSL.field("trem_comment"), DSL.rowNumber().over().as("trem_comment_id")).from(comments))
+								.join(DSL.select(
+													DSL.field("trem_comment"),
+													DSL.rowNumber().over().as("trem_comment_id"))
+										.from(DSL.values(comments).as("unused", "trem_comment")))
 								.on(DSL.field("linked_trem_comment_id").eq(DSL.field("trem_comment_id"))))
 				.execute();
 
