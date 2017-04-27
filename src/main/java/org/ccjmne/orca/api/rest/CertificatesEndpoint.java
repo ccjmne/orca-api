@@ -28,12 +28,12 @@ import org.jooq.Row2;
 import org.jooq.impl.DSL;
 
 @Path("certificates")
-public class CertificatesEnpdoint {
+public class CertificatesEndpoint {
 
 	private final DSLContext ctx;
 
 	@Inject
-	public CertificatesEnpdoint(final DSLContext ctx, final Restrictions restrictions) {
+	public CertificatesEndpoint(final DSLContext ctx, final Restrictions restrictions) {
 		if (!restrictions.canManageCertificates()) {
 			throw new ForbiddenException();
 		}
