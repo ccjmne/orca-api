@@ -82,10 +82,10 @@ public class DemoDataSitesEmployees {
 		return ((InsertValuesStep7<EmployeesRecord, String, String, String, Date, String, Boolean, Boolean>) (i == 1 ? query : addEmployees(query, i - 1, pk)))
 				.values(
 						String.format(pk, Integer.valueOf(i)),
-						person.firstName(),
-						person.lastName().toUpperCase(),
-						new Date(person.dateOfBirth().toDate().getTime()),
-						person.companyEmail().replaceFirst("@.*$", "@orca-demo.com"),
+						person.getFirstName(),
+						person.getLastName().toUpperCase(),
+						new Date(person.getDateOfBirth().toDate().getTime()),
+						person.getCompanyEmail().replaceFirst("@.*$", "@orca-demo.com"),
 						Boolean.valueOf(person.isMale()),
 						Boolean.valueOf(FAIRY.baseProducer().trueOrFalse() || FAIRY.baseProducer().trueOrFalse()));
 	}

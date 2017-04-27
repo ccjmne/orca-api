@@ -70,7 +70,7 @@
 		<dependency>
 			<groupId>io.codearte.jfairy</groupId>
 			<artifactId>jfairy</artifactId>
-			<version>0.5.3</version>
+			<version>0.5.7</version>
 		</dependency>
 
 		<!-- DB CONNECTIONS POOL -->
@@ -133,7 +133,7 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>19.0</version>
+			<version>20.0</version>
 		</dependency>
 
 		<dependency>
