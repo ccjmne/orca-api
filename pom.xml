@@ -48,9 +48,9 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>org.ccjmne.faomaintenance</groupId>
-			<artifactId>foamainteance_jooqgeneration</artifactId>
-			<version>1.6.0-RC2</version>
+			<groupId>org.ccjmne.orca</groupId>
+			<artifactId>orca-jooq-generation</artifactId>
+			<version>2.0.0</version>
 		</dependency>
 
 		<!-- AWS INTEGRATION -->
