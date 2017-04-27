@@ -3,8 +3,8 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>org.ccjmne.faomaintenance</groupId>
-	<artifactId>foamainteance_api</artifactId>
+	<groupId>org.ccjmne.orca</groupId>
+	<artifactId>orca-api</artifactId>
 	<version>1.6.0</version>
 	<packaging>war</packaging>
 	<name>api</name>
