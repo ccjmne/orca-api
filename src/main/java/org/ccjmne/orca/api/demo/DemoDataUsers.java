@@ -1,17 +1,17 @@
 package org.ccjmne.orca.api.demo;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS_ROLES;
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES;
+import static org.ccjmne.orca.jooq.classes.Tables.USERS;
+import static org.ccjmne.orca.jooq.classes.Tables.USERS_ROLES;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.UsersRolesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.UsersRolesRecord;
 import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.Condition;
 import org.jooq.DSLContext;

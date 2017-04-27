@@ -1,8 +1,8 @@
 package org.ccjmne.orca.api.rest;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
 import java.util.List;
 import java.util.Map;
@@ -11,8 +11,8 @@ import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesRecord;
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 
 @Path("resources-by-keys-common")

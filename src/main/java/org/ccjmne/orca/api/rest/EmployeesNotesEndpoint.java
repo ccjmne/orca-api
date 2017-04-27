@@ -1,7 +1,7 @@
 package org.ccjmne.orca.api.rest;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
 
 import java.util.Map;
 

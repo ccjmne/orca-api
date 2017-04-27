@@ -1,10 +1,10 @@
 package org.ccjmne.orca.api.demo;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
+import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
 import java.time.LocalDate;
@@ -14,9 +14,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.DepartmentsRecord;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesRecord;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.DepartmentsRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.EmployeesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.SitesRecord;
 import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.Condition;
 import org.jooq.DSLContext;

@@ -1,6 +1,6 @@
 package org.ccjmne.orca.api.rest.resources;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 
 import java.sql.Date;
 import java.util.HashMap;

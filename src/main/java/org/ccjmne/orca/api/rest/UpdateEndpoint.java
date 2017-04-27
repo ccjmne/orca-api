@@ -1,11 +1,11 @@
 package org.ccjmne.orca.api.rest;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
+import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
+import static org.ccjmne.orca.jooq.classes.Tables.USERS;
 
 import java.text.ParseException;
 import java.util.HashMap;
@@ -26,8 +26,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.ccjmne.faomaintenance.jooq.classes.Sequences;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.SitesEmployeesRecord;
+import org.ccjmne.orca.jooq.classes.Sequences;
+import org.ccjmne.orca.jooq.classes.tables.records.SitesEmployeesRecord;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.SafeDateFormat;

@@ -1,6 +1,6 @@
 package org.ccjmne.orca.api.rest;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.CLIENT;
+import static org.ccjmne.orca.jooq.classes.Tables.CLIENT;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -21,7 +21,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.ClientRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.ClientRecord;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;

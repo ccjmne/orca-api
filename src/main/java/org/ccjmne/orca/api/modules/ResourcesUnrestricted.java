@@ -1,14 +1,14 @@
 package org.ccjmne.orca.api.modules;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
 import javax.inject.Inject;
 
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.CertificatesRecord;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingtypesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Result;
 

@@ -1,11 +1,11 @@
 package org.ccjmne.orca.api.demo;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS_CERTIFICATES;
+import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.classes.Tables.USERS_CERTIFICATES;
 
 import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.DSLContext;

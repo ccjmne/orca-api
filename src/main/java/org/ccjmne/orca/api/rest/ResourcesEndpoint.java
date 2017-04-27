@@ -1,15 +1,15 @@
 package org.ccjmne.orca.api.rest;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
+import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
 import java.text.ParseException;
@@ -24,8 +24,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.UpdatesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;

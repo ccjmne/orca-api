@@ -1,8 +1,8 @@
 package org.ccjmne.orca.api.rest;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_TRAINERS;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
 
 import java.text.ParseException;
 import java.util.Collections;
@@ -17,8 +17,8 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
-import org.ccjmne.faomaintenance.jooq.classes.Sequences;
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingsRecord;
+import org.ccjmne.orca.jooq.classes.Sequences;
+import org.ccjmne.orca.jooq.classes.tables.records.TrainingsRecord;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.jooq.DSLContext;

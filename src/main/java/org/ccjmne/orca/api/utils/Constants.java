@@ -1,22 +1,22 @@
 package org.ccjmne.orca.api.utils;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.CERTIFICATES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_TRAINERS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.UPDATES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
+import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
+import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
+import static org.ccjmne.orca.jooq.classes.Tables.USERS;
 
 import java.math.BigDecimal;
 import java.sql.Date;
 
-import org.ccjmne.faomaintenance.jooq.classes.tables.Updates;
+import org.ccjmne.orca.jooq.classes.tables.Updates;
 import org.jooq.Condition;
 import org.jooq.DatePart;
 import org.jooq.Field;

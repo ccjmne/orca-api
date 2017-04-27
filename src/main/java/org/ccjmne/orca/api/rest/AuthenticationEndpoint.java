@@ -1,6 +1,6 @@
 package org.ccjmne.orca.api.rest;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
+import static org.ccjmne.orca.jooq.classes.Tables.USERS;
 
 import java.util.Base64;
 

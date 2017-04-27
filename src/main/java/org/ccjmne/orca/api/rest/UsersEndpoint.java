@@ -1,12 +1,12 @@
 package org.ccjmne.orca.api.rest;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.DEPARTMENTS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.SITES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.USERS_ROLES;
+import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
+import static org.ccjmne.orca.jooq.classes.Tables.USERS;
+import static org.ccjmne.orca.jooq.classes.Tables.USERS_ROLES;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,7 +25,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.UsersRolesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.UsersRolesRecord;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.DSLContext;

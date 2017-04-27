@@ -1,10 +1,10 @@
 package org.ccjmne.orca.api.demo;
 
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGS_TRAINERS;
-import static org.ccjmne.faomaintenance.jooq.classes.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
 
 import java.sql.Date;
 import java.util.Arrays;
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-import org.ccjmne.faomaintenance.jooq.classes.tables.records.TrainingsRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.TrainingsRecord;
 import org.ccjmne.orca.api.utils.Constants;
 import org.joda.time.DateTime;
 import org.jooq.Condition;
