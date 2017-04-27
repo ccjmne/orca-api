@@ -6,6 +6,7 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -19,11 +20,10 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 
-import org.ccjmne.orca.jooq.classes.Sequences;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.jooq.classes.Sequences;
 import org.jooq.DSLContext;
-import org.jooq.Row1;
 import org.jooq.Row2;
 import org.jooq.impl.DSL;
 
@@ -110,20 +110,17 @@ public class CertificatesEndpoint {
 				if (exists) {
 					transactionCtx.update(TRAININGTYPES)
 							.set(TRAININGTYPES.TRTY_PK, trty_pk)
-							.set(TRAININGTYPES.TRTY_NAME, trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString())
-							.set(TRAININGTYPES.TRTY_VALIDITY, Integer.valueOf(trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()).toString()))
+							.set(TRAININGTYPES.TRTY_NAME, String.valueOf(trty.get(TRAININGTYPES.TRTY_NAME.getName())))
 							.where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
 				} else {
 					transactionCtx.insertInto(
 												TRAININGTYPES,
 												TRAININGTYPES.TRTY_PK,
 												TRAININGTYPES.TRTY_NAME,
-												TRAININGTYPES.TRTY_VALIDITY,
 												TRAININGTYPES.TRTY_ORDER)
 							.values(
 									trty_pk,
 									trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString(),
-									(Integer) trty.get(TRAININGTYPES.TRTY_VALIDITY.getName()),
 									transactionCtx
 											.select(DSL.coalesce(DSL.max(TRAININGTYPES.TRTY_ORDER), Integer.valueOf(0)).add(Integer.valueOf(1)).as("order"))
 											.from(TRAININGTYPES)
@@ -136,16 +133,20 @@ public class CertificatesEndpoint {
 				}
 
 				transactionCtx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(trty_pk)).execute();
-				final Row1<Integer>[] certificates = ((List<Integer>) trty.get("certificates")).stream().map(DSL::row).toArray(Row1[]::new);
+				final Row2<Integer, Integer>[] certificates = ((Map<String, Integer>) trty.getOrDefault("certificates", Collections.EMPTY_MAP)).entrySet()
+						.stream().map((entry) -> DSL.row(Integer.valueOf(entry.getKey()), entry.getValue())).toArray(Row2[]::new);
+
 				if (certificates.length > 0) {
 					transactionCtx.insertInto(
 												TRAININGTYPES_CERTIFICATES,
 												TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK,
-												TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)
+												TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
+												TRAININGTYPES_CERTIFICATES.TTCE_DURATION)
 							.select(DSL.select(
 												DSL.val(trty_pk),
-												DSL.field("cert_pk", Integer.class))
-									.from(DSL.values(certificates).as("unused", "cert_pk")))
+												DSL.field("cert_pk", Integer.class),
+												DSL.field("duration", Integer.class))
+									.from(DSL.values(certificates).as("unused", "cert_pk", "duration")))
 							.execute();
 				}
 			}

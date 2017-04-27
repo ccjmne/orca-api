@@ -51,6 +51,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Range;
 
+// TODO: Account for the new validity durations that are attached to each
+// certificate and can be indefinite.
+// TODO: The entire thing is close to being straight-up irrelevant altogether.
+
 @Path("statistics")
 public class StatisticsEndpoint {
 
@@ -58,7 +62,7 @@ public class StatisticsEndpoint {
 
 	private final DSLContext ctx;
 	private final ResourcesEndpoint resources;
-	private final ResourcesByKeysCommonEndpoint commonResources;
+	private final ResourcesCommonEndpoint commonResources;
 
 	// TODO: remove and delegate it all to ResourcesEndpoint
 	private final Restrictions restrictions;
@@ -67,12 +71,12 @@ public class StatisticsEndpoint {
 	public StatisticsEndpoint(
 								final DSLContext ctx,
 								final ResourcesEndpoint resources,
-								final ResourcesByKeysCommonEndpoint resourcesByKeys,
+								final ResourcesCommonEndpoint resourcesCommon,
 								final ResourcesUnrestricted resourcesUnrestricted,
 								final Restrictions restrictions) {
 		this.ctx = ctx;
 		this.resources = resources;
-		this.commonResources = resourcesByKeys;
+		this.commonResources = resourcesCommon;
 		this.restrictions = restrictions;
 	}
 
@@ -92,7 +96,8 @@ public class StatisticsEndpoint {
 		final List<Record> trainingsByExpiry = this.resources.listTrainings(null, Collections.EMPTY_LIST, null, null, null, Boolean.TRUE)
 				.sortAsc(Constants.TRAINING_EXPIRY);
 
-		final Map<Integer, List<Integer>> certs = this.commonResources.listTrainingtypesCertificates();
+		final Map<Integer, List<Integer>> certs = this.commonResources.listTrainingTypesCertificates()
+				.intoGroups(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK, TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
 		final Map<Integer, Iterable<TrainingsStatistics>> res = new HashMap<>();
 
 		for (final Integer interval : intervals) {
