@@ -93,8 +93,6 @@ public class StatisticsEndpoint {
 		}
 
 		final List<Record> trainings = this.resources.listTrainings(null, Collections.EMPTY_LIST, null, null, null, Boolean.TRUE);
-		final List<Record> trainingsByExpiry = this.resources.listTrainings(null, Collections.EMPTY_LIST, null, null, null, Boolean.TRUE)
-				.sortAsc(Constants.TRAINING_EXPIRY);
 
 		final Map<Integer, List<Integer>> certs = this.commonResources.listTrainingTypesCertificates()
 				.intoGroups(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK, TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
@@ -120,11 +118,6 @@ public class StatisticsEndpoint {
 											trainings,
 											(training) -> training.getValue(TRAININGS.TRNG_DATE),
 											(builder, training) -> builder.registerTraining(training));
-			populateTrainingsStatsBuilders(
-											trainingsStatsBuilders,
-											trainingsByExpiry,
-											(record) -> record.getValue(Constants.TRAINING_EXPIRY),
-											(builder, training) -> builder.registerExpiry(training));
 			res.put(interval, trainingsStatsBuilders.stream().map(TrainingsStatisticsBuilder::build).collect(Collectors.toList()));
 		}
 
