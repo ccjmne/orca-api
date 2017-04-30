@@ -3,9 +3,9 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>org.ccjmne.faomaintenance</groupId>
-	<artifactId>foamainteance_api</artifactId>
-	<version>1.6.0</version>
+	<groupId>org.ccjmne.orca</groupId>
+	<artifactId>orca-api</artifactId>
+	<version>2.0.0</version>
 	<packaging>war</packaging>
 	<name>api</name>
 
@@ -48,9 +48,9 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>org.ccjmne.faomaintenance</groupId>
-			<artifactId>foamainteance_jooqgeneration</artifactId>
-			<version>1.6.0-RC2</version>
+			<groupId>org.ccjmne.orca</groupId>
+			<artifactId>orca-jooq-generation</artifactId>
+			<version>2.0.1</version>
 		</dependency>
 
 		<!-- AWS INTEGRATION -->
@@ -70,7 +70,7 @@
 		<dependency>
 			<groupId>io.codearte.jfairy</groupId>
 			<artifactId>jfairy</artifactId>
-			<version>0.5.3</version>
+			<version>0.5.7</version>
 		</dependency>
 
 		<!-- DB CONNECTIONS POOL -->
@@ -133,7 +133,7 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>19.0</version>
+			<version>20.0</version>
 		</dependency>
 
 		<dependency>
