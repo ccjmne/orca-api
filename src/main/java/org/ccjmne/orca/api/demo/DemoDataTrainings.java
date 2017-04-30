@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-import org.ccjmne.orca.jooq.classes.tables.records.TrainingsRecord;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.jooq.classes.tables.records.TrainingsRecord;
 import org.joda.time.DateTime;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -53,6 +53,7 @@ public class DemoDataTrainings {
 											DSL.rowNumber().over().orderBy(DSL.rand()).as("empl_id"))
 								.from(EMPLOYEES).asTable("employees2"))
 						.on(DSL.field("linked_empl_id").eq(DSL.field("empl_id"))))
+				.onDuplicateKeyIgnore()
 				.execute();
 
 		// Adding VALIDATED employees - 1/4 or them, five times
@@ -72,6 +73,7 @@ public class DemoDataTrainings {
 												DSL.rowNumber().over().orderBy(DSL.rand()).as("trng_id"))
 									.from(TRAININGS).where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_COMPLETED)).asTable("trainings2"))
 							.on(DSL.field("linked_trng_id").eq(DSL.field("trng_id"))))
+					.onDuplicateKeyIgnore()
 					.execute();
 		}
 
@@ -113,6 +115,7 @@ public class DemoDataTrainings {
 													DSL.rowNumber().over().as("trem_comment_id"))
 										.from(DSL.values(comments).as("unused", "trem_comment")))
 								.on(DSL.field("linked_trem_comment_id").eq(DSL.field("trem_comment_id"))))
+				.onDuplicateKeyIgnore()
 				.execute();
 
 		// Adding PENDING employees - 1/35 of them
@@ -131,6 +134,7 @@ public class DemoDataTrainings {
 											DSL.rowNumber().over().orderBy(DSL.rand()).as("trng_id"))
 								.from(TRAININGS).where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_SCHEDULED)).asTable("trainings2"))
 						.on(DSL.field("linked_trng_id").eq(DSL.field("trng_id"))))
+				.onDuplicateKeyIgnore()
 				.execute();
 	}
 

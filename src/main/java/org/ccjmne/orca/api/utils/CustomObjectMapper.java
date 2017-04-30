@@ -1,6 +1,7 @@
 package org.ccjmne.orca.api.utils;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.Arrays;
 
 import org.jooq.Record;
@@ -21,7 +22,30 @@ public class CustomObjectMapper extends ObjectMapper {
 	public CustomObjectMapper() {
 		disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 		setDateFormat(SafeDateFormat.getDateFormat());
+		registerModule(new AllKindsOfDatesSerialiserModule());
 		registerModule(new JOOQResultsSerialiserModule());
+	}
+
+	private class AllKindsOfDatesSerialiserModule extends SimpleModule {
+
+		public AllKindsOfDatesSerialiserModule() {
+			super(
+					"AllKindsOfDatesSerialiserModule",
+					new Version(1, 0, 0, null, null, null),
+					Arrays.asList(new StdSerializer<java.sql.Date>(java.sql.Date.class, false) {
+
+						@Override
+						public void serialize(final java.sql.Date value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException {
+							provider.findValueSerializer(java.util.Date.class).serialize(new java.util.Date(value.getTime()), jgen, provider);
+						}
+					}, new StdSerializer<LocalDate>(LocalDate.class, false) {
+
+						@Override
+						public void serialize(final LocalDate value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException {
+							provider.findValueSerializer(java.sql.Date.class).serialize(java.sql.Date.valueOf(value), jgen, provider);
+						}
+					}));
+		}
 	}
 
 	private class JOOQResultsSerialiserModule extends SimpleModule {

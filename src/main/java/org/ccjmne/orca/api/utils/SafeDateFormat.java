@@ -9,9 +9,20 @@ public class SafeDateFormat {
 	private static final String FORMAT = "yyyy-MM-dd";
 	private static final ThreadLocal<DateFormat> delegate = new ThreadLocal<DateFormat>() {
 
+		@SuppressWarnings("serial")
 		@Override
 		protected DateFormat initialValue() {
-			return new SimpleDateFormat(SafeDateFormat.FORMAT);
+			return new SimpleDateFormat(SafeDateFormat.FORMAT) {
+
+				@Override
+				public StringBuffer format(final java.util.Date date, final StringBuffer toAppendTo, final java.text.FieldPosition pos) {
+					if (date.equals(Constants.DATE_INFINITY)) {
+						return toAppendTo.insert(pos.getBeginIndex(), Constants.DATE_INFINITY_LITERAL);
+					}
+
+					return super.format(date, toAppendTo, pos);
+				}
+			};
 		}
 	};
 

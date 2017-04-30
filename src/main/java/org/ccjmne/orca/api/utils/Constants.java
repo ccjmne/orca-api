@@ -15,10 +15,12 @@ import static org.ccjmne.orca.jooq.classes.Tables.USERS;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.temporal.TemporalAdjusters;
 
-import org.ccjmne.orca.jooq.classes.tables.Updates;
+import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
 import org.jooq.Condition;
-import org.jooq.DatePart;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Record1;
@@ -37,8 +39,24 @@ import org.jooq.types.YearToMonth;
 
 public class Constants {
 
+	/**
+	 * If you are trying to use the maximum value as some kind of flag such as
+	 * "undetermined future date" to avoid a NULL, instead choose some arbitrary
+	 * date far enough in the future to exceed any legitimate value but not so
+	 * far as to exceed the limits of any database you are possibly going to
+	 * use. Define a constant for this value in your Java code and in your
+	 * database, and document thoroughly.
+	 *
+	 * @see <a href=
+	 *      "http://stackoverflow.com/questions/41301892/insert-the-max-date-independent-from-database">
+	 *      Insert the max date (independent from database)</a>
+	 */
+	public static final Date DATE_INFINITY = Date.valueOf(LocalDate.of(9999, Month.JANUARY, 1).with(TemporalAdjusters.lastDayOfYear()));
+
 	// ---- API CONSTANTS
 	public static final String FIELDS_ALL = "all";
+	public static final String DATE_INFINITY_LITERAL = "infinity";
+	private static final Integer DURATION_INFINITE = Integer.valueOf(0);
 	private static final Integer NO_UPDATE = Integer.valueOf(-1);
 
 	public static final String STATUS_SUCCESS = "success";
@@ -77,6 +95,19 @@ public class Constants {
 	public static Field<?>[] USERS_FIELDS = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK, USERS.USER_DEPT_FK };
 	public static final Field<Integer> CURRENT_UPDATE = Constants.selectUpdate(null);
 
+	/**
+	 * Returns a select sub-query that maps the results of the provided
+	 * {@code query} to the sole specified {@code field}.
+	 *
+	 * @param <T>
+	 *            The specified field type.
+	 * @param field
+	 *            The field to extract.
+	 * @param query
+	 *            The original query to use as a data source.
+	 * @return A sub-query containing the sole specified {@code field} from the
+	 *         given {@code query}.
+	 */
 	public static <T> Select<Record1<T>> select(final Field<T> field, final SelectQuery<? extends Record> query) {
 		final TableLike<? extends Record> table = query.asTable();
 		return DSL.select(table.field(field)).from(table);
@@ -88,14 +119,15 @@ public class Constants {
 
 	/**
 	 * Returns a sub-query selecting the <strong>primary key</strong> of the
-	 * {@link Updates} that is or was relevant at a given date, or today if no
-	 * date is specified.
+	 * {@link UpdatesRecord} that is or was relevant at a given date, or today
+	 * if no date is specified.
 	 *
 	 * @param dateStr
-	 *            The date for which to compute the relevant {@link Updates}, in
-	 *            the <code>"YYYY-MM-DD"</code> format.
-	 * @return The relevant {@link Updates}'s primary key or
-	 *         {@value Constants.NO_UPDATE} if no such update found.
+	 *            The date for which to compute the relevant
+	 *            {@link UpdatesRecord}, in the <code>"YYYY-MM-DD"</code>
+	 *            format.
+	 * @return The relevant {@link UpdatesRecord}'s primary key or
+	 *         {@value Constants#NO_UPDATE} if no such update found.
 	 */
 	public static Field<Integer> selectUpdate(final String dateStr) {
 		return DSL.coalesce(
@@ -113,22 +145,20 @@ public class Constants {
 			.filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(EMPL_OUTCOME_FLUNKED)).as("flunked");
 	public static final Field<String> TRAINING_TRAINERS = DSL.select(DSL.arrayAgg(TRAININGS_TRAINERS.TRTR_EMPL_FK)).from(TRAININGS_TRAINERS)
 			.where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK)).asField("trainers");
-	public static final Field<Date> TRAINING_EXPIRY = DSL
-			.dateAdd(
-						TRAININGS.TRNG_DATE,
-						DSL.field(DSL.select(TRAININGTYPES.TRTY_VALIDITY).from(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(TRAININGS.TRNG_TRTY_FK))),
-						DatePart.MONTH)
-			.as("expiry");
 	// --
 
 	// -- EMPLOYEES, SITES AND DEPARTMENTS STATISTICS
-	public static final Field<Date> EXPIRY = DSL
-			.when(
-					EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.le(DSL.max(TRAININGS.TRNG_DATE.plus(TRAININGTYPES.TRTY_VALIDITY.mul(new YearToMonth(0, 1))))),
-					EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.sub(new DayToSecond(1)))
-			.otherwise(DSL.max(TRAININGS.TRNG_DATE.plus(TRAININGTYPES.TRTY_VALIDITY.mul(new YearToMonth(0, 1)))));
+	private static final Field<Date> MAX_EXPIRY = DSL.max(DSL
+			.when(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.eq(Constants.DURATION_INFINITE), DSL.date(Constants.DATE_INFINITY))
+			.otherwise(TRAININGS.TRNG_DATE.plus(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.mul(new YearToMonth(0, 1)))));
 
-	public static Field<String> fieldValidity(final String dateStr) {
+	private static final Field<Date> EXPIRY = DSL
+			.when(
+					EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.le(Constants.MAX_EXPIRY),
+					EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.sub(new DayToSecond(1)))
+			.otherwise(Constants.MAX_EXPIRY);
+
+	private static Field<String> fieldValidity(final String dateStr) {
 		return DSL
 				.when(
 						Constants.EXPIRY.ge(Constants.fieldDate(dateStr).plus(new YearToMonth(0, 6))),
@@ -139,7 +169,7 @@ public class Constants {
 				.otherwise(Constants.STATUS_DANGER);
 	}
 
-	public static Field<Date> fieldOptedOut(final String dateStr) {
+	private static Field<Date> fieldOptedOut(final String dateStr) {
 		return DSL.field(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE);
 	}
 

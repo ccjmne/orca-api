@@ -24,12 +24,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
-import org.ccjmne.orca.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
+import org.ccjmne.orca.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
 import org.jooq.DSLContext;
 import org.jooq.JoinType;
 import org.jooq.Record;
@@ -339,7 +339,6 @@ public class ResourcesEndpoint {
 			query.addSelect(Constants.TRAINING_REGISTERED);
 			query.addSelect(Constants.TRAINING_VALIDATED);
 			query.addSelect(Constants.TRAINING_FLUNKED);
-			query.addSelect(Constants.TRAINING_EXPIRY);
 			query.addSelect(Constants.TRAINING_TRAINERS);
 
 			if (empl_pk != null) {
@@ -390,7 +389,6 @@ public class ResourcesEndpoint {
 			query.addSelect(Constants.TRAINING_REGISTERED);
 			query.addSelect(Constants.TRAINING_VALIDATED);
 			query.addSelect(Constants.TRAINING_FLUNKED);
-			query.addSelect(Constants.TRAINING_EXPIRY);
 			query.addSelect(Constants.TRAINING_TRAINERS);
 			query.addConditions(TRAININGS.TRNG_PK.eq(trng_pk));
 			query.addGroupBy(TRAININGS.fields());

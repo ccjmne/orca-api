@@ -4,16 +4,17 @@ import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
-import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
-import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesRecord;
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
+import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesRecord;
+import org.jooq.Result;
 
 @Path("resources-by-keys-common")
 // TODO: resources-common-by-keys?
@@ -35,8 +36,8 @@ public class ResourcesByKeysCommonEndpoint {
 
 	@GET
 	@Path("trainingtypes_certificates")
-	public Map<Integer, List<Integer>> listTrainingtypesCertificates() {
-		return this.resources.listTrainingTypesCertificates().intoGroups(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK, TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
+	public Map<Integer, Result<TrainingtypesCertificatesRecord>> listTrainingtypesCertificates() {
+		return this.resources.listTrainingTypesCertificates().intoGroups(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK);
 	}
 
 	@GET
