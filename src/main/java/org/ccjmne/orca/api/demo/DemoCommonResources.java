@@ -7,6 +7,10 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.orca.jooq.classes.Tables.USERS_CERTIFICATES;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -55,39 +59,43 @@ public class DemoCommonResources {
 				.values(Constants.USER_ROOT, CERT_EVAC)
 				.execute();
 
-		ctx.insertInto(TRAININGTYPES, TRAININGTYPES.TRTY_ORDER, TRAININGTYPES.TRTY_NAME, TRAININGTYPES.TRTY_VALIDITY)
-				.values(TRTY_SSTI, "SST Initiale", Integer.valueOf(36))
-				.values(TRTY_SSTR, "Renouvellement SST", Integer.valueOf(24))
-				.values(TRTY_EPI, "Manipulation Extincteurs", Integer.valueOf(36))
-				.values(TRTY_DAE, "Sensibilisation Défibrillation", Integer.valueOf(24))
-				.values(TRTY_H0B0, "Habilitation Électrique", Integer.valueOf(60))
-				.values(TRTY_EVAC, "Agent d'Évacuation", Integer.valueOf(60))
-				.values(TRTY_FSSTI, "Formateur SST Initiale", Integer.valueOf(48))
-				.values(TRTY_FSSTR, "Renouvellement Formateur SST", Integer.valueOf(36))
+		ctx.insertInto(TRAININGTYPES, TRAININGTYPES.TRTY_ORDER, TRAININGTYPES.TRTY_NAME)
+				.values(TRTY_SSTI, "SST Initiale")
+				.values(TRTY_SSTR, "Renouvellement SST")
+				.values(TRTY_EPI, "Manipulation Extincteurs")
+				.values(TRTY_DAE, "Sensibilisation Défibrillation")
+				.values(TRTY_H0B0, "Habilitation Électrique")
+				.values(TRTY_EVAC, "Agent d'Évacuation")
+				.values(TRTY_FSSTI, "Formateur SST Initiale")
+				.values(TRTY_FSSTR, "Renouvellement Formateur SST")
 				.execute();
 
-		ctx.insertInto(TRAININGTYPES_CERTIFICATES, TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK, TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)
-				.values(getTrainingType(TRTY_SSTI), getCertificate(CERT_SST))
-				.values(getTrainingType(TRTY_SSTI), getCertificate(CERT_DAE))
+		ctx.insertInto(
+						TRAININGTYPES_CERTIFICATES,
+						TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK,
+						TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
+						TRAININGTYPES_CERTIFICATES.TTCE_DURATION)
+				.values(asFields(getTrainingType(TRTY_SSTI), getCertificate(CERT_SST), Integer.valueOf(12)))
+				.values(asFields(getTrainingType(TRTY_SSTI), getCertificate(CERT_DAE), Integer.valueOf(48)))
 
-				.values(getTrainingType(TRTY_SSTR), getCertificate(CERT_SST))
-				.values(getTrainingType(TRTY_SSTR), getCertificate(CERT_DAE))
+				.values(asFields(getTrainingType(TRTY_SSTR), getCertificate(CERT_SST), Integer.valueOf(24)))
+				.values(asFields(getTrainingType(TRTY_SSTR), getCertificate(CERT_DAE), Integer.valueOf(48)))
 
-				.values(getTrainingType(TRTY_EPI), getCertificate(CERT_EPI))
+				.values(asFields(getTrainingType(TRTY_EPI), getCertificate(CERT_EPI), Integer.valueOf(36)))
 
-				.values(getTrainingType(TRTY_DAE), getCertificate(CERT_DAE))
+				.values(asFields(getTrainingType(TRTY_DAE), getCertificate(CERT_DAE), Integer.valueOf(24)))
 
-				.values(getTrainingType(TRTY_H0B0), getCertificate(CERT_H0B0))
+				.values(asFields(getTrainingType(TRTY_H0B0), getCertificate(CERT_H0B0), Integer.valueOf(24)))
 
-				.values(getTrainingType(TRTY_EVAC), getCertificate(CERT_EVAC))
+				.values(asFields(getTrainingType(TRTY_EVAC), getCertificate(CERT_EVAC), Integer.valueOf(12)))
 
-				.values(getTrainingType(TRTY_FSSTI), getCertificate(CERT_SST))
-				.values(getTrainingType(TRTY_FSSTI), getCertificate(CERT_DAE))
-				.values(getTrainingType(TRTY_FSSTI), getCertificate(CERT_FSST))
+				.values(asFields(getTrainingType(TRTY_FSSTI), getCertificate(CERT_SST), Integer.valueOf(12)))
+				.values(asFields(getTrainingType(TRTY_FSSTI), getCertificate(CERT_DAE), Integer.valueOf(48)))
+				.values(asFields(getTrainingType(TRTY_FSSTI), getCertificate(CERT_FSST), Integer.valueOf(12)))
 
-				.values(getTrainingType(TRTY_FSSTR), getCertificate(CERT_SST))
-				.values(getTrainingType(TRTY_FSSTR), getCertificate(CERT_DAE))
-				.values(getTrainingType(TRTY_FSSTR), getCertificate(CERT_FSST))
+				.values(asFields(getTrainingType(TRTY_FSSTR), getCertificate(CERT_SST), Integer.valueOf(24)))
+				.values(asFields(getTrainingType(TRTY_FSSTR), getCertificate(CERT_DAE), Integer.valueOf(0)))
+				.values(asFields(getTrainingType(TRTY_FSSTR), getCertificate(CERT_FSST), Integer.valueOf(24)))
 				.execute();
 
 		ctx.insertInto(TRAINERPROFILES, TRAINERPROFILES.TRPR_ID)
@@ -121,5 +129,9 @@ public class DemoCommonResources {
 
 	private static Field<Integer> getTrainerProfile(final String id) {
 		return DSL.select(TRAINERPROFILES.TRPR_PK).from(TRAINERPROFILES).where(TRAINERPROFILES.TRPR_ID.eq(id)).asField();
+	}
+
+	private static List<? extends Field<?>> asFields(final Object... values) {
+		return Arrays.asList(values).stream().map(v -> v instanceof Field<?> ? (Field<?>) v : DSL.val(v)).collect(Collectors.toList());
 	}
 }
