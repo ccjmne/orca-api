@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Date;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -22,6 +23,7 @@ import org.quartz.impl.DirectSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Singleton
 public class DemoDataManager {
 
 	private static final String DEMO_PROPERTY = "demo";
@@ -29,6 +31,7 @@ public class DemoDataManager {
 	// Defaults to every SUNDAY at 3:00 AM
 	private static final String SCHEDULE_CRON_EXPRESSION = System.getProperty("demo-cronwipe", "0 0 3 ? * *");
 	private static final TriggerKey TRIGGER_KEY = new TriggerKey("trigger");
+	private static final JobKey JOB_KEY = new JobKey("reset");
 
 	private final Scheduler scheduler;
 	private final DSLContext ctx;
@@ -53,12 +56,20 @@ public class DemoDataManager {
 		return this.scheduler.getTrigger(TRIGGER_KEY).getNextFireTime();
 	}
 
+	public void trigger() throws SchedulerException {
+		if (!isDemoEnabled()) {
+			return;
+		}
+
+		this.scheduler.triggerJob(JOB_KEY);
+	}
+
 	public void start() throws SchedulerException {
 		if (!isDemoEnabled() || this.scheduler.isStarted()) {
 			return;
 		}
 
-		final JobKey jobKey = new JobKey("reset");
+		final JobKey jobKey = JOB_KEY;
 		// Schedules reset job in accordance with the CRON expression
 		this.scheduler.scheduleJob(
 									JobBuilder
