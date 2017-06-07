@@ -136,6 +136,8 @@ public class ResourcesEndpoint {
 	 * Used in order to load all trainings outcomes for the employees' advanced
 	 * search module.
 	 */
+	// TODO: Restrict this method (and accordingly: the corresponding options in
+	// the advanced search module) to users who can access trainings?
 	@GET
 	@Path("employees/trainings")
 	public Map<String, Result<Record>> listEmployeesTrainings(

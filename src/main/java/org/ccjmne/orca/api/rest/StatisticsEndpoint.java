@@ -51,10 +51,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Range;
 
-// TODO: Account for the new validity durations that are attached to each
-// certificate and can be indefinite.
-// TODO: The entire thing is close to being straight-up irrelevant altogether.
-
 @Path("statistics")
 public class StatisticsEndpoint {
 
@@ -83,6 +79,8 @@ public class StatisticsEndpoint {
 	@GET
 	@Path("trainings")
 	// TODO: rewrite
+	// TODO: The entire thing is close to being straight-up irrelevant
+	// altogether.
 	public Map<Integer, Iterable<TrainingsStatistics>> getTrainingsStats(
 																			@QueryParam("from") final String fromStr,
 																			@QueryParam("to") final String toStr,
