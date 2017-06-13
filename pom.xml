@@ -147,8 +147,14 @@
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-servlet-core</artifactId>
 
-			<!-- <exclusions> <exclusion> <artifactId>jersey-guava</artifactId> <groupId> 
-				org.glassfish.jersey.bundles.repackaged </groupId> </exclusion> </exclusions> -->
+<!-- 			<exclusions> -->
+<!-- 				<exclusion> -->
+<!-- 					<groupId> -->
+<!-- 						org.glassfish.jersey.bundles.repackaged -->
+<!-- 					</groupId> -->
+<!-- 					<artifactId>jersey-guava</artifactId> -->
+<!-- 				</exclusion> -->
+<!-- 			</exclusions> -->
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>

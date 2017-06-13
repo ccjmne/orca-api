@@ -51,8 +51,8 @@ public class ResourcesEndpoint {
 	}
 
 	/**
-	 * Unassigned employees should only ever be accessed through their
-	 * trainings, since they only need to keep existing there for history
+	 * Unassigned employees should only ever be accessed through their training
+	 * sessions, since they only need to keep existing there for history
 	 * purposes.<br />
 	 * Thus, employees that aren't assigned to any site can be accessed if and
 	 * only if:
@@ -133,11 +133,11 @@ public class ResourcesEndpoint {
 	}
 
 	/**
-	 * Used in order to load all trainings outcomes for the employees' advanced
-	 * search module.
+	 * Used in order to load all training sessions outcomes for the employees'
+	 * advanced search module.
 	 */
 	// TODO: Restrict this method (and accordingly: the corresponding options in
-	// the advanced search module) to users who can access trainings?
+	// the advanced search module) to users who can access training sessions?
 	@GET
 	@Path("employees/trainings")
 	public Map<String, Result<Record>> listEmployeesTrainings(

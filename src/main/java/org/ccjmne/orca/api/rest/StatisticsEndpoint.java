@@ -252,7 +252,8 @@ public class StatisticsEndpoint {
 																								@PathParam("empl_pk") final String empl_pk,
 																								@QueryParam("date") final String dateStr) {
 		return this.ctx.selectQuery(Constants
-				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk)))
+				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK
+						.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(empl_pk, null, null, null, dateStr)))))
 				.fetchMap(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
 	}
 
