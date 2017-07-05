@@ -29,6 +29,7 @@ import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.TrainingsEmployeesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
 import org.jooq.DSLContext;
 import org.jooq.JoinType;
@@ -344,10 +345,11 @@ public class ResourcesEndpoint {
 			query.addSelect(Constants.TRAINING_TRAINERS);
 
 			if (empl_pk != null) {
-				query.addSelect(TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS_EMPLOYEES.TREM_COMMENT);
-				query.addGroupBy(TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS_EMPLOYEES.TREM_COMMENT);
-				query.addConditions(TRAININGS_EMPLOYEES.TREM_PK
-						.in(DSL.select(TRAININGS_EMPLOYEES.TREM_PK).from(TRAININGS_EMPLOYEES).where(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk))));
+				final Table<TrainingsEmployeesRecord> employeeOutcomes = DSL.selectFrom(TRAININGS_EMPLOYEES).where(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk))
+						.asTable();
+				query.addJoin(employeeOutcomes, employeeOutcomes.field(TRAININGS_EMPLOYEES.TREM_TRNG_FK).eq(TRAININGS_EMPLOYEES.TREM_TRNG_FK));
+				query.addSelect(employeeOutcomes.fields());
+				query.addGroupBy(employeeOutcomes.fields());
 			}
 
 			if (!types.isEmpty()) {
