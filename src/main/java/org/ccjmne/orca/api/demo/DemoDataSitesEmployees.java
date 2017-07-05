@@ -84,7 +84,7 @@ public class DemoDataSitesEmployees {
 						person.getFirstName(),
 						person.getLastName().toUpperCase(),
 						new Date(person.getDateOfBirth().toDate().getTime()),
-						person.getCompanyEmail().replaceFirst("@.*$", "@orca-demo.com"),
+						person.getCompanyEmail().replaceFirst("@.*$", "@orca-solution.com"),
 						Boolean.valueOf(person.isMale()),
 						Boolean.valueOf(FAIRY.baseProducer().trueOrFalse() || FAIRY.baseProducer().trueOrFalse()));
 	}
@@ -96,7 +96,7 @@ public class DemoDataSitesEmployees {
 				.values(asFields(
 									String.format(pk, Integer.valueOf(i)),
 									city,
-									city.replaceAll("[\\s']", "").toLowerCase() + "@orca-demo.com",
+									city.replaceAll("[\\s']", "").toLowerCase() + "@orca-solution.com",
 									random(DEPARTMENTS, DEPARTMENTS.DEPT_PK, DEPARTMENTS.DEPT_PK.ne(Constants.UNASSIGNED_DEPARTMENT))));
 	}
 
