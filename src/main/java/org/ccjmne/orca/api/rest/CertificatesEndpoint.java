@@ -24,7 +24,10 @@ import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.Record2;
 import org.jooq.Row2;
+import org.jooq.Table;
 import org.jooq.impl.DSL;
 
 @Path("certificates")
@@ -165,15 +168,20 @@ public class CertificatesEndpoint {
 
 		final List<Row2<Integer, Integer>> rows = new ArrayList<>(reassignmentMap.size());
 		reassignmentMap.entrySet().forEach(entry -> rows.add(DSL.row(entry.getKey(), entry.getValue())));
-		this.ctx.update(CERTIFICATES)
-				.set(CERTIFICATES.CERT_ORDER, DSL.field("new_order", Integer.class))
-				.from(DSL.values(rows.toArray(new Row2[0])).as("unused", "pk", "new_order"))
-				.where(CERTIFICATES.CERT_PK.eq(DSL.field("pk", Integer.class)))
-				.execute();
+		this.ctx.transaction((config) -> {
+			try (final DSLContext transactionCtx = DSL.using(config)) {
+				transactionCtx.update(CERTIFICATES)
+						.set(CERTIFICATES.CERT_ORDER, DSL.field("new_order", Integer.class))
+						.from(DSL.values(rows.toArray(new Row2[0])).as("unused", "pk", "new_order"))
+						.where(CERTIFICATES.CERT_PK.eq(DSL.field("pk", Integer.class)))
+						.execute();
+				cleanOrdering(transactionCtx, CERTIFICATES, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_ORDER);
+			}
+		});
 	}
 
 	@POST
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "null" })
 	@Path("trainingtypes/reorder")
 	public void reassignTrainingTypes(final Map<Integer, Integer> reassignmentMap) {
 		if (reassignmentMap.isEmpty()) {
@@ -182,22 +190,49 @@ public class CertificatesEndpoint {
 
 		final List<Row2<Integer, Integer>> rows = new ArrayList<>(reassignmentMap.size());
 		reassignmentMap.entrySet().forEach(entry -> rows.add(DSL.row(entry.getKey(), entry.getValue())));
-		this.ctx.update(TRAININGTYPES)
-				.set(TRAININGTYPES.TRTY_ORDER, DSL.field("new_order", Integer.class))
-				.from(DSL.values(rows.toArray(new Row2[0])).as("unused", "pk", "new_order"))
-				.where(TRAININGTYPES.TRTY_PK.eq(DSL.field("pk", Integer.class)))
-				.execute();
+		this.ctx.transaction((config) -> {
+			try (final DSLContext transactionCtx = DSL.using(config)) {
+				transactionCtx.update(TRAININGTYPES)
+						.set(TRAININGTYPES.TRTY_ORDER, DSL.field("new_order", Integer.class))
+						.from(DSL.values(rows.toArray(new Row2[0])).as("unused", "pk", "new_order"))
+						.where(TRAININGTYPES.TRTY_PK.eq(DSL.field("pk", Integer.class)))
+						.execute();
+				cleanOrdering(transactionCtx, TRAININGTYPES, TRAININGTYPES.TRTY_PK, TRAININGTYPES.TRTY_ORDER);
+			}
+		});
 	}
 
 	@DELETE
 	@Path("{cert_pk}")
-	public boolean deleteCert(@PathParam("cert_pk") final Integer cert_pk) {
-		return this.ctx.delete(CERTIFICATES).where(CERTIFICATES.CERT_PK.eq(cert_pk)).execute() == 1;
+	public void deleteCert(@PathParam("cert_pk") final Integer cert_pk) {
+		this.ctx.transaction((config) -> {
+			try (final DSLContext transactionCtx = DSL.using(config)) {
+				transactionCtx.delete(CERTIFICATES).where(CERTIFICATES.CERT_PK.eq(cert_pk)).execute();
+				cleanOrdering(transactionCtx, CERTIFICATES, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_ORDER);
+			}
+		});
 	}
 
 	@DELETE
 	@Path("trainingtypes/{trty_pk}")
-	public boolean deleteTrty(@PathParam("trty_pk") final Integer trty_pk) {
-		return this.ctx.delete(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute() == 1;
+	public void deleteTrty(@PathParam("trty_pk") final Integer trty_pk) {
+		this.ctx.transaction((config) -> {
+			try (final DSLContext transactionCtx = DSL.using(config)) {
+				transactionCtx.delete(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
+				cleanOrdering(transactionCtx, TRAININGTYPES, TRAININGTYPES.TRTY_PK, TRAININGTYPES.TRTY_ORDER);
+			}
+		});
+	}
+
+	@SuppressWarnings("null")
+	private static void cleanOrdering(final DSLContext transactionCtx, final Table<?> table, final Field<Integer> keyField, final Field<Integer> orderField) {
+		final Table<Record2<Integer, Integer>> newOrders = DSL
+				.select(keyField, DSL.rowNumber().over().orderBy(orderField))
+				.from(table).asTable("new_orders", "cert_pk", "new_order");
+
+		transactionCtx.update(table).set(orderField, DSL.field("new_order", Integer.class))
+				.from(newOrders)
+				.where(keyField.eq(newOrders.field("cert_pk", Integer.class))).execute();
+
 	}
 }
