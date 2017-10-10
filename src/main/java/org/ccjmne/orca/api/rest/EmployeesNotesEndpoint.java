@@ -1,7 +1,7 @@
 package org.ccjmne.orca.api.rest;
 
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_VOIDINGS;
 
 import java.util.Map;
 
@@ -43,35 +43,35 @@ public class EmployeesNotesEndpoint {
 	}
 
 	@POST
-	@Path("{empl_pk}/optout")
+	@Path("{empl_pk}/voiding")
 	@Consumes(MediaType.APPLICATION_JSON)
 	public void optOut(
 						@PathParam("empl_pk") final String empl_pk,
 						@QueryParam("cert_pk") final Integer cert_pk,
 						@QueryParam("date") final java.sql.Date date,
 						final Map<String, String> data) {
-		if (this.ctx.fetchExists(DSL.selectFrom(EMPLOYEES_CERTIFICATES_OPTOUT).where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk))
-				.and(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK.eq(cert_pk)))) {
-			this.ctx.update(EMPLOYEES_CERTIFICATES_OPTOUT)
-					.set(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE, date)
-					.set(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_REASON, data.get(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_REASON.getName()))
-					.where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk)).and(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK.eq(cert_pk))
+		if (this.ctx.fetchExists(DSL.selectFrom(EMPLOYEES_VOIDINGS).where(EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(empl_pk))
+				.and(EMPLOYEES_VOIDINGS.EMVO_CERT_FK.eq(cert_pk)))) {
+			this.ctx.update(EMPLOYEES_VOIDINGS)
+					.set(EMPLOYEES_VOIDINGS.EMVO_DATE, date)
+					.set(EMPLOYEES_VOIDINGS.EMVO_REASON, data.get(EMPLOYEES_VOIDINGS.EMVO_REASON.getName()))
+					.where(EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(empl_pk)).and(EMPLOYEES_VOIDINGS.EMVO_CERT_FK.eq(cert_pk))
 					.execute();
 		} else {
 			this.ctx.insertInto(
-								EMPLOYEES_CERTIFICATES_OPTOUT,
-								EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK,
-								EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK,
-								EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE,
-								EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_REASON)
-					.values(empl_pk, cert_pk, date, data.get(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_REASON.getName())).execute();
+								EMPLOYEES_VOIDINGS,
+								EMPLOYEES_VOIDINGS.EMVO_EMPL_FK,
+								EMPLOYEES_VOIDINGS.EMVO_CERT_FK,
+								EMPLOYEES_VOIDINGS.EMVO_DATE,
+								EMPLOYEES_VOIDINGS.EMVO_REASON)
+					.values(empl_pk, cert_pk, date, data.get(EMPLOYEES_VOIDINGS.EMVO_REASON.getName())).execute();
 		}
 	}
 
 	@DELETE
-	@Path("{empl_pk}/optout")
+	@Path("{empl_pk}/voiding")
 	public void optBackIn(@PathParam("empl_pk") final String empl_pk, @QueryParam("cert_pk") final Integer cert_pk) {
-		this.ctx.deleteFrom(EMPLOYEES_CERTIFICATES_OPTOUT).where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk))
-				.and(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK.eq(cert_pk)).execute();
+		this.ctx.deleteFrom(EMPLOYEES_VOIDINGS).where(EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(empl_pk))
+				.and(EMPLOYEES_VOIDINGS.EMVO_CERT_FK.eq(cert_pk)).execute();
 	}
 }

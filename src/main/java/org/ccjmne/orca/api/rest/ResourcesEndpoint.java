@@ -168,20 +168,6 @@ public class ResourcesEndpoint {
 		}
 	}
 
-	@GET
-	@Path("employees/{empl_pk}/voiding")
-	// TODO: /voiding -> /voidings
-	// TODO: merge with employees listing/lookup?
-	public Map<Integer, EmployeesCertificatesOptoutRecord> getEmployeeVoiding(@PathParam("empl_pk") final String empl_pk) {
-		if (!this.restrictions.canAccessEmployee(empl_pk)) {
-			throw new ForbiddenException();
-		}
-
-		return this.ctx
-				.selectFrom(EMPLOYEES_CERTIFICATES_OPTOUT).where(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(empl_pk))
-				.fetchMap(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK);
-	}
-
 	public SelectQuery<Record> selectSites(final String site_pk, final Integer dept_pk) {
 		final SelectQuery<Record> query = DSL.select().getQuery();
 		query.addFrom(SITES);

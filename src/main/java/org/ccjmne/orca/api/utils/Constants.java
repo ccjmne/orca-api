@@ -2,7 +2,7 @@ package org.ccjmne.orca.api.utils;
 
 import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_VOIDINGS;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
@@ -154,8 +154,8 @@ public class Constants {
 
 	private static final Field<Date> EXPIRY = DSL
 			.when(
-					EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.le(Constants.MAX_EXPIRY),
-					EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE.sub(new DayToSecond(1)))
+					EMPLOYEES_VOIDINGS.EMVO_DATE.le(Constants.MAX_EXPIRY),
+					EMPLOYEES_VOIDINGS.EMVO_DATE.sub(new DayToSecond(1)))
 			.otherwise(Constants.MAX_EXPIRY);
 
 	private static Field<String> fieldValidity(final String dateStr) {
@@ -170,7 +170,7 @@ public class Constants {
 	}
 
 	private static Field<Date> fieldOptedOut(final String dateStr) {
-		return DSL.field(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE);
+		return DSL.field(EMPLOYEES_VOIDINGS.EMVO_DATE);
 	}
 
 	// TODO: move everything below in StatisticsEndpoint?
@@ -194,9 +194,9 @@ public class Constants {
 				.join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK))
 				.join(TRAININGS).on(TRAININGS.TRNG_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
 				.join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
-				.leftJoin(EMPLOYEES_CERTIFICATES_OPTOUT)
-				.on(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_EMPL_FK.eq(TRAININGS_EMPLOYEES.TREM_EMPL_FK)
-						.and(EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_CERT_FK.eq(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)))
+				.leftJoin(EMPLOYEES_VOIDINGS)
+				.on(EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(TRAININGS_EMPLOYEES.TREM_EMPL_FK)
+						.and(EMPLOYEES_VOIDINGS.EMVO_CERT_FK.eq(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)))
 				.join(SITES_EMPLOYEES)
 				.on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(TRAININGS_EMPLOYEES.TREM_EMPL_FK)
 						.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))))
@@ -207,7 +207,7 @@ public class Constants {
 							SITES_EMPLOYEES.SIEM_SITE_FK,
 							TRAININGS_EMPLOYEES.TREM_EMPL_FK,
 							TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
-							EMPLOYEES_CERTIFICATES_OPTOUT.EMCE_DATE);
+							EMPLOYEES_VOIDINGS.EMVO_DATE);
 	}
 
 	/**
@@ -303,10 +303,12 @@ public class Constants {
 									sitesSelection)
 				.asTable();
 
-		final Field<BigDecimal> score = DSL.round(DSL.sum(DSL
-				.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS), DSL.val(1f))
-				.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_WARNING), DSL.val(2 / 3f))
-				.otherwise(DSL.val(0f))).mul(DSL.val(100)).div(DSL.count()));
+		final Field<BigDecimal> score = DSL.round(DSL
+				.sum(DSL
+						.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS), DSL.val(1f))
+						.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_WARNING), DSL.val(2 / 3f))
+						.otherwise(DSL.val(0f)))
+				.mul(DSL.val(100)).div(DSL.count()));
 
 		return DSL.select(
 							DEPARTMENTS.DEPT_PK,
