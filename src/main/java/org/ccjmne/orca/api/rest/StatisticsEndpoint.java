@@ -1,5 +1,8 @@
 package org.ccjmne.orca.api.rest;
 
+import static org.ccjmne.orca.api.utils.Constants.STATUS_DANGER;
+import static org.ccjmne.orca.api.utils.Constants.STATUS_SUCCESS;
+import static org.ccjmne.orca.api.utils.Constants.STATUS_WARNING;
 import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
@@ -41,7 +44,6 @@ import org.jooq.Record10;
 import org.jooq.Record6;
 import org.jooq.Record8;
 import org.jooq.Table;
-import org.jooq.impl.DSL;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -161,30 +163,21 @@ public class StatisticsEndpoint {
 
 		return this.ctx.select(
 								departmentsStats.field(DEPARTMENTS.DEPT_PK),
-								DSL.arrayAgg(departmentsStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
-								DSL.arrayAgg(departmentsStats.field(Constants.STATUS_SUCCESS)).as(Constants.STATUS_SUCCESS),
-								DSL.arrayAgg(departmentsStats.field(Constants.STATUS_WARNING)).as(Constants.STATUS_WARNING),
-								DSL.arrayAgg(departmentsStats.field(Constants.STATUS_DANGER)).as(Constants.STATUS_DANGER),
-								DSL.arrayAgg(departmentsStats.field("sites_" +
-										Constants.STATUS_SUCCESS)).as("sites_" + Constants.STATUS_SUCCESS),
-								DSL.arrayAgg(departmentsStats.field("sites_" +
-										Constants.STATUS_WARNING)).as("sites_" + Constants.STATUS_WARNING),
-								DSL.arrayAgg(departmentsStats.field("sites_" +
-										Constants.STATUS_DANGER)).as("sites_" + Constants.STATUS_DANGER),
-								DSL.arrayAgg(departmentsStats.field("score")).as("score"),
-								DSL.arrayAgg(departmentsStats.field("validity")).as("validity"))
+								Constants.arrayAgg(departmentsStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
+								Constants.arrayAgg(departmentsStats.field(STATUS_SUCCESS)),
+								Constants.arrayAgg(departmentsStats.field(STATUS_WARNING)),
+								Constants.arrayAgg(departmentsStats.field(STATUS_DANGER)),
+								Constants.arrayAgg(departmentsStats.field("sites_" + STATUS_SUCCESS)),
+								Constants.arrayAgg(departmentsStats.field("sites_" + STATUS_WARNING)),
+								Constants.arrayAgg(departmentsStats.field("sites_" + STATUS_DANGER)),
+								Constants.arrayAgg(departmentsStats.field("score")),
+								Constants.arrayAgg(departmentsStats.field("validity")))
 				.from(departmentsStats)
 				.groupBy(departmentsStats.field(DEPARTMENTS.DEPT_PK))
-				.fetchMap(departmentsStats.field(DEPARTMENTS.DEPT_PK), Constants.getZipMapper(
-																								"cert_pk",
-																								Constants.STATUS_SUCCESS,
-																								Constants.STATUS_WARNING,
-																								Constants.STATUS_DANGER,
-																								"sites_" + Constants.STATUS_SUCCESS,
-																								"sites_" + Constants.STATUS_WARNING,
-																								"sites_" + Constants.STATUS_DANGER,
-																								"score",
-																								"validity"));
+				.fetchMap(
+							departmentsStats.field(DEPARTMENTS.DEPT_PK),
+							Constants.getZipMapper(	"cert_pk", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "sites_" + STATUS_SUCCESS,
+													"sites_" + STATUS_WARNING, "sites_" + STATUS_DANGER, "score", "validity"));
 	}
 
 	@GET
@@ -230,18 +223,17 @@ public class StatisticsEndpoint {
 
 		return this.ctx.select(
 								sitesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK),
-								DSL.arrayAgg(sitesStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
-								DSL.arrayAgg(sitesStats.field(Constants.STATUS_SUCCESS)).as(Constants.STATUS_SUCCESS),
-								DSL.arrayAgg(sitesStats.field(Constants.STATUS_WARNING)).as(Constants.STATUS_WARNING),
-								DSL.arrayAgg(sitesStats.field(Constants.STATUS_DANGER)).as(Constants.STATUS_DANGER),
-								DSL.arrayAgg(sitesStats.field("target")).as("target"),
-								DSL.arrayAgg(sitesStats.field("validity")).as("validity"))
+								Constants.arrayAgg(sitesStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
+								Constants.arrayAgg(sitesStats.field(STATUS_SUCCESS)),
+								Constants.arrayAgg(sitesStats.field(STATUS_WARNING)),
+								Constants.arrayAgg(sitesStats.field(STATUS_DANGER)),
+								Constants.arrayAgg(sitesStats.field("target")),
+								Constants.arrayAgg(sitesStats.field("validity")))
 				.from(sitesStats)
 				.groupBy(sitesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK))
 				.fetchMap(
 							SITES_EMPLOYEES.SIEM_SITE_FK,
-							Constants.getZipMapper(	"cert_pk",
-													Constants.STATUS_SUCCESS, Constants.STATUS_WARNING, Constants.STATUS_DANGER, "target", "validity"));
+							Constants.getZipMapper("cert_pk", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "target", "validity"));
 	}
 
 	@GET
@@ -272,10 +264,10 @@ public class StatisticsEndpoint {
 		return this.ctx
 				.select(
 						employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK),
-						DSL.arrayAgg(employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)).as("cert_pk"),
-						DSL.arrayAgg(employeesStats.field("expiry")).as("expiry"),
-						DSL.arrayAgg(employeesStats.field("opted_out")).as("opted_out"),
-						DSL.arrayAgg(employeesStats.field("validity")).as("validity"))
+						Constants.arrayAgg(employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)).as("cert_pk"),
+						Constants.arrayAgg(employeesStats.field("expiry")),
+						Constants.arrayAgg(employeesStats.field("opted_out")),
+						Constants.arrayAgg(employeesStats.field("validity")))
 				.from(employeesStats)
 				.groupBy(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK))
 				.fetchMap(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK), Constants.getZipMapper(true, "cert_pk", "expiry", "opted_out", "validity"));
