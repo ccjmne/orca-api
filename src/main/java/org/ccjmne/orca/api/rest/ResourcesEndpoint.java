@@ -30,6 +30,7 @@ import javax.ws.rs.QueryParam;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
+import org.ccjmne.orca.api.utils.StatisticsHelper;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingsEmployeesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
 import org.jooq.DSLContext;
@@ -237,17 +238,17 @@ public class ResourcesEndpoint {
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));
 			selectSites.addJoin(
-							SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)),
-							unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
-							SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))));
+								SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)),
+								unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
+								SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))));
 			selectSites.addGroupBy(SITES.fields());
 
 			try (final SelectQuery<Record> withTags = DSL.select().getQuery()) {
 				final Table<Record> sites = selectSites.asTable();
 				withTags.addSelect(sites.fields());
 				withTags.addSelect(	Constants.arrayAgg(SITES_TAGS.SITA_TAGS_FK),
-										Constants.arrayAgg(SITES_TAGS.SITA_BOOLEAN),
-										Constants.arrayAgg(SITES_TAGS.SITA_STRING));
+									Constants.arrayAgg(SITES_TAGS.SITA_BOOLEAN),
+									Constants.arrayAgg(SITES_TAGS.SITA_STRING));
 				withTags.addFrom(sites);
 				withTags.addJoin(SITES_TAGS, JoinType.LEFT_OUTER_JOIN, SITES_TAGS.SITA_SITE_FK.eq(sites.field(SITES.SITE_PK)));
 				withTags.addGroupBy(sites.fields());
@@ -379,10 +380,10 @@ public class ResourcesEndpoint {
 			query.addGroupBy(TRAININGS.fields());
 			query.addJoin(TRAININGS_EMPLOYEES, JoinType.LEFT_OUTER_JOIN, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK));
 
-			query.addSelect(Constants.TRAINING_REGISTERED);
-			query.addSelect(Constants.TRAINING_VALIDATED);
-			query.addSelect(Constants.TRAINING_FLUNKED);
-			query.addSelect(Constants.TRAINING_TRAINERS);
+			query.addSelect(StatisticsHelper.TRAINING_REGISTERED);
+			query.addSelect(StatisticsHelper.TRAINING_VALIDATED);
+			query.addSelect(StatisticsHelper.TRAINING_FLUNKED);
+			query.addSelect(StatisticsHelper.TRAINING_TRAINERS);
 
 			if (empl_pk != null) {
 				final Table<TrainingsEmployeesRecord> employeeOutcomes = DSL.selectFrom(TRAININGS_EMPLOYEES).where(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk))
@@ -430,10 +431,10 @@ public class ResourcesEndpoint {
 			query.addSelect(TRAININGS.fields());
 			query.addFrom(TRAININGS);
 			query.addJoin(TRAININGS_EMPLOYEES, JoinType.LEFT_OUTER_JOIN, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK));
-			query.addSelect(Constants.TRAINING_REGISTERED);
-			query.addSelect(Constants.TRAINING_VALIDATED);
-			query.addSelect(Constants.TRAINING_FLUNKED);
-			query.addSelect(Constants.TRAINING_TRAINERS);
+			query.addSelect(StatisticsHelper.TRAINING_REGISTERED);
+			query.addSelect(StatisticsHelper.TRAINING_VALIDATED);
+			query.addSelect(StatisticsHelper.TRAINING_FLUNKED);
+			query.addSelect(StatisticsHelper.TRAINING_TRAINERS);
 			query.addConditions(TRAININGS.TRNG_PK.eq(trng_pk));
 			query.addGroupBy(TRAININGS.fields());
 			return query.fetchOne();

@@ -38,6 +38,7 @@ import org.ccjmne.orca.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
+import org.ccjmne.orca.api.utils.StatisticsHelper;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record10;
@@ -126,7 +127,7 @@ public class StatisticsEndpoint {
 	public Map<Integer, Record10<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal, String>> getDepartmentStats(
 																																							@PathParam("dept_pk") final Integer dept_pk,
 																																							@QueryParam("date") final String dateStr) {
-		return this.ctx.selectQuery(Constants
+		return this.ctx.selectQuery(StatisticsHelper
 				.selectDepartmentsStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
@@ -152,7 +153,7 @@ public class StatisticsEndpoint {
 	@GET
 	@Path("departments")
 	public Map<Integer, Map<Integer, Object>> getDepartmentsStats(@QueryParam("date") final String dateStr) {
-		final Table<Record10<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal, String>> departmentsStats = Constants
+		final Table<Record10<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal, String>> departmentsStats = StatisticsHelper
 				.selectDepartmentsStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
@@ -185,7 +186,7 @@ public class StatisticsEndpoint {
 	public Map<Integer, Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> getSiteStats(
 																													@PathParam("site_pk") final String site_pk,
 																													@QueryParam("date") final String dateStr) {
-		return this.ctx.selectQuery(Constants
+		return this.ctx.selectQuery(StatisticsHelper
 				.selectSitesStats(
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
@@ -213,7 +214,7 @@ public class StatisticsEndpoint {
 															@QueryParam("department") final Integer dept_pk,
 															@QueryParam("date") final String dateStr) {
 
-		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = Constants
+		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = StatisticsHelper
 				.selectSitesStats(
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
@@ -241,7 +242,7 @@ public class StatisticsEndpoint {
 	public Map<Integer, Record6<String, String, Integer, Date, Date, String>> getEmployeeStats(
 																								@PathParam("empl_pk") final String empl_pk,
 																								@QueryParam("date") final String dateStr) {
-		return this.ctx.selectQuery(Constants
+		return this.ctx.selectQuery(StatisticsHelper
 				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK
 						.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(empl_pk, null, null, null, dateStr)))))
 				.fetchMap(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
@@ -254,7 +255,7 @@ public class StatisticsEndpoint {
 																@QueryParam("department") final Integer dept_pk,
 																@QueryParam("date") final String dateStr) {
 
-		final Table<Record6<String, String, Integer, Date, Date, String>> employeesStats = Constants
+		final Table<Record6<String, String, Integer, Date, Date, String>> employeesStats = StatisticsHelper
 				.selectEmployeesStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
