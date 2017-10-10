@@ -18,6 +18,10 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.temporal.TemporalAdjusters;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
 import org.jooq.Condition;
@@ -29,6 +33,7 @@ import org.jooq.Record4;
 import org.jooq.Record5;
 import org.jooq.Record6;
 import org.jooq.Record8;
+import org.jooq.RecordMapper;
 import org.jooq.Select;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
@@ -136,6 +141,60 @@ public class Constants {
 									.asField(),
 							NO_UPDATE);
 	}
+
+	// HELPER METHODS
+	/**
+	 * Delegates to {@link DSL#arrayAgg(Field)} and gives the resulting
+	 * aggregation the specified {@link Field}'s name.
+	 *
+	 * @param field
+	 *            The field to aggregate
+	 */
+	public static <T> Field<T[]> arrayAgg(final Field<T> field) {
+		return DSL.arrayAgg(field).as(field);
+	}
+
+	public static <T> RecordMapper<Record, Map<T, Object>> getZipMapper(final String key, final String... fields) {
+		return getZipMapper(true, key, fields);
+	}
+
+	public static <T> RecordMapper<Record, Map<T, Object>> getZipMapper(final Field<T> key, final Field<?>... fields) {
+		return getZipMapper(true, key, fields);
+	}
+
+	public static <T> RecordMapper<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final Field<T> key, final Field<?>... fields) {
+		return getZipMapper(ignoreFalsey, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
+	}
+
+	public static <T> RecordMapper<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final String key, final String... fields) {
+		return new RecordMapper<Record, Map<T, Object>>() {
+
+			private final boolean checkTruthy(final Object o) {
+				return ignoreFalsey	? (null != o) && !Boolean.FALSE.equals(o) && !Integer.valueOf(0).equals(o) && !"".equals(o)
+									: null != o;
+			}
+
+			@Override
+			@SuppressWarnings("unchecked")
+			public Map<T, Object> map(final Record record) {
+				final Map<T, Object> res = new HashMap<>();
+				final T[] keys = (T[]) record.get(key);
+				for (int i = 0; i < keys.length; i++) {
+					if (keys[i] == null) {
+						continue;
+					}
+
+					final int idx = i;
+					res.put(keys[i], Arrays.asList(fields).stream()
+							.filter(field -> checkTruthy(((Object[]) record.get(field))[idx]))
+							.collect(Collectors.toMap(field -> field, field -> ((Object[]) record.get(field))[idx])));
+				}
+
+				return res;
+			}
+		};
+	}
+	// --
 
 	// -- TRAININGS STATISTICS
 	public static final Field<Integer> TRAINING_REGISTERED = DSL.count(TRAININGS_EMPLOYEES.TREM_PK).as("registered");

@@ -14,7 +14,6 @@ import java.sql.Date;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -41,20 +40,18 @@ import org.jooq.Record;
 import org.jooq.Record10;
 import org.jooq.Record6;
 import org.jooq.Record8;
-import org.jooq.RecordMapper;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Range;
 
 @Path("statistics")
 public class StatisticsEndpoint {
 
-	private static final Integer DEFAULT_INTERVAL = Integer.valueOf(6);
+	private static final Integer DEFAULT_INTERVAL = Integer.valueOf(1);
 
 	private final DSLContext ctx;
 	private final ResourcesEndpoint resources;
@@ -178,16 +175,16 @@ public class StatisticsEndpoint {
 								DSL.arrayAgg(departmentsStats.field("validity")).as("validity"))
 				.from(departmentsStats)
 				.groupBy(departmentsStats.field(DEPARTMENTS.DEPT_PK))
-				.fetchMap(departmentsStats.field(DEPARTMENTS.DEPT_PK), getZipMapper(
-																					"cert_pk",
-																					Constants.STATUS_SUCCESS,
-																					Constants.STATUS_WARNING,
-																					Constants.STATUS_DANGER,
-																					"sites_" + Constants.STATUS_SUCCESS,
-																					"sites_" + Constants.STATUS_WARNING,
-																					"sites_" + Constants.STATUS_DANGER,
-																					"score",
-																					"validity"));
+				.fetchMap(departmentsStats.field(DEPARTMENTS.DEPT_PK), Constants.getZipMapper(
+																								"cert_pk",
+																								Constants.STATUS_SUCCESS,
+																								Constants.STATUS_WARNING,
+																								Constants.STATUS_DANGER,
+																								"sites_" + Constants.STATUS_SUCCESS,
+																								"sites_" + Constants.STATUS_WARNING,
+																								"sites_" + Constants.STATUS_DANGER,
+																								"score",
+																								"validity"));
 	}
 
 	@GET
@@ -243,7 +240,8 @@ public class StatisticsEndpoint {
 				.groupBy(sitesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK))
 				.fetchMap(
 							SITES_EMPLOYEES.SIEM_SITE_FK,
-							getZipMapper("cert_pk", Constants.STATUS_SUCCESS, Constants.STATUS_WARNING, Constants.STATUS_DANGER, "target", "validity"));
+							Constants.getZipMapper(	"cert_pk",
+													Constants.STATUS_SUCCESS, Constants.STATUS_WARNING, Constants.STATUS_DANGER, "target", "validity"));
 	}
 
 	@GET
@@ -280,39 +278,7 @@ public class StatisticsEndpoint {
 						DSL.arrayAgg(employeesStats.field("validity")).as("validity"))
 				.from(employeesStats)
 				.groupBy(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK))
-				.fetchMap(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK), getZipMapper(true, "cert_pk", "expiry", "opted_out", "validity"));
-	}
-
-	private static RecordMapper<Record, Map<Integer, Object>> getZipMapper(final String key, final String... fields) {
-		return getZipMapper(true, key, fields);
-	}
-
-	// TODO: remove and always set ignoreFalsey?
-	private static RecordMapper<Record, Map<Integer, Object>> getZipMapper(final boolean ignoreFalsey, final String key, final String... fields) {
-		return new RecordMapper<Record, Map<Integer, Object>>() {
-
-			private final boolean checkTruthy(final Object o) {
-				return ((null != o) && !Boolean.FALSE.equals(o)) && !Integer.valueOf(0).equals(o);
-			}
-
-			@Override
-			public Map<Integer, Object> map(final Record record) {
-				final Map<Integer, Object> res = new HashMap<>();
-				final Integer[] keys = (Integer[]) record.get(key);
-				for (int i = 0; i < keys.length; i++) {
-					final int idx = i;
-					final Builder<String, Object> builder = ImmutableMap.<String, Object> builder();
-					Arrays.asList(fields).stream()
-							.filter(
-									ignoreFalsey	? field -> checkTruthy(((Object[]) record.get(field))[idx])
-													: unused -> true)
-							.forEach(field -> builder.put(field, ((Object[]) record.get(field))[idx]));
-					res.put(keys[i], builder.build());
-				}
-
-				return res;
-			}
-		};
+				.fetchMap(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK), Constants.getZipMapper(true, "cert_pk", "expiry", "opted_out", "validity"));
 	}
 
 	private static void populateTrainingsStatsBuilders(
