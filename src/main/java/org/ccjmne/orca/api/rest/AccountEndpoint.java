@@ -57,6 +57,7 @@ public class AccountEndpoint {
 	@PUT
 	@Path("password")
 	@Consumes(MediaType.APPLICATION_JSON)
+	// TODO: Check if allowed by its Restrictions
 	public void updatePassword(@Context final HttpServletRequest request, final Map<String, String> passwords) {
 		final String currentPassword = passwords.get("pwd_current");
 		final String newPassword = passwords.get("pwd_new");
@@ -72,6 +73,7 @@ public class AccountEndpoint {
 
 	@PUT
 	@Path("id/{new_id}")
+	// TODO: Check if allowed by its Restrictions
 	public void changeId(@Context final HttpServletRequest request, @PathParam("new_id") final String newId) {
 		UsersEndpoint.changeIdImpl(request.getRemoteUser(), newId, this.ctx);
 	}

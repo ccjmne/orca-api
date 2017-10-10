@@ -26,6 +26,7 @@ import com.fasterxml.jackson.annotation.JsonGetter;
  * Provides tools to manage restrictions of resources access or manipulation
  * provided an authenticated {@link HttpServletRequest} or a specific user ID.
  */
+// TODO: Implement user account management restrictions
 public class Restrictions {
 
 	private final DSLContext ctx;
