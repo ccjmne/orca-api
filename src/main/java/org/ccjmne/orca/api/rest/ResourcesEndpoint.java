@@ -29,6 +29,7 @@ import javax.ws.rs.QueryParam;
 
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.RestrictedResourcesHelper;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingsEmployeesRecord;
@@ -47,63 +48,17 @@ import org.jooq.impl.DSL;
 public class ResourcesEndpoint {
 
 	private final DSLContext ctx;
+	private final RestrictedResourcesHelper resourcesHelper;
+
+	// TODO: Should not have any use for this and should delegate restricted
+	// data access mechanics to RestrictedResourcesHelper
 	private final Restrictions restrictions;
 
 	@Inject
-	public ResourcesEndpoint(final DSLContext ctx, final Restrictions restrictions) {
+	public ResourcesEndpoint(final DSLContext ctx, final Restrictions restrictions, final RestrictedResourcesHelper resourcesHelper) {
 		this.ctx = ctx;
 		this.restrictions = restrictions;
-	}
-
-	/**
-	 * Unassigned employees should only ever be accessed through their training
-	 * sessions, since they only need to keep existing there for history
-	 * purposes.<br />
-	 * Thus, employees that aren't assigned to any site can be accessed if and
-	 * only if:
-	 * <ul>
-	 * <li><code>dept_pk</code> is <code>null</code></li>
-	 * <li><code>site_pk</code> is <code>null</code></li>
-	 * <li><code>trng_pk</code> is <strong>defined</strong></li>
-	 * </ul>
-	 * Or:
-	 * <ul>
-	 * <li><code>empl_pk</code> is <strong>defined</strong></li>
-	 * <li>{@link Restrictions#canAccessTrainings()} is <code>true</code></li>
-	 * </ul>
-	 */
-	private boolean accessUnassignedEmployees(final String empl_pk, final String site_pk, final Integer dept_pk, final Integer trng_pk) {
-		if ((empl_pk != null) && this.restrictions.canAccessTrainings()) {
-			return true;
-		}
-
-		return (dept_pk == null) && (site_pk == null) && (trng_pk != null);
-	}
-
-	public SelectQuery<Record> selectEmployees(final String empl_pk, final String site_pk, final Integer dept_pk, final Integer trng_pk, final String dateStr) {
-		final SelectQuery<Record> query = DSL.select().getQuery();
-		query.addFrom(EMPLOYEES);
-		query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT));
-		query.addJoin(
-						SITES_EMPLOYEES,
-						accessUnassignedEmployees(empl_pk, site_pk, dept_pk, trng_pk) ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
-						SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-						SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)),
-						SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, selectSites(site_pk, dept_pk))));
-
-		if (trng_pk != null) {
-			if (!this.restrictions.canAccessTrainings()) {
-				throw new ForbiddenException();
-			}
-
-			query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK), TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(trng_pk));
-		}
-
-		if (empl_pk != null) {
-			query.addConditions(EMPLOYEES.EMPL_PK.eq(empl_pk));
-		}
-
-		return query;
+		this.resourcesHelper = resourcesHelper;
 	}
 
 	@GET
@@ -115,7 +70,7 @@ public class ResourcesEndpoint {
 													@QueryParam("training") final Integer trng_pk,
 													@QueryParam("date") final String dateStr,
 													@QueryParam("fields") final String fields) {
-		try (final SelectQuery<? extends Record> query = selectEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr)) {
+		try (final SelectQuery<? extends Record> query = this.resourcesHelper.selectEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr)) {
 			if (Constants.FIELDS_ALL.equals(fields)) {
 				query.addSelect(EMPLOYEES.fields());
 				query.addSelect(SITES_EMPLOYEES.fields());
@@ -180,7 +135,8 @@ public class ResourcesEndpoint {
 				.from(TRAININGS_EMPLOYEES)
 				.join(TRAININGS).on(TRAININGS.TRNG_PK.eq(TRAININGS_EMPLOYEES.TREM_TRNG_FK))
 				.join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGS.TRNG_TRTY_FK))
-				.where(TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(Constants.select(EMPLOYEES.EMPL_PK, selectEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr))))
+				.where(TRAININGS_EMPLOYEES.TREM_EMPL_FK
+						.in(Constants.select(EMPLOYEES.EMPL_PK, this.resourcesHelper.selectEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr))))
 				.groupBy(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS.TRNG_DATE)
 				.fetchGroups(TRAININGS_EMPLOYEES.TREM_EMPL_FK);
 	}
@@ -195,37 +151,6 @@ public class ResourcesEndpoint {
 		}
 	}
 
-	public SelectQuery<Record> selectSites(final String site_pk, final Integer dept_pk) {
-		final SelectQuery<Record> query = DSL.select().getQuery();
-		query.addFrom(SITES);
-		query.addConditions(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE));
-		if ((site_pk == null) && !this.restrictions.canAccessAllSites()) {
-			if (this.restrictions.getAccessibleSites().isEmpty()) {
-				throw new ForbiddenException();
-			}
-
-			query.addConditions(SITES.SITE_PK.in(this.restrictions.getAccessibleSites()));
-		}
-
-		if (dept_pk != null) {
-			if (!this.restrictions.canAccessDepartment(dept_pk)) {
-				throw new ForbiddenException();
-			}
-
-			query.addConditions(SITES.SITE_DEPT_FK.eq(dept_pk));
-		}
-
-		if (site_pk != null) {
-			if (!this.restrictions.canAccessSite(site_pk)) {
-				throw new ForbiddenException();
-			}
-
-			query.addConditions(SITES.SITE_PK.eq(site_pk));
-		}
-
-		return query;
-	}
-
 	@GET
 	@Path("sites")
 	public List<Map<String, Object>> listSites(
@@ -233,7 +158,7 @@ public class ResourcesEndpoint {
 												@QueryParam("department") final Integer dept_pk,
 												@QueryParam("date") final String dateStr,
 												@QueryParam("unlisted") final boolean unlisted) {
-		try (final SelectQuery<Record> selectSites = selectSites(site_pk, dept_pk)) {
+		try (final SelectQuery<Record> selectSites = this.resourcesHelper.selectSites(site_pk, dept_pk)) {
 			selectSites.addSelect(SITES.fields());
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));
@@ -287,29 +212,6 @@ public class ResourcesEndpoint {
 		}
 	}
 
-	public SelectQuery<Record> selectDepartments(final Integer dept_pk) {
-		final SelectQuery<Record> query = DSL.select().getQuery();
-		query.addFrom(DEPARTMENTS);
-		query.addConditions(DEPARTMENTS.DEPT_PK.ne(Constants.UNASSIGNED_DEPARTMENT));
-		if ((dept_pk == null) && !this.restrictions.canAccessAllSites()) {
-			if (this.restrictions.getAccessibleDepartment() == null) {
-				throw new ForbiddenException();
-			}
-
-			query.addConditions(DEPARTMENTS.DEPT_PK.eq(this.restrictions.getAccessibleDepartment()));
-		}
-
-		if (dept_pk != null) {
-			if (!this.restrictions.canAccessDepartment(dept_pk)) {
-				throw new ForbiddenException();
-			}
-
-			query.addConditions(DEPARTMENTS.DEPT_PK.eq(dept_pk));
-		}
-
-		return query;
-	}
-
 	@GET
 	@Path("departments")
 	public Result<? extends Record> listDepartments(
@@ -320,10 +222,10 @@ public class ResourcesEndpoint {
 				.select(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"))
 				.select(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"))
 				.from(SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)))
-				.where(SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, selectSites(null, dept_pk))))
+				.where(SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resourcesHelper.selectSites(null, dept_pk))))
 				.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)))
 				.groupBy(SITES_EMPLOYEES.SIEM_SITE_FK).asTable();
-		try (final SelectQuery<Record> query = selectDepartments(dept_pk)) {
+		try (final SelectQuery<Record> query = this.resourcesHelper.selectDepartments(dept_pk)) {
 			query.addSelect(DEPARTMENTS.fields());
 			query.addSelect(DSL.sum(counts.field("count", Integer.class)).as("count"));
 			query.addSelect(DSL.sum(counts.field("permanent", Integer.class)).as("permanent"));

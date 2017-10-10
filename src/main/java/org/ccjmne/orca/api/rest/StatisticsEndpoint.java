@@ -32,11 +32,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
-import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.RestrictedResourcesHelper;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
 import org.jooq.DSLContext;
@@ -57,22 +57,25 @@ public class StatisticsEndpoint {
 	private static final Integer DEFAULT_INTERVAL = Integer.valueOf(1);
 
 	private final DSLContext ctx;
-	private final ResourcesEndpoint resources;
 	private final ResourcesCommonEndpoint commonResources;
+	private final RestrictedResourcesHelper resourcesHelper;
 
-	// TODO: remove and delegate it all to ResourcesEndpoint
+	// TODO: Should not have any use for these two and should delegate
+	// restricted data access mechanics to RestrictedResourcesHelper
+	private final ResourcesEndpoint resources;
 	private final Restrictions restrictions;
 
 	@Inject
 	public StatisticsEndpoint(
 								final DSLContext ctx,
 								final ResourcesEndpoint resources,
-								final ResourcesCommonEndpoint resourcesCommon,
-								final ResourcesUnrestricted resourcesUnrestricted,
+								final ResourcesCommonEndpoint commonResources,
+								final RestrictedResourcesHelper resourcesHelper,
 								final Restrictions restrictions) {
 		this.ctx = ctx;
 		this.resources = resources;
-		this.commonResources = resourcesCommon;
+		this.commonResources = commonResources;
+		this.resourcesHelper = resourcesHelper;
 		this.restrictions = restrictions;
 	}
 
@@ -131,9 +134,10 @@ public class StatisticsEndpoint {
 				.selectDepartmentsStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
-												.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, null, dept_pk, null, dateStr))),
-										SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, dept_pk))),
-										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.resources.selectDepartments(dept_pk)))))
+												.in(Constants.select(	EMPLOYEES.EMPL_PK,
+																		this.resourcesHelper.selectEmployees(null, null, dept_pk, null, dateStr))),
+										SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resourcesHelper.selectSites(null, dept_pk))),
+										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.resourcesHelper.selectDepartments(dept_pk)))))
 				.fetchMap(CERTIFICATES.CERT_PK);
 	}
 
@@ -157,9 +161,9 @@ public class StatisticsEndpoint {
 				.selectDepartmentsStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
-												.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, null, null, null, dateStr))),
-										SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, null))),
-										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.resources.selectDepartments(null))))
+												.in(Constants.select(EMPLOYEES.EMPL_PK, this.resourcesHelper.selectEmployees(null, null, null, null, dateStr))),
+										SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resourcesHelper.selectSites(null, null))),
+										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.resourcesHelper.selectDepartments(null))))
 				.asTable();
 
 		return this.ctx.select(
@@ -190,8 +194,8 @@ public class StatisticsEndpoint {
 				.selectSitesStats(
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
-											.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, site_pk, null, null, dateStr))),
-									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(site_pk, null)))))
+											.in(Constants.select(EMPLOYEES.EMPL_PK, this.resourcesHelper.selectEmployees(null, site_pk, null, null, dateStr))),
+									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resourcesHelper.selectSites(site_pk, null)))))
 				.fetchMap(CERTIFICATES.CERT_PK);
 	}
 
@@ -218,8 +222,8 @@ public class StatisticsEndpoint {
 				.selectSitesStats(
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
-											.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, null, dept_pk, null, dateStr))),
-									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resources.selectSites(null, dept_pk))))
+											.in(Constants.select(EMPLOYEES.EMPL_PK, this.resourcesHelper.selectEmployees(null, null, dept_pk, null, dateStr))),
+									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resourcesHelper.selectSites(null, dept_pk))))
 				.asTable();
 
 		return this.ctx.select(
@@ -244,7 +248,7 @@ public class StatisticsEndpoint {
 																								@QueryParam("date") final String dateStr) {
 		return this.ctx.selectQuery(StatisticsHelper
 				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK
-						.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(empl_pk, null, null, null, dateStr)))))
+						.in(Constants.select(EMPLOYEES.EMPL_PK, this.resourcesHelper.selectEmployees(empl_pk, null, null, null, dateStr)))))
 				.fetchMap(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
 	}
 
@@ -259,7 +263,8 @@ public class StatisticsEndpoint {
 				.selectEmployeesStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
-												.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(null, site_pk, dept_pk, null, dateStr))))
+												.in(Constants.select(	EMPLOYEES.EMPL_PK,
+																		this.resourcesHelper.selectEmployees(null, site_pk, dept_pk, null, dateStr))))
 				.asTable();
 
 		return this.ctx
