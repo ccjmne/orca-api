@@ -14,9 +14,9 @@ import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
 
+import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.jooq.classes.tables.records.UsersRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.UsersRolesRecord;
-import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
@@ -144,18 +144,6 @@ public class Restrictions {
 
 	public boolean canAccessSite(final String site_pk) {
 		return this.accessAllSites || (this.accessibleSites.contains(site_pk));
-	}
-
-	/**
-	 * Queries the database every time it's used. Let's try to not use it and
-	 * see how it goes.
-	 */
-	@Deprecated
-	// TODO: remove?
-	public boolean canAccessEmployee(final String empl_pk) {
-		return this.accessAllSites || this.ctx.fetchExists(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK.eq(empl_pk)
-				.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.CURRENT_UPDATE))
-				.and(SITES_EMPLOYEES.SIEM_SITE_FK.in(this.accessibleSites)));
 	}
 
 	@JsonGetter
