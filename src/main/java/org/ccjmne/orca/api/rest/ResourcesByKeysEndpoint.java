@@ -8,6 +8,7 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -29,24 +30,26 @@ public class ResourcesByKeysEndpoint {
 
 	@GET
 	@Path("employees")
-	public Map<String, ? extends Record> listEmployees(
-														@QueryParam("employee") final String empl_pk,
-														@QueryParam("site") final String site_pk,
-														@QueryParam("department") final Integer dept_pk,
-														@QueryParam("training") final Integer trng_pk,
-														@QueryParam("date") final String dateStr,
-														@QueryParam("fields") final String fields) {
-		return this.resources.listEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr, fields).intoMap(EMPLOYEES.EMPL_PK);
+	public Map<String, Map<String, Object>> listEmployees(
+															@QueryParam("employee") final String empl_pk,
+															@QueryParam("site") final String site_pk,
+															@QueryParam("department") final Integer dept_pk,
+															@QueryParam("training") final Integer trng_pk,
+															@QueryParam("date") final String dateStr,
+															@QueryParam("fields") final String fields) {
+		return this.resources.listEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr, fields).stream()
+				.collect(Collectors.toMap(record -> String.valueOf(record.get(EMPLOYEES.EMPL_PK.getName())), record -> record));
 	}
 
 	@GET
 	@Path("sites")
-	public Map<String, ? extends Record> listSites(
-													@QueryParam("site") final String site_pk,
-													@QueryParam("department") final Integer dept_pk,
-													@QueryParam("date") final String dateStr,
-													@QueryParam("unlisted") final boolean unlisted) {
-		return this.resources.listSites(site_pk, dept_pk, dateStr, unlisted).intoMap(SITES.SITE_PK);
+	public Map<String, Object> listSites(
+											@QueryParam("site") final String site_pk,
+											@QueryParam("department") final Integer dept_pk,
+											@QueryParam("date") final String dateStr,
+											@QueryParam("unlisted") final boolean unlisted) {
+		return this.resources.listSites(site_pk, dept_pk, dateStr, unlisted).stream()
+				.collect(Collectors.toMap(record -> String.valueOf(record.get(SITES.SITE_PK.getName())), record -> record));
 	}
 
 	@GET

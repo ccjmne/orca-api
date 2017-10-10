@@ -2,9 +2,10 @@ package org.ccjmne.orca.api.rest;
 
 import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_CERTIFICATES_OPTOUT;
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_VOIDINGS;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
@@ -13,6 +14,8 @@ import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -24,16 +27,16 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
-import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
-import org.ccjmne.orca.jooq.classes.tables.records.EmployeesCertificatesOptoutRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingsEmployeesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.JoinType;
 import org.jooq.Record;
+import org.jooq.RecordMapper;
 import org.jooq.Result;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
@@ -46,7 +49,7 @@ public class ResourcesEndpoint {
 	private final Restrictions restrictions;
 
 	@Inject
-	public ResourcesEndpoint(final DSLContext ctx, final ResourcesUnrestricted unrestrictedResources, final Restrictions restrictions) {
+	public ResourcesEndpoint(final DSLContext ctx, final Restrictions restrictions) {
 		this.ctx = ctx;
 		this.restrictions = restrictions;
 	}
@@ -104,7 +107,7 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("employees")
-	public Result<? extends Record> listEmployees(
+	public List<Map<String, Object>> listEmployees(
 													@QueryParam("employee") final String empl_pk,
 													@QueryParam("site") final String site_pk,
 													@QueryParam("department") final Integer dept_pk,
@@ -129,7 +132,30 @@ public class ResourcesEndpoint {
 				query.addSelect(TRAININGS_EMPLOYEES.fields());
 			}
 
-			return this.ctx.fetch(query);
+			final List<Field<?>> selected = new ArrayList<>(query.getSelect());
+			query.addSelect(Constants.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_CERT_FK),
+							Constants.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_DATE),
+							Constants.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_REASON));
+			query.addJoin(EMPLOYEES_VOIDINGS, JoinType.LEFT_OUTER_JOIN, EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(EMPLOYEES.EMPL_PK));
+			query.addGroupBy(selected);
+
+			return this.ctx.fetch(query).map(new RecordMapper<Record, Map<String, Object>>() {
+
+				private final RecordMapper<Record, Map<Integer, Object>> zipMapper = Constants
+						.getZipMapper(EMPLOYEES_VOIDINGS.EMVO_CERT_FK, EMPLOYEES_VOIDINGS.EMVO_DATE, EMPLOYEES_VOIDINGS.EMVO_REASON);
+
+				@Override
+				public Map<String, Object> map(final Record record) {
+					final Map<String, Object> res = new HashMap<>();
+					selected.forEach(field -> res.put(field.getName(), record.get(field)));
+					final Map<Integer, Object> map = this.zipMapper.map(record);
+					if (!map.isEmpty()) {
+						res.put("voidings", map);
+					}
+
+					return res;
+				}
+			});
 		}
 	}
 
@@ -160,7 +186,7 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("employees/{empl_pk}")
-	public Record lookupEmployee(@PathParam("empl_pk") final String empl_pk, @QueryParam("date") final String dateStr) {
+	public Map<String, Object> lookupEmployee(@PathParam("empl_pk") final String empl_pk, @QueryParam("date") final String dateStr) {
 		try {
 			return listEmployees(empl_pk, null, null, null, dateStr, Constants.FIELDS_ALL).get(0);
 		} catch (final IndexOutOfBoundsException e) {
@@ -201,30 +227,58 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("sites")
-	public Result<Record> listSites(
-									@QueryParam("site") final String site_pk,
-									@QueryParam("department") final Integer dept_pk,
-									@QueryParam("date") final String dateStr,
-									@QueryParam("unlisted") final boolean unlisted) {
-		try (final SelectQuery<Record> query = selectSites(site_pk, dept_pk)) {
-			query.addSelect(SITES.fields());
-			query.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
-			query.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));
-			query.addJoin(
+	public List<Map<String, Object>> listSites(
+												@QueryParam("site") final String site_pk,
+												@QueryParam("department") final Integer dept_pk,
+												@QueryParam("date") final String dateStr,
+												@QueryParam("unlisted") final boolean unlisted) {
+		try (final SelectQuery<Record> selectSites = selectSites(site_pk, dept_pk)) {
+			selectSites.addSelect(SITES.fields());
+			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
+			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));
+			selectSites.addJoin(
 							SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)),
 							unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
 							SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))));
-			query.addGroupBy(SITES.fields());
-			return this.ctx.fetch(query);
+			selectSites.addGroupBy(SITES.fields());
+
+			try (final SelectQuery<Record> withTags = DSL.select().getQuery()) {
+				final Table<Record> sites = selectSites.asTable();
+				withTags.addSelect(sites.fields());
+				withTags.addSelect(	Constants.arrayAgg(SITES_TAGS.SITA_TAGS_FK),
+										Constants.arrayAgg(SITES_TAGS.SITA_BOOLEAN),
+										Constants.arrayAgg(SITES_TAGS.SITA_STRING));
+				withTags.addFrom(sites);
+				withTags.addJoin(SITES_TAGS, JoinType.LEFT_OUTER_JOIN, SITES_TAGS.SITA_SITE_FK.eq(sites.field(SITES.SITE_PK)));
+				withTags.addGroupBy(sites.fields());
+
+				return this.ctx.fetch(withTags).map(new RecordMapper<Record, Map<String, Object>>() {
+
+					private final RecordMapper<Record, Map<Integer, Object>> zipMapper = Constants
+							.getZipMapper(false, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_BOOLEAN, SITES_TAGS.SITA_STRING);
+
+					@Override
+					public Map<String, Object> map(final Record record) {
+						final Map<String, Object> res = new HashMap<>();
+						selectSites.getSelect().forEach(field -> res.put(field.getName(), record.get(field)));
+						final Map<Integer, Object> map = this.zipMapper.map(record);
+						if (!map.isEmpty()) {
+							res.put("tags", map);
+						}
+
+						return res;
+					}
+				});
+			}
 		}
 	}
 
 	@GET
 	@Path("sites/{site_pk}")
-	public Record lookupSite(
-								@PathParam("site_pk") final String site_pk,
-								@QueryParam("date") final String dateStr,
-								@QueryParam("unlisted") final boolean unlisted) {
+	public Map<String, Object> lookupSite(
+											@PathParam("site_pk") final String site_pk,
+											@QueryParam("date") final String dateStr,
+											@QueryParam("unlisted") final boolean unlisted) {
 		try {
 			return listSites(site_pk, null, dateStr, unlisted).get(0);
 		} catch (final IndexOutOfBoundsException e) {
