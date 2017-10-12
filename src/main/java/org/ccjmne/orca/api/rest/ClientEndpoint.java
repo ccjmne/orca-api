@@ -3,6 +3,7 @@ package org.ccjmne.orca.api.rest;
 import static org.ccjmne.orca.jooq.classes.Tables.CLIENT;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -10,26 +11,34 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URLConnection;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import org.ccjmne.orca.jooq.classes.tables.records.ClientRecord;
 import org.ccjmne.orca.api.modules.Restrictions;
+import org.ccjmne.orca.jooq.classes.tables.records.ClientRecord;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.jooq.DSLContext;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.DeleteObjectRequest;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.util.json.Jackson;
 import com.google.common.io.ByteStreams;
 
 @Path("client")
@@ -65,6 +74,7 @@ public class ClientEndpoint {
 	}
 
 	@POST
+	@Path("logo")
 	public void updateLogo(
 							@FormDataParam("file") final InputStream fileStream,
 							@FormDataParam("file") final FormDataContentDisposition fileDetail)
@@ -90,6 +100,51 @@ public class ClientEndpoint {
 		}
 
 		file.delete();
+	}
+
+	@GET
+	@Path("welcome")
+	@SuppressWarnings("null")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Map<String, Object> getWelcomeMessage() throws IOException {
+		final String objectKey = String.format("%s-welcome.json", this.ctx.selectFrom(CLIENT).fetchOne(CLIENT.CLNT_ID));
+		if (this.client.doesObjectExist(ORCA_RESOURCES_BUCKET, objectKey)) {
+			try (final S3Object object = this.client
+					.getObject(new GetObjectRequest(ORCA_RESOURCES_BUCKET, objectKey))) {
+				return Jackson.getObjectMapper().readValue(object.getObjectContent(), HashMap.class);
+			}
+		}
+
+		return null;
+	}
+
+	@POST
+	@Path("welcome")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public void postWelcomeMessage(final Map<String, Object> contents) throws IOException {
+		if (!this.restrictions.canManageClient()) {
+			throw new ForbiddenException();
+		}
+
+		final byte[] byteArray = Jackson.getObjectMapper().writeValueAsString(contents).getBytes();
+		final ObjectMetadata metadata = new ObjectMetadata();
+		metadata.setContentLength(byteArray.length);
+		this.client.putObject(new PutObjectRequest(
+													ClientEndpoint.ORCA_RESOURCES_BUCKET,
+													String.format("%s-welcome.json", this.ctx.selectFrom(CLIENT).fetchOne(CLIENT.CLNT_ID)),
+													new ByteArrayInputStream(byteArray),
+													metadata)
+															.withCannedAcl(CannedAccessControlList.BucketOwnerRead));
+		return;
+	}
+
+	@DELETE
+	@Path("welcome")
+	public void deleteWelcomeMessage() {
+		final String objectKey = String.format("%s-welcome.json", this.ctx.selectFrom(CLIENT).fetchOne(CLIENT.CLNT_ID));
+		if (this.client.doesObjectExist(ORCA_RESOURCES_BUCKET, objectKey)) {
+			this.client.deleteObject(new DeleteObjectRequest(ClientEndpoint.ORCA_RESOURCES_BUCKET, objectKey));
+		}
 	}
 
 	private static File getFile(final InputStream input) throws IOException {
