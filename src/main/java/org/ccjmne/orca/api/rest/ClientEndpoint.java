@@ -115,7 +115,7 @@ public class ClientEndpoint {
 			}
 		}
 
-		return null;
+		return null; // 204 No Content
 	}
 
 	@POST
@@ -135,7 +135,6 @@ public class ClientEndpoint {
 													new ByteArrayInputStream(byteArray),
 													metadata)
 															.withCannedAcl(CannedAccessControlList.BucketOwnerRead));
-		return;
 	}
 
 	@DELETE
