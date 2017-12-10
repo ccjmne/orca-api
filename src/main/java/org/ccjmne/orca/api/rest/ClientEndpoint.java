@@ -44,7 +44,7 @@ import com.google.common.io.ByteStreams;
 @Path("client")
 public class ClientEndpoint {
 
-	private static final String ORCA_RESOURCES_BUCKET = "orca-resources";
+	public static final String ORCA_RESOURCES_BUCKET = "orca-resources";
 
 	private final DSLContext ctx;
 	private final AmazonS3Client client;

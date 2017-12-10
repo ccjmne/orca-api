@@ -1,6 +1,5 @@
 package org.ccjmne.orca.api.demo;
 
-import java.util.Collections;
 import java.util.Date;
 
 import javax.inject.Inject;
@@ -23,6 +22,9 @@ import org.quartz.impl.DirectSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.google.common.collect.ImmutableMap;
+
 @Singleton
 public class DemoDataManager {
 
@@ -34,14 +36,17 @@ public class DemoDataManager {
 	private static final JobKey JOB_KEY = new JobKey("reset");
 
 	private final Scheduler scheduler;
+
 	private final DSLContext ctx;
+	private final AmazonS3Client client;
 
 	@Inject
-	public DemoDataManager(final DSLContext ctx) throws SchedulerException {
+	public DemoDataManager(final DSLContext ctx, final AmazonS3Client client) throws SchedulerException {
 		final DirectSchedulerFactory schedulerFactory = DirectSchedulerFactory.getInstance();
 		schedulerFactory.createVolatileScheduler(1);
 		this.scheduler = schedulerFactory.getScheduler();
 		this.ctx = ctx;
+		this.client = client;
 	}
 
 	public boolean isDemoEnabled() {
@@ -74,7 +79,8 @@ public class DemoDataManager {
 		this.scheduler.scheduleJob(
 									JobBuilder
 											.newJob(DemoDataReset.class)
-											.usingJobData(new JobDataMap(Collections.singletonMap(DSLContext.class.getName(), this.ctx)))
+											.usingJobData(new JobDataMap(ImmutableMap
+													.<String, Object> of(DSLContext.class.getName(), this.ctx, AmazonS3Client.class.getName(), this.client)))
 											.withIdentity(jobKey)
 											.build(),
 									TriggerBuilder
@@ -98,11 +104,12 @@ public class DemoDataManager {
 
 		@Override
 		public void execute(final JobExecutionContext context) throws JobExecutionException {
+			final AmazonS3Client client = (AmazonS3Client) context.getMergedJobDataMap().get(AmazonS3Client.class.getName());
 			try (final DSLContext ctx = (DSLContext) context.getMergedJobDataMap().get(DSLContext.class.getName())) {
 				LOGGER.info("Restoring demo data...");
 				ctx.transaction(config -> {
 					try (final DSLContext transactionCtx = DSL.using(config)) {
-						DemoBareWorkingState.restore(transactionCtx);
+						DemoBareWorkingState.restore(transactionCtx, client);
 						DemoCommonResources.generate(transactionCtx);
 						DemoDataSitesEmployees.generate(transactionCtx);
 						DemoDataTrainings.generate(transactionCtx);
