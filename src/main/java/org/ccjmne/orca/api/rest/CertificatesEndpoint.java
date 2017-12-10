@@ -55,10 +55,10 @@ public class CertificatesEndpoint {
 	@PUT
 	@Path("{cert_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
-	public boolean updateCert(@PathParam("cert_pk") final Integer cert_pk, final Map<String, String> cert) {
-		final boolean exists = this.ctx.fetchExists(CERTIFICATES, CERTIFICATES.CERT_PK.eq(cert_pk));
-		this.ctx.transaction((config) -> {
+	public Boolean updateCert(@PathParam("cert_pk") final Integer cert_pk, final Map<String, String> cert) {
+		return this.ctx.transactionResult((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
+				final boolean exists = this.ctx.fetchExists(CERTIFICATES, CERTIFICATES.CERT_PK.eq(cert_pk));
 				if (exists) {
 					transactionCtx.update(CERTIFICATES)
 							.set(CERTIFICATES.CERT_NAME, cert.get(CERTIFICATES.CERT_NAME.getName()))
@@ -87,10 +87,10 @@ public class CertificatesEndpoint {
 											.fetchOne("order", Integer.class))
 							.execute();
 				}
+
+				return Boolean.valueOf(exists);
 			}
 		});
-
-		return exists;
 	}
 
 	@POST
