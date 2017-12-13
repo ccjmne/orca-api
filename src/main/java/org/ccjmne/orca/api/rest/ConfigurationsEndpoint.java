@@ -82,20 +82,24 @@ public class ConfigurationsEndpoint {
 								@QueryParam("type") final String type,
 								@QueryParam("name") final String name,
 								final String requestBody) {
-		if ((type == null) || (name == null) || name.isEmpty() || !AVAILABLE_TYPES.contains(type)) {
+		if ((type == null) || (name == null) || name.trim().isEmpty() || !AVAILABLE_TYPES.contains(type)) {
 			throw new IllegalArgumentException(String.format("Configuration type and name must be provided, and type be one of: %s", AVAILABLE_TYPES));
 		}
 
 		return this.ctx.transactionResult((config) -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
+				final String trimmed = name.trim();
+
 				@SuppressWarnings("null")
 				final String minified = this.mapper.readValue(requestBody, JsonNode.class).toString();
-				if (transactionCtx.fetchExists(CONFIGS, CONFIGS.CONF_TYPE.eq(type).and(CONFIGS.CONF_NAME.eq(name)).and(CONFIGS.CONF_PK.ne(key)))) {
-					throw new IllegalArgumentException(String.format("A configuration item named '%s' already exists for the type '%s'.", name, type));
+				if (transactionCtx.fetchExists(	CONFIGS,
+												CONFIGS.CONF_TYPE.eq(type).and(CONFIGS.CONF_NAME.equalIgnoreCase(trimmed)).and(CONFIGS.CONF_PK.ne(key)))) {
+					throw new IllegalArgumentException(String.format("A configuration item named '%s' already exists for the type '%s'.", trimmed, type));
 				}
 
 				final boolean exists = 1 == transactionCtx.deleteFrom(CONFIGS).where(CONFIGS.CONF_PK.eq(key)).execute();
-				transactionCtx.insertInto(CONFIGS, CONFIGS.CONF_PK, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME, CONFIGS.CONF_DATA).values(key, type, name, minified)
+				transactionCtx.insertInto(CONFIGS, CONFIGS.CONF_PK, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME, CONFIGS.CONF_DATA)
+						.values(key, type, trimmed, minified)
 						.execute();
 
 				return Boolean.valueOf(exists);
