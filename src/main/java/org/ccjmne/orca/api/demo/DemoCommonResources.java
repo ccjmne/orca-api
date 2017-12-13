@@ -1,6 +1,7 @@
 package org.ccjmne.orca.api.demo;
 
 import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
+import static org.ccjmne.orca.jooq.classes.Tables.CONFIGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
@@ -8,6 +9,7 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.orca.jooq.classes.Tables.USERS_CERTIFICATES;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -15,6 +17,10 @@ import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.impl.DSL;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 
 public class DemoCommonResources {
 
@@ -36,7 +42,17 @@ public class DemoCommonResources {
 
 	private static final String TRAINERPROFILE_ALTERNATE = "Non-SST";
 
-	public static void generate(final DSLContext ctx) {
+	public static void generate(final DSLContext ctx, final ObjectMapper mapper) throws JsonProcessingException {
+
+		ctx.insertInto(CONFIGS, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME, CONFIGS.CONF_DATA)
+				.values("pdf-site", "Tableau de Bord",
+						mapper.writeValueAsString(ImmutableMap.<String, Object> of(	"lines", (Object) Collections.singletonList(Collections.emptyList()),
+																					"fileName", "{{site}} - {{config}}",
+																					"dimensions", "A4",
+																					"orientation", "Portrait",
+																					"title", "Site de {{site}}")))
+				.execute();
+
 		ctx.insertInto(
 						CERTIFICATES,
 						CERTIFICATES.CERT_ORDER,
