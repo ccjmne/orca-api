@@ -45,12 +45,15 @@ public class DemoCommonResources {
 	public static void generate(final DSLContext ctx, final ObjectMapper mapper) throws JsonProcessingException {
 
 		ctx.insertInto(CONFIGS, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME, CONFIGS.CONF_DATA)
-				.values("pdf-site", "Tableau de Bord",
-						mapper.writeValueAsString(ImmutableMap.<String, Object> of(	"lines", (Object) Collections.singletonList(Collections.emptyList()),
-																					"fileName", "{{site}} - {{config}}",
-																					"dimensions", "A4",
-																					"orientation", "Portrait",
-																					"title", "Site de {{site}}")))
+				.values("pdf-site", "Tableau de Bord", mapper.writeValueAsString(ImmutableMap.<String, Object> builder()
+						.put("lines", Collections.singletonList(Collections.emptyList()))
+						.put("fileName", "{{site}} - {{config}}")
+						.put("dimensions", "A4")
+						.put("orientation", "Portrait")
+						.put("title", "Site de {{site}}")
+						.put("subtitle", "au {{date}}")
+						.put("bookmark", "Infos Sécurité")
+						.build()))
 				.execute();
 
 		ctx.insertInto(
