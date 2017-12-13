@@ -13,7 +13,6 @@ import com.github.jhonnymertz.wkhtmltopdf.wrapper.Pdf;
 import com.github.jhonnymertz.wkhtmltopdf.wrapper.params.Param;
 
 @Path("reports")
-// TODO: Restrict access to authenticated users
 public class ReportsEndpoint {
 
 	@POST
