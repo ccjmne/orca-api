@@ -1,9 +1,9 @@
 package org.ccjmne.orca.api.demo;
 
-import java.util.Collections;
 import java.util.Date;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -22,6 +22,11 @@ import org.quartz.impl.DirectSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
+
+@Singleton
 public class DemoDataManager {
 
 	private static final String DEMO_PROPERTY = "demo";
@@ -29,16 +34,22 @@ public class DemoDataManager {
 	// Defaults to every SUNDAY at 3:00 AM
 	private static final String SCHEDULE_CRON_EXPRESSION = System.getProperty("demo-cronwipe", "0 0 3 ? * *");
 	private static final TriggerKey TRIGGER_KEY = new TriggerKey("trigger");
+	private static final JobKey JOB_KEY = new JobKey("reset");
 
 	private final Scheduler scheduler;
+
 	private final DSLContext ctx;
+	private final AmazonS3Client client;
+	private final ObjectMapper mapper;
 
 	@Inject
-	public DemoDataManager(final DSLContext ctx) throws SchedulerException {
+	public DemoDataManager(final DSLContext ctx, final AmazonS3Client client, final ObjectMapper mapper) throws SchedulerException {
 		final DirectSchedulerFactory schedulerFactory = DirectSchedulerFactory.getInstance();
 		schedulerFactory.createVolatileScheduler(1);
 		this.scheduler = schedulerFactory.getScheduler();
 		this.ctx = ctx;
+		this.client = client;
+		this.mapper = mapper;
 	}
 
 	public boolean isDemoEnabled() {
@@ -53,17 +64,28 @@ public class DemoDataManager {
 		return this.scheduler.getTrigger(TRIGGER_KEY).getNextFireTime();
 	}
 
+	public void trigger() throws SchedulerException {
+		if (!isDemoEnabled()) {
+			return;
+		}
+
+		this.scheduler.triggerJob(JOB_KEY);
+	}
+
 	public void start() throws SchedulerException {
 		if (!isDemoEnabled() || this.scheduler.isStarted()) {
 			return;
 		}
 
-		final JobKey jobKey = new JobKey("reset");
+		final JobKey jobKey = JOB_KEY;
 		// Schedules reset job in accordance with the CRON expression
 		this.scheduler.scheduleJob(
 									JobBuilder
 											.newJob(DemoDataReset.class)
-											.usingJobData(new JobDataMap(Collections.singletonMap(DSLContext.class.getName(), this.ctx)))
+											.usingJobData(new JobDataMap(ImmutableMap
+													.<String, Object> of(	DSLContext.class.getName(), this.ctx,
+																			AmazonS3Client.class.getName(), this.client,
+																			ObjectMapper.class.getName(), this.mapper)))
 											.withIdentity(jobKey)
 											.build(),
 									TriggerBuilder
@@ -87,12 +109,14 @@ public class DemoDataManager {
 
 		@Override
 		public void execute(final JobExecutionContext context) throws JobExecutionException {
+			final AmazonS3Client client = (AmazonS3Client) context.getMergedJobDataMap().get(AmazonS3Client.class.getName());
+			final ObjectMapper mapper = (ObjectMapper) context.getMergedJobDataMap().get(ObjectMapper.class.getName());
 			try (final DSLContext ctx = (DSLContext) context.getMergedJobDataMap().get(DSLContext.class.getName())) {
 				LOGGER.info("Restoring demo data...");
 				ctx.transaction(config -> {
 					try (final DSLContext transactionCtx = DSL.using(config)) {
-						DemoBareWorkingState.restore(transactionCtx);
-						DemoCommonResources.generate(transactionCtx);
+						DemoBareWorkingState.restore(transactionCtx, client);
+						DemoCommonResources.generate(transactionCtx, mapper);
 						DemoDataSitesEmployees.generate(transactionCtx);
 						DemoDataTrainings.generate(transactionCtx);
 						DemoDataUsers.generate(transactionCtx);

@@ -11,8 +11,13 @@ public class S3Client extends AmazonS3Client {
 	/**
 	 * Creates an instance of {@link AmazonS3Client} for a specific
 	 * {@link Region}.<br />
-	 * Expects the system properties <code>aws.accessKeyId</code> and
-	 * <code>aws.secretKey</code> to be set appropriately.
+	 * Expects either of these two sets of properties to be set appropriately:
+	 * <ul>
+	 * <li>Environment Variables - <code>AWS_ACCESS_KEY_ID</code> and
+	 * <code>AWS_SECRET_KEY</code></li>
+	 * <li>Java System Properties - <code>aws.accessKeyId</code> and
+	 * <code>aws.secretKey</code></li>
+	 * </ul>
 	 */
 	public S3Client() {
 		super();

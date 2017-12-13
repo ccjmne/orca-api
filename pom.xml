@@ -50,7 +50,7 @@
 		<dependency>
 			<groupId>org.ccjmne.orca</groupId>
 			<artifactId>orca-jooq-generation</artifactId>
-			<version>2.0.1</version>
+			<version>2.0.2</version>
 		</dependency>
 
 		<!-- AWS INTEGRATION -->
@@ -66,7 +66,7 @@
 			<artifactId>quartz</artifactId>
 			<version>2.2.3</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>io.codearte.jfairy</groupId>
 			<artifactId>jfairy</artifactId>
@@ -147,12 +147,30 @@
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-servlet-core</artifactId>
 
-			<!-- <exclusions> <exclusion> <artifactId>jersey-guava</artifactId> <groupId> 
-				org.glassfish.jersey.bundles.repackaged </groupId> </exclusion> </exclusions> -->
+			<!-- <exclusions> -->
+			<!-- <exclusion> -->
+			<!-- <groupId>org.glassfish.jersey.bundles.repackaged</groupId> -->
+			<!-- <artifactId>jersey-guava</artifactId> -->
+			<!-- </exclusion> -->
+			<!-- </exclusions> -->
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-multipart</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>com.github.jhonnymertz</groupId>
+			<artifactId>java-wkhtmltopdf-wrapper</artifactId>
+			<version>1.1.0-RELEASE</version>
+		</dependency>
 	</dependencies>
+
+	<repositories>
+		<repository>
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
+		</repository>
+	</repositories>
+
 </project>

@@ -14,10 +14,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
+import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.jooq.classes.tables.records.DepartmentsRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.EmployeesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.SitesRecord;
-import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -61,13 +61,12 @@ public class DemoDataSitesEmployees {
 
 		ctx.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_UPDT_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_EMPL_FK)
 				.select(DSL.select(DSL.val(update), DSL.field("site_pk", String.class), DSL.field("empl_pk", String.class))
-						.from(
-								DSL.select(
+						.from(DSL.select(
 											EMPLOYEES.EMPL_PK,
 											DSL.floor(DSL.rand().mul(DSL.select(DSL.count()).from(SITES).where(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE))
 													.asField()).add(DSL.val(1)))
 													.as("linked_site_id"))
-										.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT)).asTable("employees2"))
+								.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT)).asTable("employees2"))
 						.join(DSL.select(
 											SITES.SITE_PK,
 											DSL.rowNumber().over().orderBy(DSL.rand()).as("site_id"))
@@ -85,7 +84,7 @@ public class DemoDataSitesEmployees {
 						person.getFirstName(),
 						person.getLastName().toUpperCase(),
 						new Date(person.getDateOfBirth().toDate().getTime()),
-						person.getCompanyEmail().replaceFirst("@.*$", "@orca-demo.com"),
+						person.getCompanyEmail().replaceFirst("@.*$", "@orca-solution.com"),
 						Boolean.valueOf(person.isMale()),
 						Boolean.valueOf(FAIRY.baseProducer().trueOrFalse() || FAIRY.baseProducer().trueOrFalse()));
 	}
@@ -97,7 +96,7 @@ public class DemoDataSitesEmployees {
 				.values(asFields(
 									String.format(pk, Integer.valueOf(i)),
 									city,
-									city.replaceAll("[\\s']", "").toLowerCase() + "@orca-demo.com",
+									city.replaceAll("[\\s']", "").toLowerCase() + "@orca-solution.com",
 									random(DEPARTMENTS, DEPARTMENTS.DEPT_PK, DEPARTMENTS.DEPT_PK.ne(Constants.UNASSIGNED_DEPARTMENT))));
 	}
 

@@ -51,10 +51,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Range;
 
-// TODO: Account for the new validity durations that are attached to each
-// certificate and can be indefinite.
-// TODO: The entire thing is close to being straight-up irrelevant altogether.
-
 @Path("statistics")
 public class StatisticsEndpoint {
 
@@ -83,6 +79,8 @@ public class StatisticsEndpoint {
 	@GET
 	@Path("trainings")
 	// TODO: rewrite
+	// TODO: The entire thing is close to being straight-up irrelevant
+	// altogether.
 	public Map<Integer, Iterable<TrainingsStatistics>> getTrainingsStats(
 																			@QueryParam("from") final String fromStr,
 																			@QueryParam("to") final String toStr,
@@ -254,7 +252,8 @@ public class StatisticsEndpoint {
 																								@PathParam("empl_pk") final String empl_pk,
 																								@QueryParam("date") final String dateStr) {
 		return this.ctx.selectQuery(Constants
-				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk)))
+				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK
+						.in(Constants.select(EMPLOYEES.EMPL_PK, this.resources.selectEmployees(empl_pk, null, null, null, dateStr)))))
 				.fetchMap(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
 	}
 
