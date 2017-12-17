@@ -20,6 +20,7 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Insert;
 import org.jooq.InsertValuesStep4;
+import org.jooq.InsertValuesStep5;
 import org.jooq.Row1;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
@@ -33,10 +34,14 @@ public class DemoDataTrainings {
 	public static void generate(final DSLContext ctx) {
 		addCompletedTrainings(
 								ctx.insertInto(TRAININGS, TRAININGS.TRNG_DATE, TRAININGS.TRNG_START, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_OUTCOME),
-								500).execute();
+								442).execute();
 		addScheduledTrainings(
 								ctx.insertInto(TRAININGS, TRAININGS.TRNG_DATE, TRAININGS.TRNG_START, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_OUTCOME),
 								8).execute();
+		addCancelledTrainings(
+								ctx.insertInto(	TRAININGS, TRAININGS.TRNG_DATE, TRAININGS.TRNG_START, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_COMMENT,
+												TRAININGS.TRNG_OUTCOME),
+								50).execute();
 
 		// Adding trainers - 1% of employees are trainers
 		ctx.insertInto(TRAININGS_TRAINERS, TRAININGS_TRAINERS.TRTR_TRNG_FK, TRAININGS_TRAINERS.TRTR_EMPL_FK)
@@ -74,12 +79,9 @@ public class DemoDataTrainings {
 		}
 
 		// Adding FLUNKED employees - 1/4 of them
-		final Row1<String>[] comments = Arrays.asList(
-														"En incapacité physique d'effectuer certains gestes techniques",
-														"Absent(e)",
-														"A quitté la formation avant la fin",
-														"En congés",
-														"A été muté(e)")
+		final Row1<String>[] flunkedComments = Arrays.asList(
+																"En incapacité physique d'effectuer certains gestes techniques",
+																"A quitté la formation avant la fin")
 				.stream().map(DSL::row).toArray(Row1[]::new);
 
 		ctx.insertInto(
@@ -98,7 +100,7 @@ public class DemoDataTrainings {
 											DSL.floor(DSL.rand().mul(DSL.select(DSL.count()).from(TRAININGS)
 													.where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_COMPLETED))
 													.asField()).mul(DSL.val(4))).as("linked_trng_id"),
-											DSL.ceil(DSL.rand().mul(Integer.valueOf(comments.length))).as("linked_trem_comment_id"))
+											DSL.ceil(DSL.rand().mul(Integer.valueOf(flunkedComments.length))).as("linked_trem_comment_id"))
 								.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT)).asTable("employees2"))
 						.join(DSL.select(
 											TRAININGS.TRNG_PK,
@@ -108,7 +110,35 @@ public class DemoDataTrainings {
 						.join(DSL.select(
 											DSL.field("trem_comment"),
 											DSL.rowNumber().over().as("trem_comment_id"))
-								.from(DSL.values(comments).as("unused", "trem_comment")))
+								.from(DSL.values(flunkedComments).as("unused", "trem_comment")))
+						.on(DSL.field("linked_trem_comment_id").eq(DSL.field("trem_comment_id"))))
+				.onDuplicateKeyIgnore()
+				.execute();
+
+		// Adding MISSING employees - 1/4 of them
+		final Row1<String>[] missingComments = Arrays.asList("Absent(e)", "En congés", "A été muté(e)").stream().map(DSL::row).toArray(Row1[]::new);
+		ctx.insertInto(	TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_TRNG_FK, TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGS_EMPLOYEES.TREM_COMMENT,
+						TRAININGS_EMPLOYEES.TREM_OUTCOME)
+				.select(DSL
+						.select(DSL.field("trng_pk", Integer.class), DSL.field("empl_pk", String.class), DSL.field("trem_comment", String.class),
+								DSL.val(Constants.EMPL_OUTCOME_MISSING))
+						.from(DSL.select(
+											EMPLOYEES.EMPL_PK,
+											DSL.floor(DSL.rand().mul(DSL.select(DSL.count())
+													.from(TRAININGS).where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_COMPLETED))
+													.asField()).mul(DSL.val(7)))
+													.as("linked_trng_id"),
+											DSL.ceil(DSL.rand().mul(Integer.valueOf(missingComments.length))).as("linked_trem_comment_id"))
+								.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT)).asTable("employees2"))
+						.join(DSL.select(
+											TRAININGS.TRNG_PK,
+											DSL.rowNumber().over().orderBy(DSL.rand()).as("trng_id"))
+								.from(TRAININGS).where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_COMPLETED)).asTable("trainings2"))
+						.on(DSL.field("linked_trng_id").eq(DSL.field("trng_id")))
+						.join(DSL.select(
+											DSL.field("trem_comment"),
+											DSL.rowNumber().over().as("trem_comment_id"))
+								.from(DSL.values(missingComments).as("unused", "trem_comment")))
 						.on(DSL.field("linked_trem_comment_id").eq(DSL.field("trem_comment_id"))))
 				.onDuplicateKeyIgnore()
 				.execute();
@@ -127,6 +157,24 @@ public class DemoDataTrainings {
 											TRAININGS.TRNG_PK,
 											DSL.rowNumber().over().orderBy(DSL.rand()).as("trng_id"))
 								.from(TRAININGS).where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_SCHEDULED)).asTable("trainings2"))
+						.on(DSL.field("linked_trng_id").eq(DSL.field("trng_id"))))
+				.onDuplicateKeyIgnore()
+				.execute();
+
+		// Adding CANCELLED employees - 1/7 of them
+		ctx.insertInto(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_TRNG_FK, TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGS_EMPLOYEES.TREM_OUTCOME)
+				.select(DSL.select(DSL.field("trng_pk", Integer.class), DSL.field("empl_pk", String.class), DSL.val(Constants.EMPL_OUTCOME_CANCELLED))
+						.from(DSL.select(
+											EMPLOYEES.EMPL_PK,
+											DSL.floor(DSL.rand().mul(DSL.select(DSL.count())
+													.from(TRAININGS).where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_CANCELLED))
+													.asField()).mul(DSL.val(35)))
+													.as("linked_trng_id"))
+								.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT)).asTable("employees2"))
+						.join(DSL.select(
+											TRAININGS.TRNG_PK,
+											DSL.rowNumber().over().orderBy(DSL.rand()).as("trng_id"))
+								.from(TRAININGS).where(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_CANCELLED)).asTable("trainings2"))
 						.on(DSL.field("linked_trng_id").eq(DSL.field("trng_id"))))
 				.onDuplicateKeyIgnore()
 				.execute();
@@ -152,6 +200,18 @@ public class DemoDataTrainings {
 									new Date(date.minusDays(1).getMillis()),
 									random(TRAININGTYPES, TRAININGTYPES.TRTY_PK),
 									Constants.TRNG_OUTCOME_SCHEDULED));
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Insert<?> addCancelledTrainings(final Insert<?> query, final int i) {
+		final DateTime date = FAIRY.dateProducer().randomDateInThePast(4);
+		return ((InsertValuesStep5<TrainingsRecord, Date, Date, Integer, String, String>) (i == 1 ? query : addCancelledTrainings(query, i - 1)))
+				.values(asFields(
+									new Date(date.getMillis()),
+									new Date(date.minusDays(1).getMillis()),
+									random(TRAININGTYPES, TRAININGTYPES.TRTY_PK),
+									"Trop peu d'agents inscrits",
+									Constants.TRNG_OUTCOME_CANCELLED));
 	}
 
 	private static <R> Field<R> random(final Table<?> table, final Field<R> field, final Condition... conditions) {
