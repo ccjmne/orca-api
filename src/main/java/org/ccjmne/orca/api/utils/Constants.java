@@ -18,6 +18,8 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.temporal.TemporalAdjusters;
+import java.util.Arrays;
+import java.util.List;
 
 import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
 import org.jooq.Condition;
@@ -65,11 +67,16 @@ public class Constants {
 	// ----
 
 	// ---- DATABASE CONSTANTS
+	public static final String TRNG_OUTCOME_CANCELLED = "CANCELLED";
 	public static final String TRNG_OUTCOME_COMPLETED = "COMPLETED";
 	public static final String TRNG_OUTCOME_SCHEDULED = "SCHEDULED";
-	public static final String EMPL_OUTCOME_VALIDATED = "VALIDATED";
-	public static final String EMPL_OUTCOME_PENDING = "PENDING";
+	public static final List<String> TRAINING_OUTCOMES = Arrays
+			.asList(Constants.TRNG_OUTCOME_CANCELLED, Constants.TRNG_OUTCOME_COMPLETED, Constants.TRNG_OUTCOME_SCHEDULED);
+
+	public static final String EMPL_OUTCOME_CANCELLED = "CANCELLED";
 	public static final String EMPL_OUTCOME_FLUNKED = "FLUNKED";
+	public static final String EMPL_OUTCOME_PENDING = "PENDING";
+	public static final String EMPL_OUTCOME_VALIDATED = "VALIDATED";
 
 	public static final String USER_ROOT = "root";
 
