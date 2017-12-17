@@ -342,6 +342,7 @@ public class ResourcesEndpoint {
 			query.addSelect(Constants.TRAINING_REGISTERED);
 			query.addSelect(Constants.TRAINING_VALIDATED);
 			query.addSelect(Constants.TRAINING_FLUNKED);
+			query.addSelect(Constants.TRAINING_MISSING);
 			query.addSelect(Constants.TRAINING_TRAINERS);
 
 			if (empl_pk != null) {
@@ -393,6 +394,7 @@ public class ResourcesEndpoint {
 			query.addSelect(Constants.TRAINING_REGISTERED);
 			query.addSelect(Constants.TRAINING_VALIDATED);
 			query.addSelect(Constants.TRAINING_FLUNKED);
+			query.addSelect(Constants.TRAINING_MISSING);
 			query.addSelect(Constants.TRAINING_TRAINERS);
 			query.addConditions(TRAININGS.TRNG_PK.eq(trng_pk));
 			query.addGroupBy(TRAININGS.fields());

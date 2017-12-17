@@ -160,7 +160,9 @@ public class TrainingsEndpoint {
 				predicate = outcome -> outcome.equals(Constants.EMPL_OUTCOME_CANCELLED);
 				break;
 			case Constants.TRNG_OUTCOME_COMPLETED:
-				predicate = outcome -> outcome.equals(Constants.EMPL_OUTCOME_FLUNKED) || outcome.equals(Constants.EMPL_OUTCOME_VALIDATED);
+				predicate = outcome -> outcome.equals(Constants.EMPL_OUTCOME_FLUNKED)
+						|| outcome.equals(Constants.EMPL_OUTCOME_MISSING)
+						|| outcome.equals(Constants.EMPL_OUTCOME_VALIDATED);
 				break;
 			default: // TRNG_OUTCOME_SCHEDULED
 				predicate = outcome -> outcome.equals(Constants.EMPL_OUTCOME_PENDING);

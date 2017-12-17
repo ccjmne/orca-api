@@ -75,6 +75,7 @@ public class Constants {
 
 	public static final String EMPL_OUTCOME_CANCELLED = "CANCELLED";
 	public static final String EMPL_OUTCOME_FLUNKED = "FLUNKED";
+	public static final String EMPL_OUTCOME_MISSING = "MISSING";
 	public static final String EMPL_OUTCOME_PENDING = "PENDING";
 	public static final String EMPL_OUTCOME_VALIDATED = "VALIDATED";
 
@@ -150,6 +151,8 @@ public class Constants {
 			.filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(EMPL_OUTCOME_VALIDATED)).as("validated");
 	public static final Field<Integer> TRAINING_FLUNKED = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
 			.filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(EMPL_OUTCOME_FLUNKED)).as("flunked");
+	public static final Field<Integer> TRAINING_MISSING = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
+			.filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(EMPL_OUTCOME_MISSING)).as("missing");
 	public static final Field<String> TRAINING_TRAINERS = DSL.select(DSL.arrayAgg(TRAININGS_TRAINERS.TRTR_EMPL_FK)).from(TRAININGS_TRAINERS)
 			.where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK)).asField("trainers");
 	// --
