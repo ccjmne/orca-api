@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 
 @SuppressWarnings("serial")
 public class CustomObjectMapper extends ObjectMapper {
@@ -24,6 +25,7 @@ public class CustomObjectMapper extends ObjectMapper {
 		setDateFormat(SafeDateFormat.getDateFormat());
 		registerModule(new AllKindsOfDatesSerialiserModule());
 		registerModule(new JOOQResultsSerialiserModule());
+		registerModule(new AfterburnerModule());
 	}
 
 	private class AllKindsOfDatesSerialiserModule extends SimpleModule {
@@ -58,15 +60,14 @@ public class CustomObjectMapper extends ObjectMapper {
 
 						@Override
 						public void serialize(final Result<? extends Record> value, final JsonGenerator jgen, final SerializerProvider provider)
-								throws IOException,
-								JsonGenerationException {
+								throws IOException, JsonGenerationException {
 							jgen.writeObject(value.intoMaps());
 						}
 					}, new StdSerializer<Record>(Record.class, false) {
 
 						@Override
-						public void serialize(final Record value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException,
-								JsonGenerationException {
+						public void serialize(final Record value, final JsonGenerator jgen, final SerializerProvider provider)
+								throws IOException, JsonGenerationException {
 							jgen.writeObject(value.intoMap());
 						}
 					}));
