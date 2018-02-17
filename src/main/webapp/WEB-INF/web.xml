@@ -52,6 +52,22 @@
 
 	<security-constraint>
 		<web-resource-collection>
+			<web-resource-name>Account-bound patch notes service</web-resource-name>
+
+			<url-pattern>/patch-notes</url-pattern>
+			<url-pattern>/patch-notes/read</url-pattern>
+			<url-pattern>/patch-notes/unread</url-pattern>
+			<http-method>GET</http-method>
+			<http-method>POST</http-method>
+		</web-resource-collection>
+		<auth-constraint>
+			<description>Any authenticated user can access this API</description>
+			<role-name>*</role-name>
+		</auth-constraint>
+	</security-constraint>
+
+	<security-constraint>
+		<web-resource-collection>
 			<web-resource-name>Configurations management API</web-resource-name>
 
 			<url-pattern>/configs/*</url-pattern>
