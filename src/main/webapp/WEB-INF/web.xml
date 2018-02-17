@@ -3,7 +3,7 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
 	<servlet>
-		<servlet-name>First Aid Officer API</servlet-name>
+		<servlet-name>Orca API</servlet-name>
 		<servlet-class>org.glassfish.jersey.servlet.ServletContainer</servlet-class>
 		<init-param>
 			<param-name>javax.ws.rs.Application</param-name>
@@ -13,7 +13,7 @@
 	</servlet>
 
 	<servlet-mapping>
-		<servlet-name>First Aid Officer API</servlet-name>
+		<servlet-name>Orca API</servlet-name>
 		<url-pattern>/*</url-pattern>
 	</servlet-mapping>
 
@@ -49,6 +49,53 @@
 			<role-name>*</role-name>
 		</auth-constraint>
 	</security-constraint>
+
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>Account-bound patch notes service</web-resource-name>
+
+			<url-pattern>/patch-notes</url-pattern>
+			<url-pattern>/patch-notes/read</url-pattern>
+			<url-pattern>/patch-notes/unread</url-pattern>
+			<http-method>GET</http-method>
+			<http-method>POST</http-method>
+		</web-resource-collection>
+		<auth-constraint>
+			<description>Any authenticated user can access this API</description>
+			<role-name>*</role-name>
+		</auth-constraint>
+	</security-constraint>
+
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>Configurations management API</web-resource-name>
+
+			<url-pattern>/configs/*</url-pattern>
+			<http-method>GET</http-method>
+			<http-method>POST</http-method>
+			<http-method>PUT</http-method>
+			<http-method>DELETE</http-method>
+		</web-resource-collection>
+		<auth-constraint>
+			<description>Any authenticated user can access this API</description>
+			<role-name>*</role-name>
+		</auth-constraint>
+	</security-constraint>
+
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>PDF reports generation API</web-resource-name>
+
+			<url-pattern>/reports/*</url-pattern>
+			<http-method>POST</http-method>
+		</web-resource-collection>
+		<auth-constraint>
+			<description>Any authenticated user can access this API</description>
+			<role-name>*</role-name>
+		</auth-constraint>
+	</security-constraint>
+
+
 
 	<security-constraint>
 		<web-resource-collection>

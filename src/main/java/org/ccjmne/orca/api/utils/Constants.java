@@ -9,6 +9,7 @@ import java.time.Month;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -49,11 +50,17 @@ public class Constants {
 	// ----
 
 	// ---- DATABASE CONSTANTS
+	public static final String TRNG_OUTCOME_CANCELLED = "CANCELLED";
 	public static final String TRNG_OUTCOME_COMPLETED = "COMPLETED";
 	public static final String TRNG_OUTCOME_SCHEDULED = "SCHEDULED";
-	public static final String EMPL_OUTCOME_VALIDATED = "VALIDATED";
-	public static final String EMPL_OUTCOME_PENDING = "PENDING";
+	public static final List<String> TRAINING_OUTCOMES = Arrays
+			.asList(Constants.TRNG_OUTCOME_CANCELLED, Constants.TRNG_OUTCOME_COMPLETED, Constants.TRNG_OUTCOME_SCHEDULED);
+
+	public static final String EMPL_OUTCOME_CANCELLED = "CANCELLED";
 	public static final String EMPL_OUTCOME_FLUNKED = "FLUNKED";
+	public static final String EMPL_OUTCOME_MISSING = "MISSING";
+	public static final String EMPL_OUTCOME_PENDING = "PENDING";
+	public static final String EMPL_OUTCOME_VALIDATED = "VALIDATED";
 
 	public static final String USER_ROOT = "root";
 

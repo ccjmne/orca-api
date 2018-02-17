@@ -8,6 +8,7 @@ import java.text.ParseException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import javax.inject.Inject;
 import javax.ws.rs.DELETE;
@@ -17,10 +18,11 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
+import org.ccjmne.orca.api.modules.Restrictions;
+import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingsRecord;
-import org.ccjmne.orca.api.modules.Restrictions;
-import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
@@ -100,6 +102,8 @@ public class TrainingsEndpoint {
 			throw new ForbiddenException();
 		}
 
+		validateOutcomes(map);
+
 		transactionContext
 				.insertInto(
 							TRAININGS,
@@ -117,26 +121,56 @@ public class TrainingsEndpoint {
 						(String) map.get(TRAININGS.TRNG_OUTCOME.getName()),
 						(String) map.get(TRAININGS.TRNG_COMMENT.getName()))
 				.execute();
-		final Map<String, Map<String, String>> trainees = (Map<String, Map<String, String>>) map.getOrDefault("trainees", Collections.EMPTY_MAP);
-		trainees.forEach((trem_empl_fk, data) -> transactionContext
-				.insertInto(
-							TRAININGS_EMPLOYEES,
-							TRAININGS_EMPLOYEES.TREM_TRNG_FK,
-							TRAININGS_EMPLOYEES.TREM_EMPL_FK,
-							TRAININGS_EMPLOYEES.TREM_OUTCOME,
-							TRAININGS_EMPLOYEES.TREM_COMMENT)
-				.values(
-						trng_pk,
-						trem_empl_fk,
-						data.get(TRAININGS_EMPLOYEES.TREM_OUTCOME.getName()),
-						data.get(TRAININGS_EMPLOYEES.TREM_COMMENT.getName()))
-				.execute());
+
+		((Map<String, Map<String, String>>) map.getOrDefault("trainees", Collections.EMPTY_MAP))
+				.forEach((trem_empl_fk, data) -> transactionContext
+						.insertInto(
+									TRAININGS_EMPLOYEES,
+									TRAININGS_EMPLOYEES.TREM_TRNG_FK,
+									TRAININGS_EMPLOYEES.TREM_EMPL_FK,
+									TRAININGS_EMPLOYEES.TREM_OUTCOME,
+									TRAININGS_EMPLOYEES.TREM_COMMENT)
+						.values(
+								trng_pk,
+								trem_empl_fk,
+								data.get(TRAININGS_EMPLOYEES.TREM_OUTCOME.getName()),
+								data.get(TRAININGS_EMPLOYEES.TREM_COMMENT.getName()))
+						.execute());
+
 		((List<String>) map.getOrDefault("trainers", Collections.EMPTY_LIST))
-				.forEach(trainer -> transactionContext.insertInto(
-																	TRAININGS_TRAINERS,
-																	TRAININGS_TRAINERS.TRTR_TRNG_FK,
-																	TRAININGS_TRAINERS.TRTR_EMPL_FK)
+				.forEach(trainer -> transactionContext
+						.insertInto(TRAININGS_TRAINERS, TRAININGS_TRAINERS.TRTR_TRNG_FK, TRAININGS_TRAINERS.TRTR_EMPL_FK)
 						.values(trng_pk, trainer).execute());
 		return trng_pk;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void validateOutcomes(final Map<String, Object> training) {
+		if (!Constants.TRAINING_OUTCOMES.contains(training.get(TRAININGS.TRNG_OUTCOME.getName()))) {
+			throw new IllegalArgumentException(String.format("The outcome of a training must be one of %s.", Constants.TRAINING_OUTCOMES));
+		}
+
+		if (!training.containsKey("trainees")) {
+			return;
+		}
+
+		final Predicate<String> predicate;
+		switch ((String) training.get(TRAININGS.TRNG_OUTCOME.getName())) {
+			case Constants.TRNG_OUTCOME_CANCELLED:
+				predicate = outcome -> outcome.equals(Constants.EMPL_OUTCOME_CANCELLED);
+				break;
+			case Constants.TRNG_OUTCOME_COMPLETED:
+				predicate = outcome -> outcome.equals(Constants.EMPL_OUTCOME_FLUNKED)
+						|| outcome.equals(Constants.EMPL_OUTCOME_MISSING)
+						|| outcome.equals(Constants.EMPL_OUTCOME_VALIDATED);
+				break;
+			default: // TRNG_OUTCOME_SCHEDULED
+				predicate = outcome -> outcome.equals(Constants.EMPL_OUTCOME_PENDING);
+		}
+
+		if (!((Map<String, Map<String, String>>) training.get("trainees")).values().stream()
+				.map(trainee -> trainee.get(TRAININGS_EMPLOYEES.TREM_OUTCOME.getName())).allMatch(predicate)) {
+			throw new IllegalArgumentException("Some trainees' outcomes are incompatible with the training session's outcome.");
+		}
 	}
 }

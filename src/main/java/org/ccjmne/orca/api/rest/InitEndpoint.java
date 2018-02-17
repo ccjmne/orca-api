@@ -12,6 +12,8 @@ import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
+import com.amazonaws.services.s3.AmazonS3Client;
+
 @Path("init")
 @Singleton
 public class InitEndpoint {
@@ -19,10 +21,12 @@ public class InitEndpoint {
 	private static final String SECRET = System.getProperty("init.secret");
 
 	private final DSLContext ctx;
+	private final AmazonS3Client client;
 
 	@Inject
-	public InitEndpoint(final DSLContext ctx) {
+	public InitEndpoint(final DSLContext ctx, final AmazonS3Client client) {
 		this.ctx = ctx;
+		this.client = client;
 	}
 
 	@POST
@@ -37,7 +41,7 @@ public class InitEndpoint {
 
 		this.ctx.transaction(config -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
-				DemoBareWorkingState.restore(transactionCtx);
+				DemoBareWorkingState.restore(transactionCtx, this.client);
 			}
 		});
 	}
