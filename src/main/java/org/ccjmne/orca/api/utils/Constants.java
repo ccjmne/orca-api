@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
@@ -175,6 +177,39 @@ public class Constants {
 					res.put(keys[i], Arrays.asList(fields).stream()
 							.filter(field -> checkTruthy(((Object[]) record.get(field))[idx]))
 							.collect(Collectors.toMap(field -> field, field -> ((Object[]) record.get(field))[idx])));
+				}
+
+				return res;
+			}
+		};
+	}
+
+	public static <T> RecordMapper<Record, Map<T, Object>> getSelectMapper(final Field<T> key, final Field<?>... fields) {
+		return getSelectMapper(key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
+	}
+
+	public static <T> RecordMapper<Record, Map<T, Object>> getSelectMapper(final String key, final String... fields) {
+		return new RecordMapper<Record, Map<T, Object>>() {
+
+			@Override
+			@SuppressWarnings("unchecked")
+			public Map<T, Object> map(final Record record) {
+				final Map<T, Object> res = new HashMap<>();
+				final T[] keys = (T[]) record.get(key);
+				for (int i = 0; i < keys.length; i++) {
+					if (keys[i] == null) {
+						continue;
+					}
+
+					final int idx = i;
+					final Optional<Object> value = Arrays.asList(fields).stream()
+							.map(field -> ((Object[]) record.get(field))[idx])
+							.filter(Objects::nonNull)
+							.findFirst();
+
+					if (value.isPresent()) {
+						res.put(keys[i], value.get());
+					}
 				}
 
 				return res;
