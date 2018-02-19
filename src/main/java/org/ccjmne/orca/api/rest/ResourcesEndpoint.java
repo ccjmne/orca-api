@@ -180,14 +180,14 @@ public class ResourcesEndpoint {
 
 				return this.ctx.fetch(withTags).map(new RecordMapper<Record, Map<String, Object>>() {
 
-					private final RecordMapper<Record, Map<Integer, Object>> zipMapper = Constants
-							.getZipMapper(false, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_BOOLEAN, SITES_TAGS.SITA_STRING);
+					private final RecordMapper<Record, Map<Integer, Object>> selectMapper = Constants
+							.getSelectMapper(SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_BOOLEAN, SITES_TAGS.SITA_STRING);
 
 					@Override
 					public Map<String, Object> map(final Record record) {
 						final Map<String, Object> res = new HashMap<>();
 						selectSites.getSelect().forEach(field -> res.put(field.getName(), record.get(field)));
-						final Map<Integer, Object> map = this.zipMapper.map(record);
+						final Map<Integer, Object> map = this.selectMapper.map(record);
 						if (!map.isEmpty()) {
 							res.put("tags", map);
 						}
