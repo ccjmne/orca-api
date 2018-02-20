@@ -1,20 +1,24 @@
 package org.ccjmne.orca.api.rest;
 
 import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
+import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.QueryParam;
 
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.Result;
+import org.jooq.Record;
 
 /**
  * Serves the resources whose access isn't restricted.<br />
@@ -51,5 +55,12 @@ public class ResourcesByKeysCommonEndpoint {
 	@Path("certificates")
 	public Map<Integer, CertificatesRecord> listCertificates() {
 		return this.resources.listCertificates().intoMap(CERTIFICATES.CERT_PK);
+	}
+
+	@GET
+	@Path("tags")
+	public Map<Integer, Object> listTags(@QueryParam("type") final Integer type) {
+		return this.resources.listTags(type).stream().collect(Collectors
+				.toMap(x -> (Integer) x.get(TAGS.TAGS_PK.getName()), x -> x));
 	}
 }
