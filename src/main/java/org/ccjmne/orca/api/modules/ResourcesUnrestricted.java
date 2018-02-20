@@ -17,8 +17,6 @@ import javax.inject.Inject;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
@@ -34,6 +32,9 @@ public class ResourcesUnrestricted {
 
 	private static final Field<String[]> TAG_VALUES = Constants
 			.arrayAggDistinctOmitNull(SITES_TAGS.SITA_VALUE).as("values");
+	private static final Field<Integer[]> TRAININGTYPE_CERTIFICATES = Constants
+			.arrayAggDistinctOmitNull(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK).as("certificates");
+
 	private final DSLContext ctx;
 
 	@Inject
@@ -41,12 +42,12 @@ public class ResourcesUnrestricted {
 		this.ctx = ctx;
 	}
 
-	public Result<TrainingtypesRecord> listTrainingTypes() {
-		return this.ctx.selectFrom(TRAININGTYPES).orderBy(TRAININGTYPES.TRTY_ORDER).fetch();
-	}
-
-	public Result<TrainingtypesCertificatesRecord> listTrainingTypesCertificates() {
-		return this.ctx.selectFrom(TRAININGTYPES_CERTIFICATES).fetch();
+	public Result<Record> listTrainingTypes() {
+		return this.ctx.select(TRAININGTYPES.fields()).select(TRAININGTYPE_CERTIFICATES).from(TRAININGTYPES)
+				.join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
+				.groupBy(TRAININGTYPES.fields())
+				.orderBy(TRAININGTYPES.TRTY_ORDER)
+				.fetch();
 	}
 
 	public Result<CertificatesRecord> listCertificates() {

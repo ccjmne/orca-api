@@ -8,10 +8,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 
-import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesRecord;
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
+import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
 import org.jooq.Record;
 import org.jooq.Result;
 
@@ -32,14 +30,8 @@ public class ResourcesCommonEndpoint {
 
 	@GET
 	@Path("trainingtypes")
-	public Result<TrainingtypesRecord> listTrainingTypes() {
+	public Result<Record> listTrainingTypes() {
 		return this.delegate.listTrainingTypes();
-	}
-
-	@GET
-	@Path("trainingtypes_certificates")
-	public Result<TrainingtypesCertificatesRecord> listTrainingTypesCertificates() {
-		return this.delegate.listTrainingTypesCertificates();
 	}
 
 	@GET
