@@ -139,6 +139,16 @@ public class Restrictions {
 				.fetch(TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK);
 	}
 
+	public boolean canAccessTag(final Integer tags_pk) {
+		// TODO: implement; or maybe not, if tags access should be unrestricted
+		return true;
+	}
+
+	public boolean canAccessTags(final List<Integer> tagTypes) {
+		// TODO: implement; or maybe not, if tags access should be unrestricted
+		return true;
+	}
+
 	public boolean canAccessDepartment(final Integer dept_pk) {
 		return this.accessAllSites || ((this.accessibleDepartment != null) && this.accessibleDepartment.equals(dept_pk));
 	}
