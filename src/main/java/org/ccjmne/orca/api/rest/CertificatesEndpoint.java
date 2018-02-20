@@ -112,7 +112,6 @@ public class CertificatesEndpoint {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
 				if (exists) {
 					transactionCtx.update(TRAININGTYPES)
-							.set(TRAININGTYPES.TRTY_PK, trty_pk)
 							.set(TRAININGTYPES.TRTY_NAME, String.valueOf(trty.get(TRAININGTYPES.TRTY_NAME.getName())))
 							.where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
 				} else {

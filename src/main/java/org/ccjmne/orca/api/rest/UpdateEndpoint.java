@@ -179,7 +179,7 @@ public class UpdateEndpoint {
 
 	private static String titleCase(final String str) {
 		final StringBuilder res = new StringBuilder(str.toLowerCase());
-		final Matcher matcher = FIRST_LETTER.matcher(res);
+		final Matcher matcher = FIRST_LETTER.matcher(str);
 		while (matcher.find()) {
 			res.replace(matcher.start(), matcher.end(), matcher.group().toUpperCase());
 		}
