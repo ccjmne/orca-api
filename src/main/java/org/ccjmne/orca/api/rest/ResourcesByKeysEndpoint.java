@@ -14,6 +14,8 @@ import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 
 import org.jooq.Record;
 
@@ -45,10 +47,10 @@ public class ResourcesByKeysEndpoint {
 	@Path("sites")
 	public Map<String, Object> listSites(
 											@QueryParam("site") final String site_pk,
-											@QueryParam("department") final Integer dept_pk,
 											@QueryParam("date") final String dateStr,
-											@QueryParam("unlisted") final boolean unlisted) {
-		return this.resources.listSites(site_pk, dept_pk, dateStr, unlisted).stream()
+											@QueryParam("unlisted") final boolean unlisted,
+											@Context final UriInfo uriInfo) {
+		return this.resources.listSites(site_pk, dateStr, unlisted, uriInfo).stream()
 				.collect(Collectors.toMap(record -> String.valueOf(record.get(SITES.SITE_PK.getName())), record -> record));
 	}
 
