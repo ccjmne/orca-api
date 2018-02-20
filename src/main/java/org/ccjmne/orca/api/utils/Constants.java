@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
@@ -184,36 +185,50 @@ public class Constants {
 		};
 	}
 
-	public static <T> RecordMapper<Record, Map<T, Object>> getSelectMapper(final Field<T> key, final Field<?>... fields) {
-		return getSelectMapper(key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
+	@SafeVarargs
+	public static <K, V> RecordMapper<Record, Map<K, V>> getSelectMapper(final Field<K> key, final Field<V>... fields) {
+		return getSelectMapper((r, x) -> x, key, fields);
 	}
 
-	public static <T> RecordMapper<Record, Map<T, Object>> getSelectMapper(final String key, final String... fields) {
-		return new RecordMapper<Record, Map<T, Object>>() {
+	@SuppressWarnings("unchecked")
+	public static <K, V> RecordMapper<Record, Map<K, V>> getSelectMapper(final String key, final String... fields) {
+		return getSelectMapper((r, x) -> (V) x, key, fields);
+	}
 
-			@Override
+	@SafeVarargs
+	public static <K, I, V> RecordMapper<Record, Map<K, V>> getSelectMapper(
+																			final BiFunction<RecordSlicer, ? super I, ? extends V> coercer,
+																			final Field<K> key,
+																			final Field<I>... fields) {
+		return getSelectMapper(coercer, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
+	}
+
+	public static <K, I, V> RecordMapper<Record, Map<K, V>> getSelectMapper(
+																			final BiFunction<RecordSlicer, ? super I, ? extends V> coercer,
+																			final String key,
+																			final String... fields) {
+		return record -> {
+			final Map<K, V> res = new HashMap<>();
 			@SuppressWarnings("unchecked")
-			public Map<T, Object> map(final Record record) {
-				final Map<T, Object> res = new HashMap<>();
-				final T[] keys = (T[]) record.get(key);
-				for (int i = 0; i < keys.length; i++) {
-					if (keys[i] == null) {
-						continue;
-					}
-
-					final int idx = i;
-					final Optional<Object> value = Arrays.asList(fields).stream()
-							.map(field -> ((Object[]) record.get(field))[idx])
-							.filter(Objects::nonNull)
-							.findFirst();
-
-					if (value.isPresent()) {
-						res.put(keys[i], value.get());
-					}
+			final K[] keys = (K[]) record.get(key);
+			for (int i = 0; i < keys.length; i++) {
+				if (keys[i] == null) {
+					continue;
 				}
 
-				return res;
+				final RecordSlicer slicer = new RecordSlicer(record, i);
+				final Optional<? extends V> value = Arrays.asList(fields).stream()
+						.map(field -> slicer.<I> getSlice(field))
+						.map(x -> coercer.apply(slicer, x))
+						.filter(Objects::nonNull)
+						.findFirst();
+
+				if (value.isPresent()) {
+					res.put(keys[i], value.get());
+				}
 			}
+
+			return res;
 		};
 	}
 
