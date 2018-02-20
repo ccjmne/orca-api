@@ -166,17 +166,7 @@
 	<security-constraint>
 		<web-resource-collection>
 			<web-resource-name>CORS pre-flight OPTION requests</web-resource-name>
-
-			<url-pattern>/update/*</url-pattern>
-			<url-pattern>/statistics/*</url-pattern>
-			<url-pattern>/resources/*</url-pattern>
-			<url-pattern>/trainings/*</url-pattern>
-			<url-pattern>/resources-by-keys/*</url-pattern>
-			<url-pattern>/account/*</url-pattern>
-			<url-pattern>/admin/*</url-pattern>
-			<url-pattern>/auth/*</url-pattern>
-			<url-pattern>/client/*</url-pattern>
-
+			<url-pattern>/*</url-pattern>
 			<http-method>OPTIONS</http-method>
 			<!-- No authentication constraints here -->
 		</web-resource-collection>
