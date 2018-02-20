@@ -26,11 +26,11 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.ccjmne.orca.jooq.classes.Sequences;
-import org.ccjmne.orca.jooq.classes.tables.records.SitesEmployeesRecord;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
+import org.ccjmne.orca.jooq.classes.Sequences;
+import org.ccjmne.orca.jooq.classes.tables.records.SitesEmployeesRecord;
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep3;
 import org.jooq.TableField;
@@ -40,7 +40,7 @@ import org.jooq.impl.DSL;
 public class UpdateEndpoint {
 
 	private static final Pattern GENDER_REGEX = Pattern.compile("^\\s*m", Pattern.CASE_INSENSITIVE);
-	private static final Pattern FIRST_LETTER = Pattern.compile("\\b(\\w)");
+	private static final Pattern FIRST_LETTER = Pattern.compile("\\b(\\w)", Pattern.UNICODE_CHARACTER_CLASS);
 
 	private final DSLContext ctx;
 
@@ -177,11 +177,11 @@ public class UpdateEndpoint {
 		}
 	}
 
-	private static String capitalise(final String str) {
+	private static String titleCase(final String str) {
 		final StringBuilder res = new StringBuilder(str.toLowerCase());
 		final Matcher matcher = FIRST_LETTER.matcher(res);
 		while (matcher.find()) {
-			res.replace(matcher.start(), matcher.start() + 1, matcher.group().toUpperCase());
+			res.replace(matcher.start(), matcher.end(), matcher.group().toUpperCase());
 		}
 
 		return res.toString();
@@ -190,7 +190,7 @@ public class UpdateEndpoint {
 	private static String updateEmployee(final Map<String, String> employee, final DSLContext context) throws ParseException {
 		final String empl_pk = employee.get(EMPLOYEES.EMPL_PK.getName());
 		final Map<TableField<?, ?>, Object> record = new HashMap<>();
-		record.put(EMPLOYEES.EMPL_FIRSTNAME, capitalise(employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName())));
+		record.put(EMPLOYEES.EMPL_FIRSTNAME, titleCase(employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName())));
 		record.put(EMPLOYEES.EMPL_SURNAME, employee.get(EMPLOYEES.EMPL_SURNAME.getName()).toUpperCase());
 		record.put(EMPLOYEES.EMPL_DOB, SafeDateFormat.parseAsSql(employee.get(EMPLOYEES.EMPL_DOB.getName())));
 		record.put(EMPLOYEES.EMPL_PERMANENT, Boolean.valueOf("CDI".equalsIgnoreCase(employee.get(EMPLOYEES.EMPL_PERMANENT.getName()))));
