@@ -165,7 +165,7 @@
 
 	<security-constraint>
 		<web-resource-collection>
-			<web-resource-name>CORS pre-flight OPTION requests</web-resource-name>
+			<web-resource-name>CORS pre-flight OPTIONS requests</web-resource-name>
 			<url-pattern>/*</url-pattern>
 			<http-method>OPTIONS</http-method>
 			<!-- No authentication constraints here -->
