@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
 import org.jooq.DSLContext;
@@ -30,9 +29,11 @@ import org.jooq.SelectQuery;
  */
 public class ResourcesUnrestricted {
 
-	private static final Field<String[]> TAG_VALUES = Constants
+	private static final Field<String[]> TAG_VALUES = ResourcesHelper
 			.arrayAggDistinctOmitNull(SITES_TAGS.SITA_VALUE).as("values");
-	private static final Field<Integer[]> TRAININGTYPE_CERTIFICATES = Constants
+
+	// TODO: make private when rewriting training statistics computing
+	public static final Field<Integer[]> TRAININGTYPE_CERTIFICATES = ResourcesHelper
 			.arrayAggDistinctOmitNull(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK).as("certificates");
 
 	private final DSLContext ctx;

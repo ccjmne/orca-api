@@ -17,11 +17,13 @@ import java.sql.Date;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -32,10 +34,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
+import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.RestrictedResourcesHelper;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
@@ -57,7 +61,7 @@ public class StatisticsEndpoint {
 	private static final Integer DEFAULT_INTERVAL = Integer.valueOf(1);
 
 	private final DSLContext ctx;
-	private final ResourcesCommonEndpoint commonResources;
+	private final ResourcesByKeysCommonEndpoint commonResources;
 	private final RestrictedResourcesHelper resourcesHelper;
 
 	// TODO: Should not have any use for these two and should delegate
@@ -69,7 +73,7 @@ public class StatisticsEndpoint {
 	public StatisticsEndpoint(
 								final DSLContext ctx,
 								final ResourcesEndpoint resources,
-								final ResourcesCommonEndpoint commonResources,
+								final ResourcesByKeysCommonEndpoint commonResources,
 								final RestrictedResourcesHelper resourcesHelper,
 								final Restrictions restrictions) {
 		this.ctx = ctx;
@@ -95,8 +99,8 @@ public class StatisticsEndpoint {
 
 		final List<Record> trainings = this.resources.listTrainings(null, Collections.EMPTY_LIST, null, null, null, Boolean.TRUE);
 
-		final Map<Integer, List<Integer>> certs = this.commonResources.listTrainingTypesCertificates()
-				.intoGroups(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK, TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
+		final Map<Integer, List<Integer>> certs = this.commonResources.listTrainingTypes().entrySet().stream().collect(Collectors
+				.toMap(Entry::getKey, e -> Arrays.asList(e.getValue().get(ResourcesUnrestricted.TRAININGTYPE_CERTIFICATES))));
 		final Map<Integer, Iterable<TrainingsStatistics>> res = new HashMap<>();
 
 		for (final Integer interval : intervals) {
@@ -168,21 +172,21 @@ public class StatisticsEndpoint {
 
 		return this.ctx.select(
 								departmentsStats.field(DEPARTMENTS.DEPT_PK),
-								Constants.arrayAgg(departmentsStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
-								Constants.arrayAgg(departmentsStats.field(STATUS_SUCCESS)),
-								Constants.arrayAgg(departmentsStats.field(STATUS_WARNING)),
-								Constants.arrayAgg(departmentsStats.field(STATUS_DANGER)),
-								Constants.arrayAgg(departmentsStats.field("sites_" + STATUS_SUCCESS)),
-								Constants.arrayAgg(departmentsStats.field("sites_" + STATUS_WARNING)),
-								Constants.arrayAgg(departmentsStats.field("sites_" + STATUS_DANGER)),
-								Constants.arrayAgg(departmentsStats.field("score")),
-								Constants.arrayAgg(departmentsStats.field("validity")))
+								ResourcesHelper.arrayAgg(departmentsStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
+								ResourcesHelper.arrayAgg(departmentsStats.field(STATUS_SUCCESS)),
+								ResourcesHelper.arrayAgg(departmentsStats.field(STATUS_WARNING)),
+								ResourcesHelper.arrayAgg(departmentsStats.field(STATUS_DANGER)),
+								ResourcesHelper.arrayAgg(departmentsStats.field("sites_" + STATUS_SUCCESS)),
+								ResourcesHelper.arrayAgg(departmentsStats.field("sites_" + STATUS_WARNING)),
+								ResourcesHelper.arrayAgg(departmentsStats.field("sites_" + STATUS_DANGER)),
+								ResourcesHelper.arrayAgg(departmentsStats.field("score")),
+								ResourcesHelper.arrayAgg(departmentsStats.field("validity")))
 				.from(departmentsStats)
 				.groupBy(departmentsStats.field(DEPARTMENTS.DEPT_PK))
 				.fetchMap(
 							departmentsStats.field(DEPARTMENTS.DEPT_PK),
-							Constants.getZipMapper(	"cert_pk", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "sites_" + STATUS_SUCCESS,
-													"sites_" + STATUS_WARNING, "sites_" + STATUS_DANGER, "score", "validity"));
+							ResourcesHelper.getZipMapper(	"cert_pk", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "sites_" + STATUS_SUCCESS,
+															"sites_" + STATUS_WARNING, "sites_" + STATUS_DANGER, "score", "validity"));
 	}
 
 	@GET
@@ -228,17 +232,17 @@ public class StatisticsEndpoint {
 
 		return this.ctx.select(
 								sitesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK),
-								Constants.arrayAgg(sitesStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
-								Constants.arrayAgg(sitesStats.field(STATUS_SUCCESS)),
-								Constants.arrayAgg(sitesStats.field(STATUS_WARNING)),
-								Constants.arrayAgg(sitesStats.field(STATUS_DANGER)),
-								Constants.arrayAgg(sitesStats.field("target")),
-								Constants.arrayAgg(sitesStats.field("validity")))
+								ResourcesHelper.arrayAgg(sitesStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
+								ResourcesHelper.arrayAgg(sitesStats.field(STATUS_SUCCESS)),
+								ResourcesHelper.arrayAgg(sitesStats.field(STATUS_WARNING)),
+								ResourcesHelper.arrayAgg(sitesStats.field(STATUS_DANGER)),
+								ResourcesHelper.arrayAgg(sitesStats.field("target")),
+								ResourcesHelper.arrayAgg(sitesStats.field("validity")))
 				.from(sitesStats)
 				.groupBy(sitesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK))
 				.fetchMap(
 							SITES_EMPLOYEES.SIEM_SITE_FK,
-							Constants.getZipMapper("cert_pk", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "target", "validity"));
+							ResourcesHelper.getZipMapper("cert_pk", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "target", "validity"));
 	}
 
 	@GET
@@ -270,13 +274,14 @@ public class StatisticsEndpoint {
 		return this.ctx
 				.select(
 						employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK),
-						Constants.arrayAgg(employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)).as("cert_pk"),
-						Constants.arrayAgg(employeesStats.field("expiry")),
-						Constants.arrayAgg(employeesStats.field("opted_out")),
-						Constants.arrayAgg(employeesStats.field("validity")))
+						ResourcesHelper.arrayAgg(employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)).as("cert_pk"),
+						ResourcesHelper.arrayAgg(employeesStats.field("expiry")),
+						ResourcesHelper.arrayAgg(employeesStats.field("opted_out")),
+						ResourcesHelper.arrayAgg(employeesStats.field("validity")))
 				.from(employeesStats)
 				.groupBy(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK))
-				.fetchMap(employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK), Constants.getZipMapper(true, "cert_pk", "expiry", "opted_out", "validity"));
+				.fetchMap(	employeesStats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK),
+							ResourcesHelper.getZipMapper(true, "cert_pk", "expiry", "opted_out", "validity"));
 	}
 
 	private static void populateTrainingsStatsBuilders(

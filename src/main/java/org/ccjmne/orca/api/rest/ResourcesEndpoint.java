@@ -36,8 +36,8 @@ import javax.ws.rs.core.UriInfo;
 
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.api.utils.Constants.RecordSlicer;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
+import org.ccjmne.orca.api.utils.ResourcesHelper.RecordSlicer;
 import org.ccjmne.orca.api.utils.RestrictedResourcesHelper;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
@@ -104,15 +104,15 @@ public class ResourcesEndpoint {
 			}
 
 			final List<Field<?>> selected = new ArrayList<>(query.getSelect());
-			query.addSelect(Constants.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_CERT_FK),
-							Constants.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_DATE),
-							Constants.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_REASON));
+			query.addSelect(ResourcesHelper.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_CERT_FK),
+							ResourcesHelper.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_DATE),
+							ResourcesHelper.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_REASON));
 			query.addJoin(EMPLOYEES_VOIDINGS, JoinType.LEFT_OUTER_JOIN, EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(EMPLOYEES.EMPL_PK));
 			query.addGroupBy(selected);
 
 			return this.ctx.fetch(query).map(new RecordMapper<Record, Map<String, Object>>() {
 
-				private final RecordMapper<Record, Map<Integer, Object>> zipMapper = Constants
+				private final RecordMapper<Record, Map<Integer, Object>> zipMapper = ResourcesHelper
 						.getZipMapper(EMPLOYEES_VOIDINGS.EMVO_CERT_FK, EMPLOYEES_VOIDINGS.EMVO_DATE, EMPLOYEES_VOIDINGS.EMVO_REASON);
 
 				@Override
@@ -374,9 +374,9 @@ public class ResourcesEndpoint {
 			try (final SelectQuery<Record> withTags = DSL.select().getQuery()) {
 				final Table<Record> sites = selectSites.asTable();
 				withTags.addSelect(sites.fields());
-				withTags.addSelect(	Constants.arrayAgg(TAGS.TAGS_TYPE),
-									Constants.arrayAgg(SITES_TAGS.SITA_TAGS_FK),
-									Constants.arrayAgg(SITES_TAGS.SITA_VALUE));
+				withTags.addSelect(	ResourcesHelper.arrayAgg(TAGS.TAGS_TYPE),
+									ResourcesHelper.arrayAgg(SITES_TAGS.SITA_TAGS_FK),
+									ResourcesHelper.arrayAgg(SITES_TAGS.SITA_VALUE));
 				withTags.addFrom(sites);
 				withTags.addJoin(	SITES_TAGS.join(TAGS).on(TAGS.TAGS_PK.eq(SITES_TAGS.SITA_TAGS_FK)),
 									JoinType.LEFT_OUTER_JOIN,
@@ -388,7 +388,7 @@ public class ResourcesEndpoint {
 					private final BiFunction<RecordSlicer, ? super String, ? extends Object> coercer = (slicer, data) -> ResourcesHelper
 							.tagValueCoercer(slicer.get(TAGS.TAGS_TYPE), data);
 
-					private final RecordMapper<Record, Map<Integer, Object>> selectMapper = Constants
+					private final RecordMapper<Record, Map<Integer, Object>> selectMapper = ResourcesHelper
 							.getSelectMapper(this.coercer, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE);
 
 					@Override
