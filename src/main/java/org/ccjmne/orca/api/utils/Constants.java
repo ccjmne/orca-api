@@ -173,10 +173,10 @@ public class Constants {
 						continue;
 					}
 
-					final int idx = i;
+					final RecordSlicer slicer = new RecordSlicer(record, i);
 					res.put(keys[i], Arrays.asList(fields).stream()
-							.filter(field -> checkTruthy(((Object[]) record.get(field))[idx]))
-							.collect(Collectors.toMap(field -> field, field -> ((Object[]) record.get(field))[idx])));
+							.filter(field -> checkTruthy(slicer.getSlice(field)))
+							.collect(Collectors.toMap(field -> field, field -> slicer.getSlice(field))));
 				}
 
 				return res;
@@ -215,5 +215,29 @@ public class Constants {
 				return res;
 			}
 		};
+	}
+
+	public static class RecordSlicer {
+
+		private final Record record;
+		private final int idx;
+
+		/* package */ RecordSlicer(final Record record, final int idx) {
+			this.record = record;
+			this.idx = idx;
+		}
+
+		public final <T> T getSlice(final Field<T> field) {
+			return this.getSlice(field.getName());
+		}
+
+		@SuppressWarnings("unchecked")
+		public final <T> T getSlice(final String field) {
+			try {
+				return ((T[]) this.record.get(field))[this.idx];
+			} catch (final IndexOutOfBoundsException e) {
+				throw new IllegalArgumentException(String.format("This slicer could not operate on field: %s", field));
+			}
+		}
 	}
 }
