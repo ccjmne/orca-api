@@ -146,11 +146,13 @@
 		<web-resource-collection>
 			<web-resource-name>General Management API</web-resource-name>
 
-			<url-pattern>/users-admin/*</url-pattern>
 			<url-pattern>/certificates/*</url-pattern>
-			<url-pattern>/update/*</url-pattern>
-			<url-pattern>/employees-notes/*</url-pattern>
 			<url-pattern>/client/*</url-pattern>
+			<url-pattern>/employees-notes/*</url-pattern>
+			<url-pattern>/tags/*</url-pattern>
+			<url-pattern>/update/*</url-pattern>
+			<url-pattern>/users-admin/*</url-pattern>
+
 			<http-method>GET</http-method>
 			<http-method>DELETE</http-method>
 			<http-method>POST</http-method>
