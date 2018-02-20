@@ -25,6 +25,7 @@ import org.jooq.Select;
 import org.jooq.SelectQuery;
 import org.jooq.TableLike;
 import org.jooq.impl.DSL;
+import org.jooq.util.postgres.PostgresDSL;
 
 public class Constants {
 
@@ -145,6 +146,18 @@ public class Constants {
 	 */
 	public static <T> Field<T[]> arrayAgg(final Field<T> field) {
 		return DSL.arrayAgg(field).as(field);
+	}
+
+	/**
+	 * Aggregate function on the supplied {@link Field} that selects
+	 * <strong>distinct</strong> values into an {@link Array} while omitting
+	 * <code>null</code> entries.
+	 *
+	 * @param field
+	 *            The field to aggregate
+	 */
+	public static <T> Field<T[]> arrayAggDistinctOmitNull(final Field<T> field) {
+		return PostgresDSL.arrayRemove(DSL.arrayAggDistinct(field), DSL.castNull(field.getType())).as(field);
 	}
 
 	public static <T> RecordMapper<Record, Map<T, Object>> getZipMapper(final String key, final String... fields) {
