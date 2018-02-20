@@ -34,7 +34,7 @@ public class Restrictions {
 	private final boolean accessTrainings;
 	private final boolean accessAllSites;
 	private final boolean manageEmployeeNotes;
-	private final boolean manageSites;
+	private final boolean manageSitesAndTags;
 	private final boolean manageCertificates;
 	private final boolean manageUsers;
 	private final List<String> accessibleSites;
@@ -61,12 +61,12 @@ public class Restrictions {
 		final UsersRecord user = ctx.selectFrom(USERS).where(USERS.USER_ID.eq(user_id)).fetchOne();
 		if (roles.containsKey(Constants.ROLE_ADMIN)) {
 			this.manageEmployeeNotes = roles.get(Constants.ROLE_ADMIN).getUsroLevel().compareTo(Integer.valueOf(1)) >= 0;
-			this.manageSites = roles.get(Constants.ROLE_ADMIN).getUsroLevel().compareTo(Integer.valueOf(2)) >= 0;
+			this.manageSitesAndTags = roles.get(Constants.ROLE_ADMIN).getUsroLevel().compareTo(Integer.valueOf(2)) >= 0;
 			this.manageCertificates = roles.get(Constants.ROLE_ADMIN).getUsroLevel().compareTo(Integer.valueOf(3)) >= 0;
 			this.manageUsers = roles.get(Constants.ROLE_ADMIN).getUsroLevel().equals(Integer.valueOf(4));
 		} else {
 			this.manageEmployeeNotes = false;
-			this.manageSites = false;
+			this.manageSitesAndTags = false;
 			this.manageCertificates = false;
 			this.manageUsers = false;
 		}
@@ -184,8 +184,8 @@ public class Restrictions {
 	}
 
 	@JsonGetter
-	public boolean canManageSites() {
-		return this.manageSites;
+	public boolean canManageSitesAndTags() {
+		return this.manageSitesAndTags;
 	}
 
 	@JsonGetter

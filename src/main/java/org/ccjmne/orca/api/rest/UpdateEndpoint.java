@@ -46,7 +46,7 @@ public class UpdateEndpoint {
 
 	@Inject
 	public UpdateEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final Restrictions restrictions) {
-		if (!restrictions.canManageSites()) {
+		if (!restrictions.canManageSitesAndTags()) {
 			throw new ForbiddenException();
 		}
 
