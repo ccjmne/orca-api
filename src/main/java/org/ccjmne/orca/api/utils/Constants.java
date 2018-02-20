@@ -65,6 +65,9 @@ public class Constants {
 	public static final String EMPL_OUTCOME_PENDING = "PENDING";
 	public static final String EMPL_OUTCOME_VALIDATED = "VALIDATED";
 
+	public static final String TAGS_TYPE_STRING = "s";
+	public static final String TAGS_TYPE_BOOLEAN = "b";
+
 	public static final String USER_ROOT = "root";
 
 	public static final String UNASSIGNED_SITE = "0";
