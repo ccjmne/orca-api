@@ -4,7 +4,11 @@ import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+
+import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
@@ -12,6 +16,7 @@ import javax.ws.rs.ForbiddenException;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.jooq.JoinType;
 import org.jooq.Record;
+import org.jooq.Select;
 import org.jooq.SelectQuery;
 import org.jooq.impl.DSL;
 
@@ -93,6 +98,66 @@ public class RestrictedResourcesHelper {
 			}
 
 			query.addConditions(SITES.SITE_DEPT_FK.eq(dept_pk));
+		}
+
+		if (site_pk != null) {
+			if (!this.restrictions.canAccessSite(site_pk)) {
+				throw new ForbiddenException();
+			}
+
+			query.addConditions(SITES.SITE_PK.eq(site_pk));
+		}
+
+		return query;
+	}
+
+	/**
+	 * Selects sites for which:
+	 * <ul>
+	 * <li><code>site_pk</code> (if specified) uniquely identifies it, and</li>
+	 * <li><em>FOR EACH</em> filter <code>{ k: [v1, v2, ..., vN] }</code>, the
+	 * site has:
+	 * <ul>
+	 * <li>a tag <code>{ type, value }</code> where:
+	 * <ul>
+	 * <li></code>type == k</code>
+	 * <em>AND</em><code>[v1, v2, ..., vN].contains(value)</code></li>
+	 * </ul>
+	 * </li>
+	 * </ul>
+	 * </li>
+	 * </ul>
+	 *
+	 * @param site_pk
+	 *            The identifier of the only site to select. Optional.
+	 * @param filters
+	 *            Non-null. Map of tag types and values to satisfy for the sites
+	 *            to be selected.
+	 */
+	public SelectQuery<Record> selectSitesByTags(final String site_pk, final Map<Integer, List<String>> filters) {
+		final SelectQuery<Record> query = DSL.select().getQuery();
+		query.addFrom(SITES);
+		query.addConditions(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE));
+		if ((site_pk == null) && !this.restrictions.canAccessAllSites()) {
+			if (this.restrictions.getAccessibleSites().isEmpty()) {
+				throw new ForbiddenException();
+			}
+
+			query.addConditions(SITES.SITE_PK.in(this.restrictions.getAccessibleSites()));
+		}
+
+		if (!filters.isEmpty()) {
+			if (!this.restrictions.canAccessTags(filters.keySet())) {
+				throw new ForbiddenException();
+			}
+
+			// this Optional can safely be get() since !filters.isEmpty()
+			query.addConditions(DSL.exists(filters.entrySet().stream().<Select<? extends Record>> map(e -> DSL
+					.selectZero().from(SITES_TAGS)
+					.where(SITES_TAGS.SITA_SITE_FK.eq(SITES.SITE_PK))
+					.and(SITES_TAGS.SITA_TAGS_FK.eq(e.getKey()))
+					.and(SITES_TAGS.SITA_VALUE.in(e.getValue())))
+					.reduce(Select::intersect).get()));
 		}
 
 		if (site_pk != null) {
