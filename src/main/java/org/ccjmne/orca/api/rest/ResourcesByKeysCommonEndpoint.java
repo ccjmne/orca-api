@@ -16,6 +16,13 @@ import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesCertificatesReco
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesRecord;
 import org.jooq.Result;
 
+/**
+ * Serves the resources whose access isn't restricted.<br />
+ * Unlike {@link ResourcesCommonEndpoint}, this API presents resources into
+ * {@link Map}s keyed by their unique identifier.
+ *
+ * @author ccjmne
+ */
 @Path("resources-by-keys-common")
 // TODO: resources-common-by-keys?
 // TODO: merge with ResourcesCommonEndpoint?

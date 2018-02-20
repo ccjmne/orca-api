@@ -17,8 +17,17 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
+import org.ccjmne.orca.api.modules.Restrictions;
 import org.jooq.Record;
 
+/**
+ * Serves the resources whose access is restricted based on the request's
+ * associated {@link Restrictions}.<br />
+ * Unlike {@link ResourcesEndpoint}, this API presents resources into
+ * {@link Map}s keyed by their unique identifier.
+ *
+ * @author ccjmne
+ */
 @Path("resources-by-keys")
 // TODO: merge with ResourcesEndpoint?
 public class ResourcesByKeysEndpoint {

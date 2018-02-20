@@ -162,6 +162,17 @@ public class Constants {
 	public static <T> RecordMapper<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final String key, final String... fields) {
 		return new RecordMapper<Record, Map<T, Object>>() {
 
+			/**
+			 * Passing this method to {@link Stream#filter} would discard all
+			 * <code>null</code> entries.<br />
+			 * Additionally, if <code>ignoreFalsey</code> is set, also discard
+			 * all the following:
+			 * <ul>
+			 * <li><code>Boolean.FALSE</code></li>
+			 * <li><code>Integer.valueOf(0)</code></li>
+			 * <li><code>""</code> (the empty <code>String</code>)</li>
+			 * </ul>
+			 */
 			private final boolean checkTruthy(final Object o) {
 				return ignoreFalsey	? (null != o) && !Boolean.FALSE.equals(o) && !Integer.valueOf(0).equals(o) && !"".equals(o)
 									: null != o;

@@ -10,6 +10,11 @@ import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesRecord;
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.jooq.Result;
 
+/**
+ * Serves the resources whose access isn't restricted.
+ *
+ * @author ccjmne
+ */
 @Path("resources-common")
 public class ResourcesCommonEndpoint {
 

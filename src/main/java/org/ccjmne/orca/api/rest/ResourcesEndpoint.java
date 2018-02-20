@@ -53,6 +53,12 @@ import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 
+/**
+ * Serves the resources whose access is restricted based on the request's
+ * associated {@link Restrictions}.<br />
+ *
+ * @author ccjmne
+ */
 @Path("resources")
 public class ResourcesEndpoint {
 
