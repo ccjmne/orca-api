@@ -6,6 +6,7 @@ import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_VOIDINGS;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
@@ -15,9 +16,14 @@ import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
 import java.sql.Date;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
@@ -26,12 +32,16 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Constants.RecordSlicer;
 import org.ccjmne.orca.api.utils.RestrictedResourcesHelper;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
+import org.ccjmne.orca.api.utils.UnrestrictedResourcesHelper;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingsEmployeesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
 import org.jooq.DSLContext;
@@ -151,52 +161,34 @@ public class ResourcesEndpoint {
 		}
 	}
 
+	/**
+	 * @param site_pk
+	 *            If specified, limits selection to the site uniquely identified
+	 *            by that.
+	 * @param dateStr
+	 *            If specified, uses the most relevant employees-sites
+	 *            assignment as of that date; otherwise, uses that of now.
+	 * @param unlisted
+	 *            If <code>true</code>, doesn't skip sites with no employees
+	 *            assigned.
+	 * @param uriInfo
+	 *            Used to obtain a map of supplied tag filters to select sites
+	 *            using
+	 *            {@link RestrictedResourcesHelper#selectSitesByTags(String, Map)}
+	 */
 	@GET
 	@Path("sites")
 	public List<Map<String, Object>> listSites(
 												@QueryParam("site") final String site_pk,
-												@QueryParam("department") final Integer dept_pk,
 												@QueryParam("date") final String dateStr,
-												@QueryParam("unlisted") final boolean unlisted) {
-		try (final SelectQuery<Record> selectSites = this.resourcesHelper.selectSites(site_pk, dept_pk)) {
-			selectSites.addSelect(SITES.fields());
-			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
-			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));
-			selectSites.addJoin(
-								SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)),
-								unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
-								SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))));
-			selectSites.addGroupBy(SITES.fields());
+												@QueryParam("unlisted") final boolean unlisted,
+												@Context final UriInfo uriInfo) {
+		// Only integer values are valid tag keys
+		final Map<Integer, List<String>> filters = uriInfo.getQueryParameters().entrySet().stream()
+				.filter(x -> x.getKey().matches("\\d+"))
+				.collect(Collectors.<Entry<String, List<String>>, Integer, List<String>> toMap(x -> Integer.valueOf(x.getKey()), Entry::getValue));
 
-			try (final SelectQuery<Record> withTags = DSL.select().getQuery()) {
-				final Table<Record> sites = selectSites.asTable();
-				withTags.addSelect(sites.fields());
-				withTags.addSelect(	Constants.arrayAgg(SITES_TAGS.SITA_TAGS_FK),
-									Constants.arrayAgg(SITES_TAGS.SITA_BOOLEAN),
-									Constants.arrayAgg(SITES_TAGS.SITA_STRING));
-				withTags.addFrom(sites);
-				withTags.addJoin(SITES_TAGS, JoinType.LEFT_OUTER_JOIN, SITES_TAGS.SITA_SITE_FK.eq(sites.field(SITES.SITE_PK)));
-				withTags.addGroupBy(sites.fields());
-
-				return this.ctx.fetch(withTags).map(new RecordMapper<Record, Map<String, Object>>() {
-
-					private final RecordMapper<Record, Map<Integer, Object>> selectMapper = Constants
-							.getSelectMapper(SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_BOOLEAN, SITES_TAGS.SITA_STRING);
-
-					@Override
-					public Map<String, Object> map(final Record record) {
-						final Map<String, Object> res = new HashMap<>();
-						selectSites.getSelect().forEach(field -> res.put(field.getName(), record.get(field)));
-						final Map<Integer, Object> map = this.selectMapper.map(record);
-						if (!map.isEmpty()) {
-							res.put("tags", map);
-						}
-
-						return res;
-					}
-				});
-			}
-		}
+		return listSitesImpl(site_pk, dateStr, unlisted, filters);
 	}
 
 	@GET
@@ -206,7 +198,7 @@ public class ResourcesEndpoint {
 											@QueryParam("date") final String dateStr,
 											@QueryParam("unlisted") final boolean unlisted) {
 		try {
-			return listSites(site_pk, null, dateStr, unlisted).get(0);
+			return listSitesImpl(site_pk, dateStr, unlisted, Collections.<Integer, List<String>> emptyMap()).get(0);
 		} catch (final IndexOutOfBoundsException e) {
 			throw new NotFoundException();
 		}
@@ -357,5 +349,56 @@ public class ResourcesEndpoint {
 	// TODO: move to UpdateEndpoint?
 	public Record lookupUpdate(@PathParam("date") final String dateStr) {
 		return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_PK.eq(Constants.selectUpdate(dateStr))).fetchAny();
+	}
+
+	private List<Map<String, Object>> listSitesImpl(
+													final String site_pk,
+													final String dateStr,
+													final boolean unlisted,
+													final Map<Integer, List<String>> filters) {
+		try (final SelectQuery<Record> selectSites = this.resourcesHelper.selectSitesByTags(site_pk, filters)) {
+			selectSites.addSelect(SITES.fields());
+			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
+			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));
+			selectSites.addJoin(
+								SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)),
+								unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
+								SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))));
+			selectSites.addGroupBy(SITES.fields());
+
+			try (final SelectQuery<Record> withTags = DSL.select().getQuery()) {
+				final Table<Record> sites = selectSites.asTable();
+				withTags.addSelect(sites.fields());
+				withTags.addSelect(	Constants.arrayAgg(TAGS.TAGS_TYPE),
+									Constants.arrayAgg(SITES_TAGS.SITA_TAGS_FK),
+									Constants.arrayAgg(SITES_TAGS.SITA_VALUE));
+				withTags.addFrom(sites);
+				withTags.addJoin(	SITES_TAGS.join(TAGS).on(TAGS.TAGS_PK.eq(SITES_TAGS.SITA_TAGS_FK)),
+									JoinType.LEFT_OUTER_JOIN,
+									SITES_TAGS.SITA_SITE_FK.eq(sites.field(SITES.SITE_PK)));
+				withTags.addGroupBy(sites.fields());
+
+				return this.ctx.fetch(withTags).map(new RecordMapper<Record, Map<String, Object>>() {
+
+					private final BiFunction<RecordSlicer, ? super String, ? extends Object> coercer = (slicer, data) -> slicer
+							.getSlice(TAGS.TAGS_TYPE).equals(Constants.TAGS_TYPE_BOOLEAN) ? Boolean.valueOf(data) : data;
+
+					private final RecordMapper<Record, Map<Integer, Object>> selectMapper = Constants
+							.getSelectMapper(this.coercer, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE);
+
+					@Override
+					public Map<String, Object> map(final Record record) {
+						final Map<String, Object> res = new HashMap<>();
+						selectSites.getSelect().forEach(field -> res.put(field.getName(), record.get(field)));
+						final Map<Integer, Object> map = this.selectMapper.map(record);
+						if (!map.isEmpty()) {
+							res.put("tags", map);
+						}
+
+						return res;
+					}
+				});
+			}
+		}
 	}
 }
