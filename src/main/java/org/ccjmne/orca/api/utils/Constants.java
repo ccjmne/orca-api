@@ -179,8 +179,8 @@ public class Constants {
 
 					final RecordSlicer slicer = new RecordSlicer(record, i);
 					res.put(keys[i], Arrays.asList(fields).stream()
-							.filter(field -> checkTruthy(slicer.getSlice(field)))
-							.collect(Collectors.toMap(field -> field, field -> slicer.getSlice(field))));
+							.filter(field -> checkTruthy(slicer.get(field)))
+							.collect(Collectors.toMap(field -> field, field -> slicer.get(field))));
 				}
 
 				return res;
@@ -221,7 +221,7 @@ public class Constants {
 
 				final RecordSlicer slicer = new RecordSlicer(record, i);
 				final Optional<? extends V> value = Arrays.asList(fields).stream()
-						.map(field -> slicer.<I> getSlice(field))
+						.map(field -> slicer.<I> get(field))
 						.map(x -> coercer.apply(slicer, x))
 						.filter(Objects::nonNull)
 						.findFirst();
@@ -245,12 +245,12 @@ public class Constants {
 			this.idx = idx;
 		}
 
-		public final <T> T getSlice(final Field<T> field) {
-			return this.getSlice(field.getName());
+		public final <T> T get(final Field<T> field) {
+			return this.get(field.getName());
 		}
 
 		@SuppressWarnings("unchecked")
-		public final <T> T getSlice(final String field) {
+		public final <T> T get(final String field) {
 			try {
 				return ((T[]) this.record.get(field))[this.idx];
 			} catch (final IndexOutOfBoundsException e) {

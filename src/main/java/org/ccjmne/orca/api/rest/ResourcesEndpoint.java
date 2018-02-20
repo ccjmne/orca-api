@@ -37,6 +37,7 @@ import javax.ws.rs.core.UriInfo;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Constants.RecordSlicer;
+import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.RestrictedResourcesHelper;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
@@ -378,8 +379,8 @@ public class ResourcesEndpoint {
 
 				return this.ctx.fetch(withTags).map(new RecordMapper<Record, Map<String, Object>>() {
 
-					private final BiFunction<RecordSlicer, ? super String, ? extends Object> coercer = (slicer, data) -> slicer
-							.getSlice(TAGS.TAGS_TYPE).equals(Constants.TAGS_TYPE_BOOLEAN) ? Boolean.valueOf(data) : data;
+					private final BiFunction<RecordSlicer, ? super String, ? extends Object> coercer = (slicer, data) -> ResourcesHelper
+							.tagValueCoercer(slicer.get(TAGS.TAGS_TYPE), data);
 
 					private final RecordMapper<Record, Map<Integer, Object>> selectMapper = Constants
 							.getSelectMapper(this.coercer, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE);
