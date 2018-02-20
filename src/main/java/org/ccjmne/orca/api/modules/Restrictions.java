@@ -139,13 +139,13 @@ public class Restrictions {
 				.fetch(TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK);
 	}
 
-	public boolean canAccessTag(final Integer tags_pk) {
-		// TODO: implement; or maybe not, if tags access should be unrestricted
+	public boolean canAccessSitesWith(final Integer tags_pk) {
+		// TODO: implement when upgrading the account management system
 		return true;
 	}
 
-	public boolean canAccessTags(final List<Integer> tagTypes) {
-		// TODO: implement; or maybe not, if tags access should be unrestricted
+	public boolean canAccessSitesWith(final Map<Integer, List<String>> tags) {
+		// TODO: implement when upgrading the account management system
 		return true;
 	}
 

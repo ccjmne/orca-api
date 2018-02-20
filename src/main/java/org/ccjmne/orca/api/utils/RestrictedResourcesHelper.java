@@ -153,7 +153,7 @@ public class RestrictedResourcesHelper {
 		}
 
 		if (!filters.isEmpty()) {
-			if (!this.restrictions.canAccessTags(filters.keySet())) {
+			if (!this.restrictions.canAccessSitesWith(filters)) {
 				throw new ForbiddenException();
 			}
 
