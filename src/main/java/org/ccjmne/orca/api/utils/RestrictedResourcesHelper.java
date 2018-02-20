@@ -80,6 +80,12 @@ public class RestrictedResourcesHelper {
 		return query;
 	}
 
+	/**
+	 * Departments are on the verge of being deprecated.<br />
+	 * Use {@link RestrictedResourcesHelper#selectSitesByTag} instead.
+	 */
+	@Deprecated
+	// TODO: delete
 	public SelectQuery<Record> selectSites(final String site_pk, final Integer dept_pk) {
 		final SelectQuery<Record> query = DSL.select().getQuery();
 		query.addFrom(SITES);
