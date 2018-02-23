@@ -56,6 +56,7 @@ public class UpdateEndpoint {
 	@POST
 	@Path("departments")
 	@Consumes(MediaType.APPLICATION_JSON)
+	// TODO: remove
 	public Integer createDept(final Map<String, String> dept) {
 		final Integer dept_pk = new Integer(this.ctx.nextval(Sequences.DEPARTMENTS_DEPT_PK_SEQ).intValue());
 		updateDepartment(dept_pk, dept);
@@ -65,6 +66,7 @@ public class UpdateEndpoint {
 	@PUT
 	@Path("departments/{dept_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
+	// TODO: remove
 	public boolean updateDepartment(@PathParam("dept_pk") final Integer dept_pk, final Map<String, String> dept) {
 		if (this.ctx.fetchExists(DEPARTMENTS, DEPARTMENTS.DEPT_PK.eq(dept_pk))) {
 			this.ctx.update(DEPARTMENTS)
@@ -84,6 +86,7 @@ public class UpdateEndpoint {
 	@PUT
 	@Path("sites/{site_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
+	// TODO: accept tags (forbid "*" and "null" tag values)
 	public boolean updateSite(@PathParam("site_pk") final String site_pk, final Map<String, String> site) {
 		if (this.ctx.fetchExists(SITES, SITES.SITE_PK.eq(site_pk))) {
 			this.ctx.update(SITES)
@@ -109,6 +112,7 @@ public class UpdateEndpoint {
 
 	@DELETE
 	@Path("departments/{dept_pk}")
+	// TODO: remove
 	public boolean deleteDept(@PathParam("dept_pk") final Integer dept_pk) {
 		// Database CASCADEs the deletion of linked users, if any
 		return this.ctx.delete(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).execute() == 1;
