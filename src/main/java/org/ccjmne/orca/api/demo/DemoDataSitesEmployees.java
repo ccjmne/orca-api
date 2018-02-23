@@ -4,6 +4,8 @@ import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
 
 import java.sql.Date;
@@ -35,9 +37,36 @@ public class DemoDataSitesEmployees {
 
 	public static final Fairy FAIRY = Fairy.create(Locale.FRENCH);
 
+	private static final Integer DEPARTMENT_TAG = Integer.valueOf(1);
+	private static final Integer ERP_TAG = Integer.valueOf(2);
+
 	public static void generate(final DSLContext ctx) {
 		addDepartments(ctx.insertInto(DEPARTMENTS, DEPARTMENTS.DEPT_ID, DEPARTMENTS.DEPT_NAME), 10, "DEPT%02d").execute();
 		addSites(ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_ADDRESS, SITES.SITE_DEPT_FK), 200, "SITE%03d").execute();
+
+		// Department tags
+		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE)
+				.values(DemoDataSitesEmployees.DEPARTMENT_TAG, "Département", "DEPT", Constants.TAGS_TYPE_STRING).execute();
+		ctx.insertInto(SITES_TAGS, SITES_TAGS.SITA_SITE_FK, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE)
+				.select(DSL
+						.select(SITES.SITE_PK, DSL.val(DEPARTMENT_TAG), DEPARTMENTS.DEPT_NAME)
+						.from(SITES).join(DEPARTMENTS).on(DEPARTMENTS.DEPT_PK.eq(SITES.SITE_DEPT_FK)))
+				.execute();
+
+		// ERP tags
+		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE)
+				.values(DemoDataSitesEmployees.ERP_TAG, "Établissement Recevant du Public", "ERP", Constants.TAGS_TYPE_BOOLEAN).execute();
+		ctx.insertInto(SITES_TAGS, SITES_TAGS.SITA_SITE_FK, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE)
+				.select(DSL
+						.select(SITES.SITE_PK,
+								DSL.val(ERP_TAG),
+								DSL.coerce(DSL
+										.when(	DSL.cast(DSL.rand().plus(Integer.valueOf(0)), Integer.class).mod(Integer.valueOf(2)).eq(Integer.valueOf(0)),
+												Boolean.TRUE)
+										.otherwise(Boolean.FALSE), String.class))
+						.from(SITES))
+				.execute();
+
 		for (int i = 0; i < 10; i++) {
 			addEmployees(
 							ctx.insertInto(
