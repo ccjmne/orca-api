@@ -120,25 +120,22 @@ public class RestrictedResourcesHelper {
 	/**
 	 * Selects sites for which:
 	 * <ul>
-	 * <li><code>site_pk</code> (if specified) uniquely identifies it, and</li>
-	 * <li><em>FOR EACH</em> filter <code>{ k: [v1, v2, ..., vN] }</code>, the
-	 * site has:
+	 * <li><code>site_pk</code> (if specified) uniquely identifies it,
+	 * <em>and</em></li>
+	 * <li><em>for each</em> filter <code>{ k: [v1, v2, ..., vN] }</code>, the
+	 * site has a tag <code>{ type, value }</code> where:
 	 * <ul>
-	 * <li>a tag <code>{ type, value }</code> where:
-	 * <ul>
-	 * <li></code>type == k</code>
-	 * <em>AND</em><code>[v1, v2, ..., vN].contains(value)</code></li>
-	 * </ul>
-	 * </li>
+	 * <li></code>type == k</code>, <em>and</em></li>
+	 * <li><code>[v1, v2, ..., vN].contains(value)</code></li>
 	 * </ul>
 	 * </li>
 	 * </ul>
 	 *
 	 * @param site_pk
-	 *            The identifier of the only site to select. Optional.
+	 *            Optional. The identifier of the only site to select
 	 * @param filters
 	 *            Non-null. Map of tag types and values to satisfy for the sites
-	 *            to be selected.
+	 *            to be selected
 	 */
 	public SelectQuery<Record> selectSitesByTags(final String site_pk, final Map<Integer, List<String>> filters) {
 		final SelectQuery<Record> query = DSL.select().getQuery();
