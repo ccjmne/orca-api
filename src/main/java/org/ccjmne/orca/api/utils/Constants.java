@@ -43,6 +43,10 @@ public class Constants {
 	public static final String STATUS_SUCCESS = "success";
 	public static final String STATUS_WARNING = "warning";
 	public static final String STATUS_DANGER = "danger";
+
+	public static final String TAGS_VALUE_UNIVERSAL = "*";
+	public static final String TAGS_VALUE_NONE = "null";
+
 	// ----
 
 	// ---- DATABASE CONSTANTS
