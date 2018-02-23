@@ -1,6 +1,5 @@
 package org.ccjmne.orca.api.rest;
 
-import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_VOIDINGS;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
@@ -245,50 +244,6 @@ public class ResourcesEndpoint {
 									@QueryParam("unlisted") final boolean unlisted) {
 		try {
 			return listSitesGroupsImpl(dateStr, unlisted, tags_pk, Collections.singletonMap(tags_pk, Collections.singletonList(sita_value))).get(0);
-		} catch (final IndexOutOfBoundsException e) {
-			throw new NotFoundException();
-		}
-	}
-
-	@GET
-	@Path("departments")
-	public Result<Record> listDepartments(
-											@QueryParam("department") final Integer dept_pk,
-											@QueryParam("date") final String dateStr,
-											@QueryParam("unlisted") final boolean unlisted) {
-		final Table<Record> counts = DSL.select(SITES_EMPLOYEES.SIEM_SITE_FK)
-				.select(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"))
-				.select(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"))
-				.from(SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)))
-				.where(SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.restrictedResources.selectSites(null, dept_pk))))
-				.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)))
-				.groupBy(SITES_EMPLOYEES.SIEM_SITE_FK).asTable();
-		try (final SelectQuery<Record> query = this.restrictedResources.selectDepartments(dept_pk)) {
-			query.addSelect(DEPARTMENTS.fields());
-			query.addSelect(DSL.sum(counts.field("count", Integer.class)).as("count"));
-			query.addSelect(DSL.sum(counts.field("permanent", Integer.class)).as("permanent"));
-			query.addSelect(DSL.count(SITES.SITE_PK).as("sites_count"));
-			query.addJoin(
-							SITES,
-							unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
-							SITES.SITE_DEPT_FK.eq(DEPARTMENTS.DEPT_PK));
-			query.addJoin(
-							counts,
-							unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
-							counts.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(SITES.SITE_PK));
-			query.addGroupBy(DEPARTMENTS.fields());
-			return this.ctx.fetch(query);
-		}
-	}
-
-	@GET
-	@Path("departments/{dept_pk}")
-	public Record lookupDepartment(
-									@PathParam("dept_pk") final Integer dept_pk,
-									@QueryParam("date") final String dateStr,
-									@QueryParam("unlisted") final boolean unlisted) {
-		try {
-			return listDepartments(dept_pk, dateStr, unlisted).get(0);
 		} catch (final IndexOutOfBoundsException e) {
 			throw new NotFoundException();
 		}
