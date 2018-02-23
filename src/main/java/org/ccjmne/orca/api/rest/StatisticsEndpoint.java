@@ -211,6 +211,7 @@ public class StatisticsEndpoint {
 													@QueryParam("to") final String to,
 													@QueryParam("interval") final Integer interval)
 			throws ParseException {
+		// TODO: Maybe use PostgreSQL ranges and only query the DB once?
 		return StatisticsEndpoint.computeDates(from, to, interval).stream()
 				.map(date -> Collections.singletonMap(date, getSiteStats(site_pk, date.toString())))
 				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
