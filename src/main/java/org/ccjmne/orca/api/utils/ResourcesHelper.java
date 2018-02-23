@@ -2,11 +2,17 @@ package org.ccjmne.orca.api.utils;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import javax.ws.rs.core.UriInfo;
 
 import org.jooq.Field;
 import org.jooq.Record;
@@ -15,6 +21,13 @@ import org.jooq.impl.DSL;
 import org.jooq.util.postgres.PostgresDSL;
 
 public class ResourcesHelper {
+
+	/**
+	 * Used to determine which parameters are to be considered as tags. Matches
+	 * unsigned Base10 integer values.<br />
+	 * Pattern: <code>^\d+$</code>
+	 */
+	private static final Predicate<String> IS_TAG_KEY = Pattern.compile("^\\d+$").asPredicate();
 
 	/**
 	 * Coerces the given <code>value</code> to a either a {@link Boolean} or a
@@ -43,6 +56,21 @@ public class ResourcesHelper {
 	 */
 	public static <T> Field<T[]> arrayAgg(final Field<T> field) {
 		return DSL.arrayAgg(field).as(field);
+	}
+
+	/**
+	 * Extracts a multi-valued {@link Map} of tags from the query parameters for
+	 * a specific API call.<br />
+	 * The {@link Predicate} used to determine which parameters are to be
+	 * considered as tags is {@link ResourcesHelper#IS_TAG_KEY}
+	 *
+	 * @param uriInfo
+	 *            The {@link UriInfo} representing the request
+	 */
+	public static Map<Integer, List<String>> getTagsFromUri(final UriInfo uriInfo) {
+		return uriInfo.getQueryParameters().entrySet().stream()
+				.filter(x -> IS_TAG_KEY.test(x.getKey()))
+				.collect(Collectors.<Entry<String, List<String>>, Integer, List<String>> toMap(x -> Integer.valueOf(x.getKey()), Entry::getValue));
 	}
 
 	/**
