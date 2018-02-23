@@ -59,6 +59,17 @@ public class ResourcesHelper {
 	}
 
 	/**
+	 * Delegates to {@link DSL#coalesce(Field, Object)} and gives the resulting
+	 * coalition the specified {@link Field}'s name.
+	 *
+	 * @param field
+	 *            The field to coalesce
+	 */
+	public static <T> Field<T> coalesce(final Field<T> field, final T value) {
+		return DSL.coalesce(field, value).as(field);
+	}
+
+	/**
 	 * Extracts a multi-valued {@link Map} of tags from the query parameters for
 	 * a specific API call.<br />
 	 * The {@link Predicate} used to determine which parameters are to be
