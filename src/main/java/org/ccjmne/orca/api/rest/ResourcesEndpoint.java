@@ -20,9 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
@@ -63,7 +61,7 @@ import org.jooq.impl.DSL;
 public class ResourcesEndpoint {
 
 	private final DSLContext ctx;
-	private final RestrictedResourcesHelper resourcesHelper;
+	private final RestrictedResourcesHelper restrictedResources;
 
 	// TODO: Should not have any use for this and should delegate restricted
 	// data access mechanics to RestrictedResourcesHelper
@@ -73,7 +71,7 @@ public class ResourcesEndpoint {
 	public ResourcesEndpoint(final DSLContext ctx, final Restrictions restrictions, final RestrictedResourcesHelper resourcesHelper) {
 		this.ctx = ctx;
 		this.restrictions = restrictions;
-		this.resourcesHelper = resourcesHelper;
+		this.restrictedResources = resourcesHelper;
 	}
 
 	@GET
@@ -85,7 +83,7 @@ public class ResourcesEndpoint {
 													@QueryParam("training") final Integer trng_pk,
 													@QueryParam("date") final String dateStr,
 													@QueryParam("fields") final String fields) {
-		try (final SelectQuery<? extends Record> query = this.resourcesHelper.selectEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr)) {
+		try (final SelectQuery<? extends Record> query = this.restrictedResources.selectEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr)) {
 			if (Constants.FIELDS_ALL.equals(fields)) {
 				query.addSelect(EMPLOYEES.fields());
 				query.addSelect(SITES_EMPLOYEES.fields());
@@ -151,7 +149,7 @@ public class ResourcesEndpoint {
 				.join(TRAININGS).on(TRAININGS.TRNG_PK.eq(TRAININGS_EMPLOYEES.TREM_TRNG_FK))
 				.join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGS.TRNG_TRTY_FK))
 				.where(TRAININGS_EMPLOYEES.TREM_EMPL_FK
-						.in(Constants.select(EMPLOYEES.EMPL_PK, this.resourcesHelper.selectEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr))))
+						.in(Constants.select(EMPLOYEES.EMPL_PK, this.restrictedResources.selectEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr))))
 				.groupBy(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS.TRNG_DATE)
 				.fetchGroups(TRAININGS_EMPLOYEES.TREM_EMPL_FK);
 	}
@@ -177,8 +175,8 @@ public class ResourcesEndpoint {
 	 *            If <code>true</code>, doesn't skip sites with no employees
 	 *            assigned.
 	 * @param uriInfo
-	 *            Used to obtain a map of supplied tag filters to select sites
-	 *            using
+	 *            Passed to {@link ResourcesHelper#getTagsFromUri(UriInfo)} in
+	 *            order to extract a map of tag as filters for
 	 *            {@link RestrictedResourcesHelper#selectSitesByTags(String, Map)}
 	 */
 	@GET
@@ -188,12 +186,7 @@ public class ResourcesEndpoint {
 												@QueryParam("date") final String dateStr,
 												@QueryParam("unlisted") final boolean unlisted,
 												@Context final UriInfo uriInfo) {
-		// Only integer values are valid tag keys
-		final Map<Integer, List<String>> filters = uriInfo.getQueryParameters().entrySet().stream()
-				.filter(x -> x.getKey().matches("\\d+"))
-				.collect(Collectors.<Entry<String, List<String>>, Integer, List<String>> toMap(x -> Integer.valueOf(x.getKey()), Entry::getValue));
-
-		return listSitesImpl(site_pk, dateStr, unlisted, filters);
+		return listSitesImpl(site_pk, dateStr, unlisted, ResourcesHelper.getTagsFromUri(uriInfo));
 	}
 
 	@GET
@@ -203,7 +196,55 @@ public class ResourcesEndpoint {
 											@QueryParam("date") final String dateStr,
 											@QueryParam("unlisted") final boolean unlisted) {
 		try {
-			return listSitesImpl(site_pk, dateStr, unlisted, Collections.<Integer, List<String>> emptyMap()).get(0);
+			return listSitesImpl(site_pk, dateStr, unlisted, Collections.emptyMap()).get(0);
+		} catch (final IndexOutOfBoundsException e) {
+			throw new NotFoundException();
+		}
+	}
+
+	/**
+	 * @param tags_pk
+	 *            The tag to group sites by.
+	 */
+	@GET
+	@Path("sites-groups")
+	public Result<Record> listSitesGroups(
+											@QueryParam("date") final String dateStr,
+											@QueryParam("unlisted") final boolean unlisted,
+											@QueryParam("group-by") final Integer tags_pk,
+											@Context final UriInfo uriInfo) {
+		return listSitesGroupsImpl(dateStr, unlisted, tags_pk, ResourcesHelper.getTagsFromUri(uriInfo));
+	}
+
+	/**
+	 * Delegates to
+	 * {@link ResourcesEndpoint#listSitesGroups(String, boolean, Integer, UriInfo)}.<br
+	 * />
+	 * With this method, the <code>tags_pk</code> argument comes directly from
+	 * the query's <strong>path</strong> instead of its parameters.
+	 *
+	 * @param tags_pk
+	 *            The tag to group sites by.
+	 */
+	@GET
+	@Path("sites-groups/{group-by}")
+	public Object listSitesGroups(
+									@PathParam("group-by") final Integer tags_pk,
+									@QueryParam("date") final String dateStr,
+									@QueryParam("unlisted") final boolean unlisted,
+									@Context final UriInfo uriInfo) {
+		return this.listSitesGroups(dateStr, unlisted, tags_pk, uriInfo);
+	}
+
+	@GET
+	@Path("sites-groups/{tags_pk}/{sita_value}")
+	public Record lookupSitesGroup(
+									@PathParam("tags_pk") final Integer tags_pk,
+									@PathParam("sita_value") final String sita_value,
+									@QueryParam("date") final String dateStr,
+									@QueryParam("unlisted") final boolean unlisted) {
+		try {
+			return listSitesGroupsImpl(dateStr, unlisted, tags_pk, Collections.singletonMap(tags_pk, Collections.singletonList(sita_value))).get(0);
 		} catch (final IndexOutOfBoundsException e) {
 			throw new NotFoundException();
 		}
@@ -211,18 +252,18 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("departments")
-	public Result<? extends Record> listDepartments(
-													@QueryParam("department") final Integer dept_pk,
-													@QueryParam("date") final String dateStr,
-													@QueryParam("unlisted") final boolean unlisted) {
+	public Result<Record> listDepartments(
+											@QueryParam("department") final Integer dept_pk,
+											@QueryParam("date") final String dateStr,
+											@QueryParam("unlisted") final boolean unlisted) {
 		final Table<Record> counts = DSL.select(SITES_EMPLOYEES.SIEM_SITE_FK)
 				.select(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"))
 				.select(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"))
 				.from(SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)))
-				.where(SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resourcesHelper.selectSites(null, dept_pk))))
+				.where(SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.restrictedResources.selectSites(null, dept_pk))))
 				.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)))
 				.groupBy(SITES_EMPLOYEES.SIEM_SITE_FK).asTable();
-		try (final SelectQuery<Record> query = this.resourcesHelper.selectDepartments(dept_pk)) {
+		try (final SelectQuery<Record> query = this.restrictedResources.selectDepartments(dept_pk)) {
 			query.addSelect(DEPARTMENTS.fields());
 			query.addSelect(DSL.sum(counts.field("count", Integer.class)).as("count"));
 			query.addSelect(DSL.sum(counts.field("permanent", Integer.class)).as("permanent"));
@@ -361,7 +402,7 @@ public class ResourcesEndpoint {
 													final String dateStr,
 													final boolean unlisted,
 													final Map<Integer, List<String>> filters) {
-		try (final SelectQuery<Record> selectSites = this.resourcesHelper.selectSitesByTags(site_pk, filters)) {
+		try (final SelectQuery<Record> selectSites = this.restrictedResources.selectSitesByTags(site_pk, filters)) {
 			selectSites.addSelect(SITES.fields());
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));
@@ -403,6 +444,44 @@ public class ResourcesEndpoint {
 						return res;
 					}
 				});
+			}
+		}
+	}
+
+	private Result<Record> listSitesGroupsImpl(final String dateStr, final boolean unlisted, final Integer tags_pk, final Map<Integer, List<String>> asdf) {
+		try (final SelectQuery<Record> selectSites = this.restrictedResources.selectSitesByTags(null, asdf)) {
+			selectSites.addSelect(SITES.fields());
+			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
+			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));
+			selectSites.addJoin(
+								SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)),
+								unlisted ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
+								SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK).and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))));
+			selectSites.addGroupBy(SITES.fields());
+			final Table<Record> sites = selectSites.asTable();
+
+			try (final SelectQuery<Record> groupedSites = DSL.select().getQuery()) {
+				groupedSites.addSelect(DSL.sum(sites.field("count", Integer.class)).as("count"));
+				groupedSites.addSelect(DSL.sum(sites.field("permanent", Integer.class)).as("permanent"));
+				groupedSites.addSelect(DSL.count(sites.field(SITES.SITE_PK)).as("sites_count"));
+				groupedSites.addFrom(sites);
+
+				if (tags_pk != null) {
+					// Non-tagged sites appear under TAGS_VALUE_NONE
+					groupedSites.addSelect(ResourcesHelper.coalesce(SITES_TAGS.SITA_VALUE, Constants.TAGS_VALUE_NONE));
+					groupedSites.addJoin(
+											SITES_TAGS,
+											JoinType.LEFT_OUTER_JOIN,
+											SITES_TAGS.SITA_SITE_FK.eq(sites.field(SITES.SITE_PK))
+													.and(SITES_TAGS.SITA_TAGS_FK.eq(tags_pk)));
+				} else {
+					// All sites marked as TAGS_VALUE_UNIVERSAL
+					groupedSites.addSelect(DSL.val(Constants.TAGS_VALUE_UNIVERSAL).as(SITES_TAGS.SITA_VALUE));
+					groupedSites.addJoin(SITES_TAGS, JoinType.LEFT_OUTER_JOIN, DSL.condition(Boolean.FALSE));
+				}
+
+				groupedSites.addGroupBy(SITES_TAGS.SITA_VALUE);
+				return this.ctx.fetch(groupedSites);
 			}
 		}
 	}

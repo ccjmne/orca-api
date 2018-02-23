@@ -3,6 +3,7 @@ package org.ccjmne.orca.api.rest;
 import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 
 import java.text.ParseException;
@@ -64,11 +65,21 @@ public class ResourcesByKeysEndpoint {
 	}
 
 	@GET
+	@Path("sites-groups")
+	public Map<String, Record> listSitesGroups(
+												@QueryParam("date") final String dateStr,
+												@QueryParam("unlisted") final boolean unlisted,
+												@QueryParam("group-by") final Integer tags_pk,
+												@Context final UriInfo uriInfo) {
+		return this.resources.listSitesGroups(dateStr, unlisted, tags_pk, uriInfo).intoMap(SITES_TAGS.SITA_VALUE);
+	}
+
+	@GET
 	@Path("departments")
-	public Map<Integer, ? extends Record> listDepartments(
-															@QueryParam("department") final Integer dept_pk,
-															@QueryParam("date") final String dateStr,
-															@QueryParam("unlisted") final boolean unlisted) {
+	public Map<Integer, Record> listDepartments(
+												@QueryParam("department") final Integer dept_pk,
+												@QueryParam("date") final String dateStr,
+												@QueryParam("unlisted") final boolean unlisted) {
 		return this.resources.listDepartments(dept_pk, dateStr, unlisted).intoMap(DEPARTMENTS.DEPT_PK);
 	}
 
