@@ -203,6 +203,19 @@ public class StatisticsEndpoint {
 				.fetchMap(CERTIFICATES.CERT_PK);
 	}
 
+	/**
+	 * TODO: PostgreSQL's <code>generate_series</code> and only query the DB
+	 * once<br />
+	 * Code sample:
+	 * 
+	 * <pre>
+	 * SELECT generate_series(
+	 *     date_trunc('month', '2018-01-23'::date),
+	 *     '2018-05-15'::date,
+	 *     '1 month'
+	 * )::date
+	 * </pre>
+	 */
 	@GET
 	@Path("sites/{site_pk}/history")
 	public Map<Object, Object> getSiteStatsHistory(
@@ -211,7 +224,6 @@ public class StatisticsEndpoint {
 													@QueryParam("to") final String to,
 													@QueryParam("interval") final Integer interval)
 			throws ParseException {
-		// TODO: Maybe use PostgreSQL ranges and only query the DB once?
 		return StatisticsEndpoint.computeDates(from, to, interval).stream()
 				.map(date -> Collections.singletonMap(date, getSiteStats(site_pk, date.toString())))
 				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
