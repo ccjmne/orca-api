@@ -57,6 +57,7 @@ public class UpdateEndpoint {
 	@Path("departments")
 	@Consumes(MediaType.APPLICATION_JSON)
 	// TODO: remove
+	@Deprecated
 	public Integer createDept(final Map<String, String> dept) {
 		final Integer dept_pk = new Integer(this.ctx.nextval(Sequences.DEPARTMENTS_DEPT_PK_SEQ).intValue());
 		updateDepartment(dept_pk, dept);
@@ -67,6 +68,7 @@ public class UpdateEndpoint {
 	@Path("departments/{dept_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	// TODO: remove
+	@Deprecated
 	public boolean updateDepartment(@PathParam("dept_pk") final Integer dept_pk, final Map<String, String> dept) {
 		if (this.ctx.fetchExists(DEPARTMENTS, DEPARTMENTS.DEPT_PK.eq(dept_pk))) {
 			this.ctx.update(DEPARTMENTS)
@@ -113,6 +115,7 @@ public class UpdateEndpoint {
 	@DELETE
 	@Path("departments/{dept_pk}")
 	// TODO: remove
+	@Deprecated
 	public boolean deleteDept(@PathParam("dept_pk") final Integer dept_pk) {
 		// Database CASCADEs the deletion of linked users, if any
 		return this.ctx.delete(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).execute() == 1;
@@ -120,15 +123,22 @@ public class UpdateEndpoint {
 
 	@DELETE
 	@Path("sites/{site_pk}")
-	public boolean deleteSite(@PathParam("site_pk") final String site_pk) {
+	public Boolean deleteSite(@PathParam("site_pk") final String site_pk) {
 		// Database CASCADEs the deletion of linked users, if any
-		final boolean exists = this.ctx.selectFrom(SITES).where(SITES.SITE_PK.equal(site_pk)).fetch().isNotEmpty();
-		if (exists) {
-			this.ctx.delete(SITES).where(SITES.SITE_PK.eq(site_pk)).execute();
-			this.ctx.delete(SITES_EMPLOYEES).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk)).execute();
-		}
+		return this.ctx.transactionResult(config -> {
+			try (final DSLContext transactionCtx = DSL.using(config)) {
 
-		return exists;
+				final boolean exists = transactionCtx.selectFrom(SITES).where(SITES.SITE_PK.equal(site_pk)).fetch().isNotEmpty();
+				if (exists) {
+					transactionCtx.update(SITES_EMPLOYEES)
+							.set(SITES_EMPLOYEES.SIEM_SITE_FK, Constants.UNASSIGNED_SITE)
+							.where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk)).execute();
+					transactionCtx.delete(SITES).where(SITES.SITE_PK.eq(site_pk)).execute();
+				}
+
+				return Boolean.valueOf(exists);
+			}
+		});
 	}
 
 	@POST
