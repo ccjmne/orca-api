@@ -141,8 +141,8 @@ public class StatisticsEndpoint {
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
 												.in(Constants.select(	EMPLOYEES.EMPL_PK,
-																		this.restrictedResourcesAccess.selectEmployeesByTags(	null, null, dept_pk, null,
-																																dateStr))),
+																		this.restrictedResourcesAccess.selectEmployees(	null, null, dept_pk, null,
+																														dateStr))),
 										SITES_EMPLOYEES.SIEM_SITE_FK
 												.in(Constants.select(SITES.SITE_PK, this.restrictedResourcesAccess.selectSites(null, dept_pk))),
 										DEPARTMENTS.DEPT_PK
@@ -173,7 +173,7 @@ public class StatisticsEndpoint {
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
 												.in(Constants.select(	EMPLOYEES.EMPL_PK,
-																		this.restrictedResourcesAccess.selectEmployeesByTags(null, null, null, null, dateStr))),
+																		this.restrictedResourcesAccess.selectEmployees(null, null, null, null, dateStr))),
 										SITES_EMPLOYEES.SIEM_SITE_FK
 												.in(Constants.select(SITES.SITE_PK, this.restrictedResourcesAccess.selectSites(null, null))),
 										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.restrictedResourcesAccess.selectDepartments(null))))

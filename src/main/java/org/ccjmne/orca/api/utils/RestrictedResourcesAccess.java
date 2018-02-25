@@ -82,12 +82,12 @@ public class RestrictedResourcesAccess {
 	 * instead.
 	 */
 	@Deprecated
-	public SelectQuery<Record> selectEmployeesByTags(
-														final String empl_pk,
-														final String site_pk,
-														final Integer dept_pk,
-														final Integer trng_pk,
-														final String dateStr) {
+	public SelectQuery<Record> selectEmployees(
+												final String empl_pk,
+												final String site_pk,
+												final Integer dept_pk,
+												final Integer trng_pk,
+												final String dateStr) {
 		final SelectQuery<Record> query = DSL.select().getQuery();
 		query.addFrom(EMPLOYEES);
 		query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT));
@@ -202,6 +202,7 @@ public class RestrictedResourcesAccess {
 	 *            Non-null. Map of tag types and values to satisfy for the sites
 	 *            to be selected
 	 */
+	// TODO: rename to selectSites
 	public SelectQuery<Record> selectSitesByTags(final String site_pk, final Map<Integer, List<String>> filters) {
 		final SelectQuery<Record> query = DSL.select().getQuery();
 		query.addFrom(SITES);

@@ -16,11 +16,7 @@ import java.sql.Date;
 
 import org.jooq.Condition;
 import org.jooq.Field;
-import org.jooq.Record10;
-import org.jooq.Record4;
-import org.jooq.Record5;
-import org.jooq.Record6;
-import org.jooq.Record8;
+import org.jooq.Record;
 import org.jooq.Select;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
@@ -60,9 +56,9 @@ public class StatisticsHelper {
 	 * The <code>Condition</code> should be on
 	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.
 	 */
-	public static Select<Record6<String, String, Integer, Date, Date, String>> selectEmployeesStats(
-																									final String dateStr,
-																									final Condition employeesSelection) {
+	public static Select<? extends Record> selectEmployeesStats(
+																final String dateStr,
+																final Condition employeesSelection) {
 		return DSL
 				.select(
 						SITES_EMPLOYEES.SIEM_SITE_FK,
@@ -98,15 +94,15 @@ public class StatisticsHelper {
 	 * <code>SITES_EMPLOYEES.SIEM_SITE_FK</code>.
 	 */
 	@SuppressWarnings("null")
-	public static Select<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> selectSitesStats(
-																															final String dateStr,
-																															final Condition employeesSelection,
-																															final Condition sitesSelection) {
-		final Table<Record6<String, String, Integer, Date, Date, String>> employeesStats = StatisticsHelper
+	public static Select<? extends Record> selectSitesStats(
+															final String dateStr,
+															final Condition employeesSelection,
+															final Condition sitesSelection) {
+		final Table<? extends Record> employeesStats = StatisticsHelper
 				.selectEmployeesStats(dateStr, employeesSelection)
 				.asTable();
 
-		final Table<Record5<String, Integer, Integer, Integer, Integer>> certificatesStats = DSL
+		final Table<? extends Record> certificatesStats = DSL
 				.select(
 						employeesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK),
 						employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK),
@@ -123,7 +119,7 @@ public class StatisticsHelper {
 				.groupBy(employeesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK), employeesStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
 				.asTable();
 
-		final Table<Record4<String, Integer, Integer, Integer>> certificates = DSL
+		final Table<? extends Record> certificates = DSL
 				.select(
 						SITES_EMPLOYEES.SIEM_SITE_FK,
 						CERTIFICATES.CERT_PK,
@@ -172,16 +168,13 @@ public class StatisticsHelper {
 	 * <code>DEPARTMENTS.DEPT_PK</code>.
 	 */
 	@SuppressWarnings("null")
-	public static Select<Record10<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal, String>> selectDepartmentsStats(
-																																								final String dateStr,
-																																								final Condition employeesSelection,
-																																								final Condition sitesSelection,
-																																								final Condition departmentsSelection) {
-		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = StatisticsHelper
-				.selectSitesStats(
-									dateStr,
-									employeesSelection,
-									sitesSelection)
+	public static Select<? extends Record> selectDepartmentsStats(
+																	final String dateStr,
+																	final Condition employeesSelection,
+																	final Condition sitesSelection,
+																	final Condition departmentsSelection) {
+		final Table<? extends Record> sitesStats = StatisticsHelper
+				.selectSitesStats(dateStr, employeesSelection, sitesSelection)
 				.asTable();
 
 		final Field<BigDecimal> score = DSL.round(DSL
