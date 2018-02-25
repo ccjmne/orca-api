@@ -35,7 +35,7 @@ import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.ResourcesHelper.RecordSlicer;
-import org.ccjmne.orca.api.utils.RestrictedResourcesHelper;
+import org.ccjmne.orca.api.utils.RestrictedResourcesAccess;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingsEmployeesRecord;
@@ -60,17 +60,17 @@ import org.jooq.impl.DSL;
 public class ResourcesEndpoint {
 
 	private final DSLContext ctx;
-	private final RestrictedResourcesHelper restrictedResources;
+	private final RestrictedResourcesAccess restrictedResourcesAccess;
 
 	// TODO: Should not have any use for this and should delegate restricted
 	// data access mechanics to RestrictedResourcesHelper
 	private final Restrictions restrictions;
 
 	@Inject
-	public ResourcesEndpoint(final DSLContext ctx, final Restrictions restrictions, final RestrictedResourcesHelper resourcesHelper) {
+	public ResourcesEndpoint(final DSLContext ctx, final Restrictions restrictions, final RestrictedResourcesAccess restrictedResourcesAccess) {
 		this.ctx = ctx;
 		this.restrictions = restrictions;
-		this.restrictedResources = resourcesHelper;
+		this.restrictedResourcesAccess = restrictedResourcesAccess;
 	}
 
 	@GET
@@ -82,7 +82,7 @@ public class ResourcesEndpoint {
 													@QueryParam("training") final Integer trng_pk,
 													@QueryParam("date") final String dateStr,
 													@QueryParam("fields") final String fields) {
-		try (final SelectQuery<? extends Record> query = this.restrictedResources.selectEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr)) {
+		try (final SelectQuery<? extends Record> query = this.restrictedResourcesAccess.selectEmployeesByTags(empl_pk, site_pk, dept_pk, trng_pk, dateStr)) {
 			if (Constants.FIELDS_ALL.equals(fields)) {
 				query.addSelect(EMPLOYEES.fields());
 				query.addSelect(SITES_EMPLOYEES.fields());
@@ -148,7 +148,7 @@ public class ResourcesEndpoint {
 				.join(TRAININGS).on(TRAININGS.TRNG_PK.eq(TRAININGS_EMPLOYEES.TREM_TRNG_FK))
 				.join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGS.TRNG_TRTY_FK))
 				.where(TRAININGS_EMPLOYEES.TREM_EMPL_FK
-						.in(Constants.select(EMPLOYEES.EMPL_PK, this.restrictedResources.selectEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr))))
+						.in(Constants.select(EMPLOYEES.EMPL_PK, this.restrictedResourcesAccess.selectEmployeesByTags(empl_pk, site_pk, dept_pk, trng_pk, dateStr))))
 				.groupBy(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS.TRNG_DATE)
 				.fetchGroups(TRAININGS_EMPLOYEES.TREM_EMPL_FK);
 	}
@@ -176,7 +176,7 @@ public class ResourcesEndpoint {
 	 * @param uriInfo
 	 *            Passed to {@link ResourcesHelper#getTagsFromUri(UriInfo)} in
 	 *            order to extract a map of tag as filters for
-	 *            {@link RestrictedResourcesHelper#selectSitesByTags(String, Map)}
+	 *            {@link RestrictedResourcesAccess#selectSitesByTags(String, Map)}
 	 */
 	@GET
 	@Path("sites")
@@ -357,7 +357,7 @@ public class ResourcesEndpoint {
 													final String dateStr,
 													final boolean unlisted,
 													final Map<Integer, List<String>> filters) {
-		try (final SelectQuery<Record> selectSites = this.restrictedResources.selectSitesByTags(site_pk, filters)) {
+		try (final SelectQuery<Record> selectSites = this.restrictedResourcesAccess.selectSitesByTags(site_pk, filters)) {
 			selectSites.addSelect(SITES.fields());
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));
@@ -404,7 +404,7 @@ public class ResourcesEndpoint {
 	}
 
 	private Result<Record> listSitesGroupsImpl(final String dateStr, final boolean unlisted, final Integer tags_pk, final Map<Integer, List<String>> asdf) {
-		try (final SelectQuery<Record> selectSites = this.restrictedResources.selectSitesByTags(null, asdf)) {
+		try (final SelectQuery<Record> selectSites = this.restrictedResourcesAccess.selectSitesByTags(null, asdf)) {
 			selectSites.addSelect(SITES.fields());
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));

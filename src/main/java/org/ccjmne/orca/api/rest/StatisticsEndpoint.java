@@ -33,6 +33,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.api.modules.Restrictions;
@@ -40,13 +42,12 @@ import org.ccjmne.orca.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
-import org.ccjmne.orca.api.utils.RestrictedResourcesHelper;
+import org.ccjmne.orca.api.utils.RestrictedResourcesAccess;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record10;
-import org.jooq.Record6;
 import org.jooq.Record8;
 import org.jooq.Table;
 
@@ -62,7 +63,7 @@ public class StatisticsEndpoint {
 
 	private final DSLContext ctx;
 	private final ResourcesByKeysCommonEndpoint commonResources;
-	private final RestrictedResourcesHelper resourcesHelper;
+	private final RestrictedResourcesAccess restrictedResourcesAccess;
 
 	// TODO: Should not have any use for these two and should delegate
 	// restricted data access mechanics to RestrictedResourcesHelper
@@ -74,12 +75,12 @@ public class StatisticsEndpoint {
 								final DSLContext ctx,
 								final ResourcesEndpoint resources,
 								final ResourcesByKeysCommonEndpoint commonResources,
-								final RestrictedResourcesHelper resourcesHelper,
+								final RestrictedResourcesAccess restrictedResourcesAccess,
 								final Restrictions restrictions) {
 		this.ctx = ctx;
 		this.resources = resources;
 		this.commonResources = commonResources;
-		this.resourcesHelper = resourcesHelper;
+		this.restrictedResourcesAccess = restrictedResourcesAccess;
 		this.restrictions = restrictions;
 	}
 
@@ -131,6 +132,7 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("departments/{dept_pk}")
+	@Deprecated
 	public Map<Integer, Record10<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal, String>> getDepartmentStats(
 																																							@PathParam("dept_pk") final Integer dept_pk,
 																																							@QueryParam("date") final String dateStr) {
@@ -139,14 +141,18 @@ public class StatisticsEndpoint {
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
 												.in(Constants.select(	EMPLOYEES.EMPL_PK,
-																		this.resourcesHelper.selectEmployees(null, null, dept_pk, null, dateStr))),
-										SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resourcesHelper.selectSites(null, dept_pk))),
-										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.resourcesHelper.selectDepartments(dept_pk)))))
+																		this.restrictedResourcesAccess.selectEmployeesByTags(	null, null, dept_pk, null,
+																																dateStr))),
+										SITES_EMPLOYEES.SIEM_SITE_FK
+												.in(Constants.select(SITES.SITE_PK, this.restrictedResourcesAccess.selectSites(null, dept_pk))),
+										DEPARTMENTS.DEPT_PK
+												.in(Constants.select(DEPARTMENTS.DEPT_PK, this.restrictedResourcesAccess.selectDepartments(dept_pk)))))
 				.fetchMap(CERTIFICATES.CERT_PK);
 	}
 
 	@GET
 	@Path("departments/{dept_pk}/history")
+	@Deprecated
 	public Map<Object, Object> getDepartmentStatsHistory(
 															@PathParam("dept_pk") final Integer dept_pk,
 															@QueryParam("from") final String from,
@@ -160,14 +166,17 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("departments")
+	@Deprecated
 	public Map<Integer, Map<Integer, Object>> getDepartmentsStats(@QueryParam("date") final String dateStr) {
 		final Table<Record10<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal, String>> departmentsStats = StatisticsHelper
 				.selectDepartmentsStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
-												.in(Constants.select(EMPLOYEES.EMPL_PK, this.resourcesHelper.selectEmployees(null, null, null, null, dateStr))),
-										SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resourcesHelper.selectSites(null, null))),
-										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.resourcesHelper.selectDepartments(null))))
+												.in(Constants.select(	EMPLOYEES.EMPL_PK,
+																		this.restrictedResourcesAccess.selectEmployeesByTags(null, null, null, null, dateStr))),
+										SITES_EMPLOYEES.SIEM_SITE_FK
+												.in(Constants.select(SITES.SITE_PK, this.restrictedResourcesAccess.selectSites(null, null))),
+										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.restrictedResourcesAccess.selectDepartments(null))))
 				.asTable();
 
 		return this.ctx.select(
@@ -191,15 +200,24 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("sites/{site_pk}")
-	public Map<Integer, Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> getSiteStats(
-																													@PathParam("site_pk") final String site_pk,
-																													@QueryParam("date") final String dateStr) {
+	/**
+	 * Could be written in a much simpler fashion using SITM_SITE_FK = SITE_PK,
+	 * but that would bypass all the {@link Restrictions} checks in
+	 * {@link RestrictedResourcesAccess}
+	 */
+	public Map<Integer, ? extends Record> getSiteStats(
+														@PathParam("site_pk") final String site_pk,
+														@QueryParam("date") final String dateStr) {
 		return this.ctx.selectQuery(StatisticsHelper
 				.selectSitesStats(
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
-											.in(Constants.select(EMPLOYEES.EMPL_PK, this.resourcesHelper.selectEmployees(null, site_pk, null, null, dateStr))),
-									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resourcesHelper.selectSites(site_pk, null)))))
+											.in(Constants.select(	EMPLOYEES.EMPL_PK,
+																	this.restrictedResourcesAccess.selectEmployeesByTags(	null, site_pk, null, dateStr,
+																															Collections.emptyMap()))),
+									SITES_EMPLOYEES.SIEM_SITE_FK
+											.in(Constants.select(	SITES.SITE_PK,
+																	this.restrictedResourcesAccess.selectSitesByTags(site_pk, Collections.emptyMap())))))
 				.fetchMap(CERTIFICATES.CERT_PK);
 	}
 
@@ -207,7 +225,7 @@ public class StatisticsEndpoint {
 	 * TODO: PostgreSQL's <code>generate_series</code> and only query the DB
 	 * once<br />
 	 * Code sample:
-	 * 
+	 *
 	 * <pre>
 	 * SELECT generate_series(
 	 *     date_trunc('month', '2018-01-23'::date),
@@ -232,15 +250,20 @@ public class StatisticsEndpoint {
 	@GET
 	@Path("sites")
 	public Map<String, Map<Integer, Object>> getSitesStats(
-															@QueryParam("department") final Integer dept_pk,
-															@QueryParam("date") final String dateStr) {
-
+															@QueryParam("site") final String site_pk,
+															@QueryParam("date") final String dateStr,
+															@Context final UriInfo uriInfo) {
+		final Map<Integer, List<String>> tagFilters = ResourcesHelper.getTagsFromUri(uriInfo);
 		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = StatisticsHelper
 				.selectSitesStats(
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
-											.in(Constants.select(EMPLOYEES.EMPL_PK, this.resourcesHelper.selectEmployees(null, null, dept_pk, null, dateStr))),
-									SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resourcesHelper.selectSites(null, dept_pk))))
+											.in(Constants.select(	EMPLOYEES.EMPL_PK,
+																	this.restrictedResourcesAccess.selectEmployeesByTags(	null, site_pk, null, dateStr,
+																															tagFilters))),
+									SITES_EMPLOYEES.SIEM_SITE_FK
+											.in(Constants.select(	SITES.SITE_PK,
+																	this.restrictedResourcesAccess.selectSitesByTags(site_pk, tagFilters))))
 				.asTable();
 
 		return this.ctx.select(
@@ -260,28 +283,33 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("employees/{empl_pk}")
-	public Map<Integer, Record6<String, String, Integer, Date, Date, String>> getEmployeeStats(
-																								@PathParam("empl_pk") final String empl_pk,
-																								@QueryParam("date") final String dateStr) {
+	public Map<Integer, ? extends Record> getEmployeeStats(
+															@PathParam("empl_pk") final String empl_pk,
+															@QueryParam("date") final String dateStr) {
 		return this.ctx.selectQuery(StatisticsHelper
 				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK
-						.in(Constants.select(EMPLOYEES.EMPL_PK, this.resourcesHelper.selectEmployees(empl_pk, null, null, null, dateStr)))))
+						.in(Constants.select(	EMPLOYEES.EMPL_PK,
+												this.restrictedResourcesAccess.selectEmployeesByTags(empl_pk, null, null, dateStr, Collections.emptyMap())))))
 				.fetchMap(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
 	}
 
 	@GET
 	@Path("employees")
 	public Map<String, Map<Integer, Object>> getEmployeesStats(
+																@QueryParam("employee") final String empl_pk,
 																@QueryParam("site") final String site_pk,
-																@QueryParam("department") final Integer dept_pk,
-																@QueryParam("date") final String dateStr) {
+																@QueryParam("training") final Integer trng_pk,
+																@QueryParam("date") final String dateStr,
+																@Context final UriInfo uriInfo) {
 
-		final Table<Record6<String, String, Integer, Date, Date, String>> employeesStats = StatisticsHelper
+		final Table<? extends Record> employeesStats = StatisticsHelper
 				.selectEmployeesStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
 												.in(Constants.select(	EMPLOYEES.EMPL_PK,
-																		this.resourcesHelper.selectEmployees(null, site_pk, dept_pk, null, dateStr))))
+																		this.restrictedResourcesAccess
+																				.selectEmployeesByTags(	empl_pk, site_pk, trng_pk, dateStr,
+																										ResourcesHelper.getTagsFromUri(uriInfo)))))
 				.asTable();
 
 		return this.ctx
