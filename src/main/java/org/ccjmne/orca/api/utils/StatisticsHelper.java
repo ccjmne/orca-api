@@ -1,7 +1,6 @@
 package org.ccjmne.orca.api.utils;
 
 import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
-import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_VOIDINGS;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
@@ -225,55 +224,6 @@ public class StatisticsHelper {
 			q.addGroupBy(SITES_TAGS.SITA_VALUE, sitesStats.field(CERTIFICATES.CERT_PK));
 			return q;
 		}
-	}
-
-	/**
-	 * The <code>employeesSelection</code> condition should be on
-	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.<br />
-	 * The <code>sitesSelection</code> condition should be on
-	 * <code>SITES_EMPLOYEES.SIEM_SITE_FK</code>.<br />
-	 * The <code>departmentsSelection</code> condition should be on
-	 * <code>DEPARTMENTS.DEPT_PK</code>.
-	 */
-	@SuppressWarnings("null")
-	@Deprecated
-	// TODO: remove
-	public static Select<? extends Record> selectDepartmentsStats(
-																	final String dateStr,
-																	final Condition employeesSelection,
-																	final Condition sitesSelection,
-																	final Condition departmentsSelection) {
-		final Table<? extends Record> sitesStats = StatisticsHelper
-				.selectSitesStats(dateStr, employeesSelection, sitesSelection)
-				.asTable();
-
-		final Field<BigDecimal> score = DSL.round(DSL
-				.sum(DSL
-						.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS), DSL.val(1f))
-						.when(sitesStats.field("validity", String.class).eq(Constants.STATUS_WARNING), DSL.val(2 / 3f))
-						.otherwise(DSL.val(0f)))
-				.mul(DSL.val(100)).div(DSL.count()));
-
-		return DSL.select(
-							DEPARTMENTS.DEPT_PK,
-							sitesStats.field(CERTIFICATES.CERT_PK),
-							DSL.sum(sitesStats.field(Constants.STATUS_SUCCESS, Integer.class)).as(Constants.STATUS_SUCCESS),
-							DSL.sum(sitesStats.field(Constants.STATUS_WARNING, Integer.class)).as(Constants.STATUS_WARNING),
-							DSL.sum(sitesStats.field(Constants.STATUS_DANGER, Integer.class)).as(Constants.STATUS_DANGER),
-							DSL.count().filterWhere(sitesStats.field("validity", String.class).eq(Constants.STATUS_SUCCESS))
-									.as("sites_" + Constants.STATUS_SUCCESS),
-							DSL.count().filterWhere(sitesStats.field("validity", String.class).eq(Constants.STATUS_WARNING))
-									.as("sites_" + Constants.STATUS_WARNING),
-							DSL.count().filterWhere(sitesStats.field("validity", String.class).eq(Constants.STATUS_DANGER))
-									.as("sites_" + Constants.STATUS_DANGER),
-							score.as("score"),
-							DSL.when(score.eq(DSL.val(BigDecimal.valueOf(100))), Constants.STATUS_SUCCESS)
-									.when(score.ge(DSL.val(BigDecimal.valueOf(67))), Constants.STATUS_WARNING)
-									.otherwise(Constants.STATUS_DANGER).as("validity"))
-				.from(sitesStats)
-				.join(DEPARTMENTS).on(DEPARTMENTS.DEPT_PK.eq(sitesStats.field(SITES.SITE_DEPT_FK)))
-				.where(departmentsSelection)
-				.groupBy(DEPARTMENTS.DEPT_PK, sitesStats.field(CERTIFICATES.CERT_PK));
 	}
 
 	public static final Field<Integer> TRAINING_REGISTERED = DSL.count(TRAININGS_EMPLOYEES.TREM_PK).as("registered");

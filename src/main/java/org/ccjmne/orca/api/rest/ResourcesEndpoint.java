@@ -109,7 +109,7 @@ public class ResourcesEndpoint {
 				.where(TRAININGS_EMPLOYEES.TREM_EMPL_FK
 						.in(Constants.select(	EMPLOYEES.EMPL_PK,
 												this.restrictedResourcesAccess
-														.selectEmployeesByTags(empl_pk, site_pk, trng_pk, dateStr, ResourcesHelper.getTagsFromUri(uriInfo)))))
+														.selectEmployees(empl_pk, site_pk, trng_pk, dateStr, ResourcesHelper.getTagsFromUri(uriInfo)))))
 				.groupBy(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS.TRNG_DATE)
 				.fetchGroups(TRAININGS_EMPLOYEES.TREM_EMPL_FK);
 	}
@@ -137,7 +137,7 @@ public class ResourcesEndpoint {
 	 * @param uriInfo
 	 *            Passed to {@link ResourcesHelper#getTagsFromUri(UriInfo)} in
 	 *            order to extract a map of tag as filters for
-	 *            {@link RestrictedResourcesAccess#selectSitesByTags(String, Map)}
+	 *            {@link RestrictedResourcesAccess#selectSites(String, Map)}
 	 */
 	@GET
 	@Path("sites")
@@ -321,7 +321,7 @@ public class ResourcesEndpoint {
 														final String fields,
 														final Map<Integer, List<String>> tagFilters) {
 		try (final SelectQuery<? extends Record> query = this.restrictedResourcesAccess
-				.selectEmployeesByTags(empl_pk, site_pk, trng_pk, dateStr, tagFilters)) {
+				.selectEmployees(empl_pk, site_pk, trng_pk, dateStr, tagFilters)) {
 			if (Constants.FIELDS_ALL.equals(fields)) {
 				query.addSelect(EMPLOYEES.fields());
 				query.addSelect(SITES_EMPLOYEES.fields());
@@ -371,7 +371,7 @@ public class ResourcesEndpoint {
 													final String dateStr,
 													final boolean unlisted,
 													final Map<Integer, List<String>> tagFilters) {
-		try (final SelectQuery<Record> selectSites = this.restrictedResourcesAccess.selectSitesByTags(site_pk, tagFilters)) {
+		try (final SelectQuery<Record> selectSites = this.restrictedResourcesAccess.selectSites(site_pk, tagFilters)) {
 			selectSites.addSelect(SITES.fields());
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));
@@ -422,7 +422,7 @@ public class ResourcesEndpoint {
 												final boolean unlisted,
 												final Integer tags_pk,
 												final Map<Integer, List<String>> tagFilters) {
-		try (final SelectQuery<Record> selectSites = this.restrictedResourcesAccess.selectSitesByTags(null, tagFilters)) {
+		try (final SelectQuery<Record> selectSites = this.restrictedResourcesAccess.selectSites(null, tagFilters)) {
 			selectSites.addSelect(SITES.fields());
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));

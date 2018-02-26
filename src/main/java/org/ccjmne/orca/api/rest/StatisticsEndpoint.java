@@ -4,7 +4,6 @@ import static org.ccjmne.orca.api.utils.Constants.STATUS_DANGER;
 import static org.ccjmne.orca.api.utils.Constants.STATUS_SUCCESS;
 import static org.ccjmne.orca.api.utils.Constants.STATUS_WARNING;
 import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
-import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
@@ -129,74 +128,6 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
-	@Path("departments/{dept_pk}")
-	@Deprecated
-	public Map<Integer, ? extends Record> getDepartmentStats(
-																@PathParam("dept_pk") final Integer dept_pk,
-																@QueryParam("date") final String dateStr) {
-		return this.ctx.selectQuery(StatisticsHelper
-				.selectDepartmentsStats(
-										dateStr,
-										TRAININGS_EMPLOYEES.TREM_EMPL_FK
-												.in(Constants.select(	EMPLOYEES.EMPL_PK,
-																		this.restrictedResourcesAccess.selectEmployees(	null, null, dept_pk, null,
-																														dateStr))),
-										SITES_EMPLOYEES.SIEM_SITE_FK
-												.in(Constants.select(SITES.SITE_PK, this.restrictedResourcesAccess.selectSites(null, dept_pk))),
-										DEPARTMENTS.DEPT_PK
-												.in(Constants.select(DEPARTMENTS.DEPT_PK, this.restrictedResourcesAccess.selectDepartments(dept_pk)))))
-				.fetchMap(CERTIFICATES.CERT_PK);
-	}
-
-	@GET
-	@Path("departments/{dept_pk}/history")
-	@Deprecated
-	public Map<Object, Object> getDepartmentStatsHistory(
-															@PathParam("dept_pk") final Integer dept_pk,
-															@QueryParam("from") final String from,
-															@QueryParam("to") final String to,
-															@QueryParam("interval") final Integer interval)
-			throws ParseException {
-		return StatisticsEndpoint.computeDates(from, to, interval).stream()
-				.map(date -> Collections.singletonMap(date, getDepartmentStats(dept_pk, date.toString())))
-				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
-	}
-
-	@GET
-	@Path("departments")
-	@Deprecated
-	public Map<Integer, Map<Integer, Object>> getDepartmentsStats(@QueryParam("date") final String dateStr) {
-		final Table<? extends Record> departmentsStats = StatisticsHelper
-				.selectDepartmentsStats(
-										dateStr,
-										TRAININGS_EMPLOYEES.TREM_EMPL_FK
-												.in(Constants.select(	EMPLOYEES.EMPL_PK,
-																		this.restrictedResourcesAccess.selectEmployees(null, null, null, null, dateStr))),
-										SITES_EMPLOYEES.SIEM_SITE_FK
-												.in(Constants.select(SITES.SITE_PK, this.restrictedResourcesAccess.selectSites(null, null))),
-										DEPARTMENTS.DEPT_PK.in(Constants.select(DEPARTMENTS.DEPT_PK, this.restrictedResourcesAccess.selectDepartments(null))))
-				.asTable();
-
-		return this.ctx.select(
-								departmentsStats.field(DEPARTMENTS.DEPT_PK),
-								ResourcesHelper.arrayAgg(departmentsStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
-								ResourcesHelper.arrayAgg(departmentsStats.field(STATUS_SUCCESS)),
-								ResourcesHelper.arrayAgg(departmentsStats.field(STATUS_WARNING)),
-								ResourcesHelper.arrayAgg(departmentsStats.field(STATUS_DANGER)),
-								ResourcesHelper.arrayAgg(departmentsStats.field("sites_" + STATUS_SUCCESS)),
-								ResourcesHelper.arrayAgg(departmentsStats.field("sites_" + STATUS_WARNING)),
-								ResourcesHelper.arrayAgg(departmentsStats.field("sites_" + STATUS_DANGER)),
-								ResourcesHelper.arrayAgg(departmentsStats.field("score")),
-								ResourcesHelper.arrayAgg(departmentsStats.field("validity")))
-				.from(departmentsStats)
-				.groupBy(departmentsStats.field(DEPARTMENTS.DEPT_PK))
-				.fetchMap(
-							departmentsStats.field(DEPARTMENTS.DEPT_PK),
-							ResourcesHelper.getZipMapper(	"cert_pk", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "sites_" + STATUS_SUCCESS,
-															"sites_" + STATUS_WARNING, "sites_" + STATUS_DANGER, "score", "validity"));
-	}
-
-	@GET
 	@Path("sites-groups")
 	public Object getSitesGroupsStats(@QueryParam("group-by") final Integer tags_pk, @QueryParam("date") final String dateStr, @Context final UriInfo uriInfo) {
 		return getSitesGroupsStatsImpl(tags_pk, dateStr, ResourcesHelper.getTagsFromUri(uriInfo));
@@ -250,10 +181,10 @@ public class StatisticsEndpoint {
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
 												.in(Constants.select(	EMPLOYEES.EMPL_PK,
-																		this.restrictedResourcesAccess.selectEmployeesByTags(	null, null, null, dateStr,
+																		this.restrictedResourcesAccess.selectEmployees(	null, null, null, dateStr,
 																																tagFilters))),
 										SITES_EMPLOYEES.SIEM_SITE_FK
-												.in(Constants.select(SITES.SITE_PK, this.restrictedResourcesAccess.selectSitesByTags(null, tagFilters))),
+												.in(Constants.select(SITES.SITE_PK, this.restrictedResourcesAccess.selectSites(null, tagFilters))),
 										tags_pk)
 				.asTable();
 
@@ -291,11 +222,11 @@ public class StatisticsEndpoint {
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
 											.in(Constants.select(	EMPLOYEES.EMPL_PK,
-																	this.restrictedResourcesAccess.selectEmployeesByTags(	null, site_pk, null, dateStr,
+																	this.restrictedResourcesAccess.selectEmployees(	null, site_pk, null, dateStr,
 																															Collections.emptyMap()))),
 									SITES_EMPLOYEES.SIEM_SITE_FK
 											.in(Constants.select(	SITES.SITE_PK,
-																	this.restrictedResourcesAccess.selectSitesByTags(site_pk, Collections.emptyMap())))))
+																	this.restrictedResourcesAccess.selectSites(site_pk, Collections.emptyMap())))))
 				.fetchMap(CERTIFICATES.CERT_PK);
 	}
 
@@ -337,11 +268,11 @@ public class StatisticsEndpoint {
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
 											.in(Constants.select(	EMPLOYEES.EMPL_PK,
-																	this.restrictedResourcesAccess.selectEmployeesByTags(	null, site_pk, null, dateStr,
+																	this.restrictedResourcesAccess.selectEmployees(	null, site_pk, null, dateStr,
 																															tagFilters))),
 									SITES_EMPLOYEES.SIEM_SITE_FK
 											.in(Constants.select(	SITES.SITE_PK,
-																	this.restrictedResourcesAccess.selectSitesByTags(site_pk, tagFilters))))
+																	this.restrictedResourcesAccess.selectSites(site_pk, tagFilters))))
 				.asTable();
 
 		return this.ctx.select(
@@ -367,7 +298,7 @@ public class StatisticsEndpoint {
 		return this.ctx.selectQuery(StatisticsHelper
 				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK
 						.in(Constants.select(	EMPLOYEES.EMPL_PK,
-												this.restrictedResourcesAccess.selectEmployeesByTags(empl_pk, null, null, dateStr, Collections.emptyMap())))))
+												this.restrictedResourcesAccess.selectEmployees(empl_pk, null, null, dateStr, Collections.emptyMap())))))
 				.fetchMap(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK);
 	}
 
@@ -386,7 +317,7 @@ public class StatisticsEndpoint {
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
 												.in(Constants.select(	EMPLOYEES.EMPL_PK,
 																		this.restrictedResourcesAccess
-																				.selectEmployeesByTags(	empl_pk, site_pk, trng_pk, dateStr,
+																				.selectEmployees(	empl_pk, site_pk, trng_pk, dateStr,
 																										ResourcesHelper.getTagsFromUri(uriInfo)))))
 				.asTable();
 
