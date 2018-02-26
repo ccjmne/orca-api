@@ -78,53 +78,12 @@ public class ResourcesEndpoint {
 	public List<Map<String, Object>> listEmployees(
 													@QueryParam("employee") final String empl_pk,
 													@QueryParam("site") final String site_pk,
-													@QueryParam("department") final Integer dept_pk,
 													@QueryParam("training") final Integer trng_pk,
 													@QueryParam("date") final String dateStr,
-													@QueryParam("fields") final String fields) {
-		try (final SelectQuery<? extends Record> query = this.restrictedResourcesAccess.selectEmployeesByTags(empl_pk, site_pk, dept_pk, trng_pk, dateStr)) {
-			if (Constants.FIELDS_ALL.equals(fields)) {
-				query.addSelect(EMPLOYEES.fields());
-				query.addSelect(SITES_EMPLOYEES.fields());
-			} else {
-				query.addSelect(
-								EMPLOYEES.EMPL_PK,
-								EMPLOYEES.EMPL_FIRSTNAME,
-								EMPLOYEES.EMPL_SURNAME,
-								EMPLOYEES.EMPL_GENDER,
-								EMPLOYEES.EMPL_PERMANENT,
-								SITES_EMPLOYEES.SIEM_SITE_FK);
-			}
-
-			if (trng_pk != null) {
-				query.addSelect(TRAININGS_EMPLOYEES.fields());
-			}
-
-			final List<Field<?>> selected = new ArrayList<>(query.getSelect());
-			query.addSelect(ResourcesHelper.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_CERT_FK),
-							ResourcesHelper.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_DATE),
-							ResourcesHelper.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_REASON));
-			query.addJoin(EMPLOYEES_VOIDINGS, JoinType.LEFT_OUTER_JOIN, EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(EMPLOYEES.EMPL_PK));
-			query.addGroupBy(selected);
-
-			return this.ctx.fetch(query).map(new RecordMapper<Record, Map<String, Object>>() {
-
-				private final RecordMapper<Record, Map<Integer, Object>> zipMapper = ResourcesHelper
-						.getZipMapper(EMPLOYEES_VOIDINGS.EMVO_CERT_FK, EMPLOYEES_VOIDINGS.EMVO_DATE, EMPLOYEES_VOIDINGS.EMVO_REASON);
-
-				@Override
-				public Map<String, Object> map(final Record record) {
-					final Map<String, Object> res = new HashMap<>();
-					selected.forEach(field -> res.put(field.getName(), record.get(field)));
-					final Map<Integer, Object> map = this.zipMapper.map(record);
-					if (!map.isEmpty()) {
-						res.put("voidings", map);
-					}
-
-					return res;
-				}
-			});
-		}
+													@QueryParam("fields") final String fields,
+													@Context final UriInfo uriInfo) {
+		final Map<Integer, List<String>> tagFilters = ResourcesHelper.getTagsFromUri(uriInfo);
+		return listEmployeesImpl(empl_pk, site_pk, trng_pk, dateStr, fields, tagFilters);
 	}
 
 	/**
@@ -138,9 +97,9 @@ public class ResourcesEndpoint {
 	public Map<String, Result<Record>> listEmployeesTrainings(
 																@QueryParam("employee") final String empl_pk,
 																@QueryParam("site") final String site_pk,
-																@QueryParam("department") final Integer dept_pk,
 																@QueryParam("training") final Integer trng_pk,
-																@QueryParam("date") final String dateStr) {
+																@QueryParam("date") final String dateStr,
+																@Context final UriInfo uriInfo) {
 		return this.ctx
 				.select(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS.TRNG_DATE)
 				.select(DSL.arrayAgg(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK).as("certificates"))
@@ -149,7 +108,8 @@ public class ResourcesEndpoint {
 				.join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGS.TRNG_TRTY_FK))
 				.where(TRAININGS_EMPLOYEES.TREM_EMPL_FK
 						.in(Constants.select(	EMPLOYEES.EMPL_PK,
-												this.restrictedResourcesAccess.selectEmployeesByTags(empl_pk, site_pk, dept_pk, trng_pk, dateStr))))
+												this.restrictedResourcesAccess
+														.selectEmployeesByTags(empl_pk, site_pk, trng_pk, dateStr, ResourcesHelper.getTagsFromUri(uriInfo)))))
 				.groupBy(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS.TRNG_DATE)
 				.fetchGroups(TRAININGS_EMPLOYEES.TREM_EMPL_FK);
 	}
@@ -158,7 +118,7 @@ public class ResourcesEndpoint {
 	@Path("employees/{empl_pk}")
 	public Map<String, Object> lookupEmployee(@PathParam("empl_pk") final String empl_pk, @QueryParam("date") final String dateStr) {
 		try {
-			return listEmployees(empl_pk, null, null, null, dateStr, Constants.FIELDS_ALL).get(0);
+			return listEmployeesImpl(empl_pk, null, null, dateStr, Constants.FIELDS_ALL, Collections.emptyMap()).get(0);
 		} catch (final IndexOutOfBoundsException e) {
 			throw new NotFoundException();
 		}
@@ -250,10 +210,9 @@ public class ResourcesEndpoint {
 		}
 	}
 
-	// TODO: REWRITE EVERYTHING BELOW
-
 	@GET
 	@Path("trainings")
+	// TODO: rewrite
 	public Result<Record> listTrainings(
 										@QueryParam("employee") final String empl_pk,
 										@QueryParam("type") final List<Integer> types,
@@ -319,6 +278,7 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("trainings/{trng_pk}")
+	// TODO: rewrite
 	public Record lookupTraining(@PathParam("trng_pk") final Integer trng_pk) {
 		if (!this.restrictions.canAccessTrainings()) {
 			throw new ForbiddenException();
@@ -353,12 +313,65 @@ public class ResourcesEndpoint {
 		return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_PK.eq(Constants.selectUpdate(dateStr))).fetchAny();
 	}
 
+	private List<Map<String, Object>> listEmployeesImpl(
+														final String empl_pk,
+														final String site_pk,
+														final Integer trng_pk,
+														final String dateStr,
+														final String fields,
+														final Map<Integer, List<String>> tagFilters) {
+		try (final SelectQuery<? extends Record> query = this.restrictedResourcesAccess
+				.selectEmployeesByTags(empl_pk, site_pk, trng_pk, dateStr, tagFilters)) {
+			if (Constants.FIELDS_ALL.equals(fields)) {
+				query.addSelect(EMPLOYEES.fields());
+				query.addSelect(SITES_EMPLOYEES.fields());
+			} else {
+				query.addSelect(
+								EMPLOYEES.EMPL_PK,
+								EMPLOYEES.EMPL_FIRSTNAME,
+								EMPLOYEES.EMPL_SURNAME,
+								EMPLOYEES.EMPL_GENDER,
+								EMPLOYEES.EMPL_PERMANENT,
+								SITES_EMPLOYEES.SIEM_SITE_FK);
+			}
+
+			if (trng_pk != null) {
+				query.addSelect(TRAININGS_EMPLOYEES.fields());
+			}
+
+			final List<Field<?>> selected = new ArrayList<>(query.getSelect());
+			query.addSelect(ResourcesHelper.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_CERT_FK),
+							ResourcesHelper.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_DATE),
+							ResourcesHelper.arrayAgg(EMPLOYEES_VOIDINGS.EMVO_REASON));
+			query.addJoin(EMPLOYEES_VOIDINGS, JoinType.LEFT_OUTER_JOIN, EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(EMPLOYEES.EMPL_PK));
+			query.addGroupBy(selected);
+
+			return this.ctx.fetch(query).map(new RecordMapper<Record, Map<String, Object>>() {
+
+				private final RecordMapper<Record, Map<Integer, Object>> zipMapper = ResourcesHelper
+						.getZipMapper(EMPLOYEES_VOIDINGS.EMVO_CERT_FK, EMPLOYEES_VOIDINGS.EMVO_DATE, EMPLOYEES_VOIDINGS.EMVO_REASON);
+
+				@Override
+				public Map<String, Object> map(final Record record) {
+					final Map<String, Object> res = new HashMap<>();
+					selected.forEach(field -> res.put(field.getName(), record.get(field)));
+					final Map<Integer, Object> map = this.zipMapper.map(record);
+					if (!map.isEmpty()) {
+						res.put("voidings", map);
+					}
+
+					return res;
+				}
+			});
+		}
+	}
+
 	private List<Map<String, Object>> listSitesImpl(
 													final String site_pk,
 													final String dateStr,
 													final boolean unlisted,
-													final Map<Integer, List<String>> filters) {
-		try (final SelectQuery<Record> selectSites = this.restrictedResourcesAccess.selectSitesByTags(site_pk, filters)) {
+													final Map<Integer, List<String>> tagFilters) {
+		try (final SelectQuery<Record> selectSites = this.restrictedResourcesAccess.selectSitesByTags(site_pk, tagFilters)) {
 			selectSites.addSelect(SITES.fields());
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));
@@ -404,8 +417,12 @@ public class ResourcesEndpoint {
 		}
 	}
 
-	private Result<Record> listSitesGroupsImpl(final String dateStr, final boolean unlisted, final Integer tags_pk, final Map<Integer, List<String>> asdf) {
-		try (final SelectQuery<Record> selectSites = this.restrictedResourcesAccess.selectSitesByTags(null, asdf)) {
+	private Result<Record> listSitesGroupsImpl(
+												final String dateStr,
+												final boolean unlisted,
+												final Integer tags_pk,
+												final Map<Integer, List<String>> tagFilters) {
+		try (final SelectQuery<Record> selectSites = this.restrictedResourcesAccess.selectSitesByTags(null, tagFilters)) {
 			selectSites.addSelect(SITES.fields());
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("permanent"));
