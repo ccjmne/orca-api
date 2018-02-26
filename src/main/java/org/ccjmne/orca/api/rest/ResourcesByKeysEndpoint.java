@@ -44,11 +44,11 @@ public class ResourcesByKeysEndpoint {
 	public Map<String, Map<String, Object>> listEmployees(
 															@QueryParam("employee") final String empl_pk,
 															@QueryParam("site") final String site_pk,
-															@QueryParam("department") final Integer dept_pk,
 															@QueryParam("training") final Integer trng_pk,
 															@QueryParam("date") final String dateStr,
-															@QueryParam("fields") final String fields) {
-		return this.resources.listEmployees(empl_pk, site_pk, dept_pk, trng_pk, dateStr, fields).stream()
+															@QueryParam("fields") final String fields,
+															@Context final UriInfo uriInfo) {
+		return this.resources.listEmployees(empl_pk, site_pk, trng_pk, dateStr, fields, uriInfo).stream()
 				.collect(Collectors.toMap(record -> String.valueOf(record.get(EMPLOYEES.EMPL_PK.getName())), record -> record));
 	}
 
