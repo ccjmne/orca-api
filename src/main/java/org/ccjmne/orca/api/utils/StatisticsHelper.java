@@ -5,6 +5,7 @@ import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_VOIDINGS;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
@@ -14,10 +15,13 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import java.math.BigDecimal;
 import java.sql.Date;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Condition;
 import org.jooq.Field;
+import org.jooq.JoinType;
 import org.jooq.Record;
 import org.jooq.Select;
+import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.types.DayToSecond;
@@ -164,10 +168,76 @@ public class StatisticsHelper {
 	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.<br />
 	 * The <code>sitesSelection</code> condition should be on
 	 * <code>SITES_EMPLOYEES.SIEM_SITE_FK</code>.<br />
+	 * The <code>tagsSelection</code> condition should be on <code>
+	 * SITES_TAGS.SITA_TAGS_FK</code>
+	 */
+	@SuppressWarnings("null")
+	public static Select<? extends Record> selectSitesGroupsStats(
+																	final String dateStr,
+																	final Condition employeesSelection,
+																	final Condition sitesSelection,
+																	final Integer tags_pk) {
+		final Table<? extends Record> sitesStats = StatisticsHelper
+				.selectSitesStats(dateStr, employeesSelection, sitesSelection)
+				.asTable();
+
+		final Field<@NonNull String> validityStatus = sitesStats.field("validity", String.class);
+		final Field<BigDecimal> score = DSL.round(DSL
+				.sum(DSL
+						.when(validityStatus.eq(Constants.STATUS_SUCCESS), DSL.val(1f))
+						.when(validityStatus.eq(Constants.STATUS_WARNING), DSL.val(2 / 3f))
+						.otherwise(DSL.val(0f)))
+				.mul(DSL.val(100)).div(DSL.count()));
+
+		try (final SelectQuery<Record> q = DSL.select().getQuery()) {
+			q.addSelect(sitesStats.field(CERTIFICATES.CERT_PK));
+			q.addSelect(
+						DSL.sum(sitesStats.field(Constants.STATUS_SUCCESS, Integer.class)).as(Constants.STATUS_SUCCESS),
+						DSL.sum(sitesStats.field(Constants.STATUS_WARNING, Integer.class)).as(Constants.STATUS_WARNING),
+						DSL.sum(sitesStats.field(Constants.STATUS_DANGER, Integer.class)).as(Constants.STATUS_DANGER),
+						DSL.count().filterWhere(validityStatus.eq(Constants.STATUS_SUCCESS))
+								.as("sites_" + Constants.STATUS_SUCCESS),
+						DSL.count().filterWhere(validityStatus.eq(Constants.STATUS_WARNING))
+								.as("sites_" + Constants.STATUS_WARNING),
+						DSL.count().filterWhere(validityStatus.eq(Constants.STATUS_DANGER))
+								.as("sites_" + Constants.STATUS_DANGER),
+						score.as("score"),
+						DSL.when(score.eq(DSL.val(BigDecimal.valueOf(100))), Constants.STATUS_SUCCESS)
+								.when(score.ge(DSL.val(BigDecimal.valueOf(67))), Constants.STATUS_WARNING)
+								.otherwise(Constants.STATUS_DANGER).as("validity"));
+
+			q.addFrom(sitesStats);
+
+			if (tags_pk != null) {
+				// Non-tagged sites appear under TAGS_VALUE_NONE
+				q.addSelect(ResourcesHelper.coalesce(SITES_TAGS.SITA_VALUE, Constants.TAGS_VALUE_NONE));
+				q.addJoin(
+							SITES_TAGS,
+							JoinType.LEFT_OUTER_JOIN,
+							SITES_TAGS.SITA_SITE_FK.eq(sitesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK))
+									.and(SITES_TAGS.SITA_TAGS_FK.eq(tags_pk)));
+			} else {
+				// All sites marked as TAGS_VALUE_UNIVERSAL
+				q.addSelect(DSL.val(Constants.TAGS_VALUE_UNIVERSAL).as(SITES_TAGS.SITA_VALUE));
+				q.addJoin(SITES_TAGS, JoinType.LEFT_OUTER_JOIN, DSL.condition(Boolean.FALSE));
+			}
+
+			q.addGroupBy(SITES_TAGS.SITA_VALUE, sitesStats.field(CERTIFICATES.CERT_PK));
+			return q;
+		}
+	}
+
+	/**
+	 * The <code>employeesSelection</code> condition should be on
+	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.<br />
+	 * The <code>sitesSelection</code> condition should be on
+	 * <code>SITES_EMPLOYEES.SIEM_SITE_FK</code>.<br />
 	 * The <code>departmentsSelection</code> condition should be on
 	 * <code>DEPARTMENTS.DEPT_PK</code>.
 	 */
 	@SuppressWarnings("null")
+	@Deprecated
+	// TODO: remove
 	public static Select<? extends Record> selectDepartmentsStats(
 																	final String dateStr,
 																	final Condition employeesSelection,

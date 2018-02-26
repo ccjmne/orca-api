@@ -8,11 +8,11 @@ import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
-import java.math.BigDecimal;
 import java.sql.Date;
 import java.text.ParseException;
 import java.time.LocalDate;
@@ -47,8 +47,6 @@ import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
 import org.jooq.DSLContext;
 import org.jooq.Record;
-import org.jooq.Record10;
-import org.jooq.Record8;
 import org.jooq.Table;
 
 import com.google.common.base.Function;
@@ -133,9 +131,9 @@ public class StatisticsEndpoint {
 	@GET
 	@Path("departments/{dept_pk}")
 	@Deprecated
-	public Map<Integer, Record10<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal, String>> getDepartmentStats(
-																																							@PathParam("dept_pk") final Integer dept_pk,
-																																							@QueryParam("date") final String dateStr) {
+	public Map<Integer, ? extends Record> getDepartmentStats(
+																@PathParam("dept_pk") final Integer dept_pk,
+																@QueryParam("date") final String dateStr) {
 		return this.ctx.selectQuery(StatisticsHelper
 				.selectDepartmentsStats(
 										dateStr,
@@ -168,7 +166,7 @@ public class StatisticsEndpoint {
 	@Path("departments")
 	@Deprecated
 	public Map<Integer, Map<Integer, Object>> getDepartmentsStats(@QueryParam("date") final String dateStr) {
-		final Table<Record10<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, Integer, Integer, Integer, BigDecimal, String>> departmentsStats = StatisticsHelper
+		final Table<? extends Record> departmentsStats = StatisticsHelper
 				.selectDepartmentsStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
@@ -194,6 +192,86 @@ public class StatisticsEndpoint {
 				.groupBy(departmentsStats.field(DEPARTMENTS.DEPT_PK))
 				.fetchMap(
 							departmentsStats.field(DEPARTMENTS.DEPT_PK),
+							ResourcesHelper.getZipMapper(	"cert_pk", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "sites_" + STATUS_SUCCESS,
+															"sites_" + STATUS_WARNING, "sites_" + STATUS_DANGER, "score", "validity"));
+	}
+
+	@GET
+	@Path("sites-groups")
+	public Object getSitesGroupsStats(@QueryParam("group-by") final Integer tags_pk, @QueryParam("date") final String dateStr, @Context final UriInfo uriInfo) {
+		return getSitesGroupsStatsImpl(tags_pk, dateStr, ResourcesHelper.getTagsFromUri(uriInfo));
+	}
+
+	/**
+	 * Delegates to
+	 * {@link StatisticsEndpoint#getSitesGroupsStats(Integer, String, UriInfo)}.<br
+	 * />
+	 * With this method, the <code>tags_pk</code> argument comes directly from
+	 * the query's <strong>path</strong> instead of its parameters.
+	 *
+	 * @param tags_pk
+	 *            The tag to group sites by.
+	 */
+	@GET
+	@Path("sites-groups/{group-by}")
+	public Object getSitesGroupsStatsBy(
+										@PathParam("group-by") final Integer tags_pk,
+										@QueryParam("date") final String dateStr,
+										@Context final UriInfo uriInfo) {
+		return getSitesGroupsStatsImpl(tags_pk, dateStr, ResourcesHelper.getTagsFromUri(uriInfo));
+	}
+
+	@GET
+	@Path("sites-groups/{tags_pk}/{sita_value}")
+	public Map<Object, Object> getSitesGroupStats(
+													@PathParam("tags_pk") final Integer tags_pk,
+													@PathParam("sita_value") final String sita_value,
+													@QueryParam("date") final String dateStr) {
+		return getSitesGroupsStatsImpl(tags_pk, dateStr, Collections.singletonMap(tags_pk, Collections.singletonList(sita_value))).get(sita_value);
+	}
+
+	@GET
+	@Path("sites-groups/{tags_pk}/{sita_value}/history")
+	public Map<Object, Object> getSitesGroupStatsHistory(
+															@PathParam("tags_pk") final Integer tags_pk,
+															@PathParam("sita_value") final String sita_value,
+															@QueryParam("from") final String from,
+															@QueryParam("to") final String to,
+															@QueryParam("interval") final Integer interval)
+			throws ParseException {
+		return StatisticsEndpoint.computeDates(from, to, interval).stream()
+				.map(date -> Collections.singletonMap(date, getSitesGroupStats(tags_pk, sita_value, date.toString())))
+				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
+	}
+
+	private Map<String, Map<Object, Object>> getSitesGroupsStatsImpl(final Integer tags_pk, final String dateStr, final Map<Integer, List<String>> tagFilters) {
+		final Table<? extends Record> sitesGroupsStats = StatisticsHelper
+				.selectSitesGroupsStats(
+										dateStr,
+										TRAININGS_EMPLOYEES.TREM_EMPL_FK
+												.in(Constants.select(	EMPLOYEES.EMPL_PK,
+																		this.restrictedResourcesAccess.selectEmployeesByTags(	null, null, null, dateStr,
+																																tagFilters))),
+										SITES_EMPLOYEES.SIEM_SITE_FK
+												.in(Constants.select(SITES.SITE_PK, this.restrictedResourcesAccess.selectSitesByTags(null, tagFilters))),
+										tags_pk)
+				.asTable();
+
+		return this.ctx.select(
+								sitesGroupsStats.field(SITES_TAGS.SITA_VALUE),
+								ResourcesHelper.arrayAgg(sitesGroupsStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
+								ResourcesHelper.arrayAgg(sitesGroupsStats.field(STATUS_SUCCESS)),
+								ResourcesHelper.arrayAgg(sitesGroupsStats.field(STATUS_WARNING)),
+								ResourcesHelper.arrayAgg(sitesGroupsStats.field(STATUS_DANGER)),
+								ResourcesHelper.arrayAgg(sitesGroupsStats.field("sites_" + STATUS_SUCCESS)),
+								ResourcesHelper.arrayAgg(sitesGroupsStats.field("sites_" + STATUS_WARNING)),
+								ResourcesHelper.arrayAgg(sitesGroupsStats.field("sites_" + STATUS_DANGER)),
+								ResourcesHelper.arrayAgg(sitesGroupsStats.field("score")),
+								ResourcesHelper.arrayAgg(sitesGroupsStats.field("validity")))
+				.from(sitesGroupsStats)
+				.groupBy(sitesGroupsStats.field(SITES_TAGS.SITA_VALUE))
+				.fetchMap(
+							sitesGroupsStats.field(SITES_TAGS.SITA_VALUE),
 							ResourcesHelper.getZipMapper(	"cert_pk", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "sites_" + STATUS_SUCCESS,
 															"sites_" + STATUS_WARNING, "sites_" + STATUS_DANGER, "score", "validity"));
 	}
@@ -254,7 +332,7 @@ public class StatisticsEndpoint {
 															@QueryParam("date") final String dateStr,
 															@Context final UriInfo uriInfo) {
 		final Map<Integer, List<String>> tagFilters = ResourcesHelper.getTagsFromUri(uriInfo);
-		final Table<Record8<Integer, String, Integer, Integer, Integer, Integer, Integer, String>> sitesStats = StatisticsHelper
+		final Table<? extends Record> sitesStats = StatisticsHelper
 				.selectSitesStats(
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK

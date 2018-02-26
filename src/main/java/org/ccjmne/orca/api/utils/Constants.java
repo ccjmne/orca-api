@@ -86,6 +86,7 @@ public class Constants {
 	// ----
 
 	// ---- SUBQUERIES AND FIELDS
+	// TODO: move to new static class?
 	public static Field<?>[] USERS_FIELDS = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK, USERS.USER_DEPT_FK };
 	public static final Field<Integer> CURRENT_UPDATE = Constants.selectUpdate(null);
 

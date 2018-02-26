@@ -148,7 +148,8 @@ public class ResourcesEndpoint {
 				.join(TRAININGS).on(TRAININGS.TRNG_PK.eq(TRAININGS_EMPLOYEES.TREM_TRNG_FK))
 				.join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGS.TRNG_TRTY_FK))
 				.where(TRAININGS_EMPLOYEES.TREM_EMPL_FK
-						.in(Constants.select(EMPLOYEES.EMPL_PK, this.restrictedResourcesAccess.selectEmployeesByTags(empl_pk, site_pk, dept_pk, trng_pk, dateStr))))
+						.in(Constants.select(	EMPLOYEES.EMPL_PK,
+												this.restrictedResourcesAccess.selectEmployeesByTags(empl_pk, site_pk, dept_pk, trng_pk, dateStr))))
 				.groupBy(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS.TRNG_DATE)
 				.fetchGroups(TRAININGS_EMPLOYEES.TREM_EMPL_FK);
 	}
@@ -208,16 +209,16 @@ public class ResourcesEndpoint {
 	@GET
 	@Path("sites-groups")
 	public Result<Record> listSitesGroups(
+											@QueryParam("group-by") final Integer tags_pk,
 											@QueryParam("date") final String dateStr,
 											@QueryParam("unlisted") final boolean unlisted,
-											@QueryParam("group-by") final Integer tags_pk,
 											@Context final UriInfo uriInfo) {
 		return listSitesGroupsImpl(dateStr, unlisted, tags_pk, ResourcesHelper.getTagsFromUri(uriInfo));
 	}
 
 	/**
 	 * Delegates to
-	 * {@link ResourcesEndpoint#listSitesGroups(String, boolean, Integer, UriInfo)}.<br
+	 * {@link ResourcesEndpoint#listSitesGroups(Integer, String, boolean, UriInfo)}.<br
 	 * />
 	 * With this method, the <code>tags_pk</code> argument comes directly from
 	 * the query's <strong>path</strong> instead of its parameters.
@@ -227,12 +228,12 @@ public class ResourcesEndpoint {
 	 */
 	@GET
 	@Path("sites-groups/{group-by}")
-	public Object listSitesGroups(
+	public Object listSitesGroupsBy(
 									@PathParam("group-by") final Integer tags_pk,
 									@QueryParam("date") final String dateStr,
 									@QueryParam("unlisted") final boolean unlisted,
 									@Context final UriInfo uriInfo) {
-		return this.listSitesGroups(dateStr, unlisted, tags_pk, uriInfo);
+		return listSitesGroups(tags_pk, dateStr, unlisted, uriInfo);
 	}
 
 	@GET

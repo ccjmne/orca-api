@@ -70,7 +70,7 @@ public class ResourcesByKeysEndpoint {
 												@QueryParam("unlisted") final boolean unlisted,
 												@QueryParam("group-by") final Integer tags_pk,
 												@Context final UriInfo uriInfo) {
-		return this.resources.listSitesGroups(dateStr, unlisted, tags_pk, uriInfo).intoMap(SITES_TAGS.SITA_VALUE);
+		return this.resources.listSitesGroups(tags_pk, dateStr, unlisted, uriInfo).intoMap(SITES_TAGS.SITA_VALUE);
 	}
 
 	@GET

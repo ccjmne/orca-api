@@ -240,6 +240,8 @@ public class RestrictedResourcesAccess {
 		return query;
 	}
 
+	@Deprecated
+	// TODO: remove
 	public SelectQuery<Record> selectDepartments(final Integer dept_pk) {
 		final SelectQuery<Record> query = DSL.select().getQuery();
 		query.addFrom(DEPARTMENTS);
