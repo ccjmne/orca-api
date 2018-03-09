@@ -5,7 +5,7 @@
 
 	<groupId>org.ccjmne.orca</groupId>
 	<artifactId>orca-api</artifactId>
-	<version>2.1.0</version>
+	<version>2.1.1-pdf-editor</version>
 	<packaging>war</packaging>
 	<name>Orca API</name>
 
@@ -184,12 +184,6 @@
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-multipart</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>com.github.jhonnymertz</groupId>
-			<artifactId>java-wkhtmltopdf-wrapper</artifactId>
-			<version>1.1.0-RELEASE</version>
 		</dependency>
 	</dependencies>
 
