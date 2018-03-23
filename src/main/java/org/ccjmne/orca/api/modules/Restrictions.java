@@ -37,6 +37,7 @@ public class Restrictions {
 	private final boolean manageSitesAndTags;
 	private final boolean manageCertificates;
 	private final boolean manageUsers;
+	private final boolean manageOwnAccount;
 	private final List<String> accessibleSites;
 	private final List<Integer> manageableTypes;
 	private final Integer accessibleDepartment;
@@ -52,13 +53,8 @@ public class Restrictions {
 
 	private Restrictions(final String user_id, final DSLContext ctx) {
 		this.ctx = ctx;
-		final Map<String, UsersRolesRecord> roles = ctx.selectFrom(USERS_ROLES)
-				.where(USERS_ROLES.USER_ID.eq(user_id)).fetchMap(USERS_ROLES.USRO_TYPE);
-		this.accessTrainings = roles.containsKey(Constants.ROLE_ACCESS)
-				&& Constants.ACCESS_LEVEL_TRAININGS.equals(roles.get(Constants.ROLE_ACCESS).getUsroLevel());
-		this.accessAllSites = roles.containsKey(Constants.ROLE_ACCESS)
-				&& (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(roles.get(Constants.ROLE_ACCESS).getUsroLevel()) <= 0);
-		final UsersRecord user = ctx.selectFrom(USERS).where(USERS.USER_ID.eq(user_id)).fetchOne();
+		final Map<String, UsersRolesRecord> roles = ctx.selectFrom(USERS_ROLES).where(USERS_ROLES.USER_ID.eq(user_id)).fetchMap(USERS_ROLES.USRO_TYPE);
+		this.manageOwnAccount = roles.containsKey(Constants.ROLE_USER);
 		if (roles.containsKey(Constants.ROLE_ADMIN)) {
 			this.manageEmployeeNotes = roles.get(Constants.ROLE_ADMIN).getUsroLevel().compareTo(Integer.valueOf(1)) >= 0;
 			this.manageSitesAndTags = roles.get(Constants.ROLE_ADMIN).getUsroLevel().compareTo(Integer.valueOf(2)) >= 0;
@@ -71,6 +67,12 @@ public class Restrictions {
 			this.manageUsers = false;
 		}
 
+		this.accessTrainings = roles.containsKey(Constants.ROLE_ACCESS)
+				&& Constants.ACCESS_LEVEL_TRAININGS.equals(roles.get(Constants.ROLE_ACCESS).getUsroLevel());
+		this.accessAllSites = roles.containsKey(Constants.ROLE_ACCESS)
+				&& (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(roles.get(Constants.ROLE_ACCESS).getUsroLevel()) <= 0);
+
+		final UsersRecord user = ctx.selectFrom(USERS).where(USERS.USER_ID.eq(user_id)).fetchOne();
 		this.accessibleDepartment = getAccessibleDepartment(user, roles.get(Constants.ROLE_ACCESS));
 		this.accessibleSites = listAccessibleSites(user, roles.get(Constants.ROLE_ACCESS));
 		this.manageableTypes = listManageableTypes(roles.get(Constants.ROLE_TRAINER));
@@ -205,6 +207,13 @@ public class Restrictions {
 	@JsonGetter
 	public boolean canManageClient() {
 		return this.manageUsers;
+	}
+
+	/**
+	 * If <code>true</code>, then the user can change its own ID and password.
+	 */
+	public boolean canManageOwnAccount() {
+		return this.manageOwnAccount;
 	}
 
 	/**
