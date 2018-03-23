@@ -13,6 +13,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -20,6 +21,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.DSLContext;
 import org.jooq.Record;
@@ -31,9 +33,11 @@ import org.jooq.impl.DSL;
 public class AccountEndpoint {
 
 	private final DSLContext ctx;
+	private final Restrictions restrictions;
 
 	@Inject
-	public AccountEndpoint(final DSLContext ctx) {
+	public AccountEndpoint(final DSLContext ctx, final Restrictions restrictions) {
+		this.restrictions = restrictions;
 		this.ctx = ctx;
 	}
 
@@ -57,8 +61,11 @@ public class AccountEndpoint {
 	@PUT
 	@Path("password")
 	@Consumes(MediaType.APPLICATION_JSON)
-	// TODO: Check if allowed by its Restrictions
 	public void updatePassword(@Context final HttpServletRequest request, final Map<String, String> passwords) {
+		if (!this.restrictions.canManageOwnAccount()) {
+			throw new ForbiddenException("This account cannot update its own password");
+		}
+
 		final String currentPassword = passwords.get("pwd_current");
 		final String newPassword = passwords.get("pwd_new");
 		if ((currentPassword == null) || currentPassword.isEmpty() || (newPassword == null) || newPassword.isEmpty()) {
@@ -73,8 +80,11 @@ public class AccountEndpoint {
 
 	@PUT
 	@Path("id/{new_id}")
-	// TODO: Check if allowed by its Restrictions
 	public void changeId(@Context final HttpServletRequest request, @PathParam("new_id") final String newId) {
+		if (!this.restrictions.canManageOwnAccount()) {
+			throw new ForbiddenException("This account cannot change its own ID");
+		}
+
 		UsersEndpoint.changeIdImpl(request.getRemoteUser(), newId, this.ctx);
 	}
 
