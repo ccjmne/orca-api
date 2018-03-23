@@ -46,13 +46,27 @@ public class DemoCommonResources {
 
 		ctx.insertInto(CONFIGS, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME, CONFIGS.CONF_DATA)
 				.values("pdf-site", "Tableau de Bord", mapper.writeValueAsString(ImmutableMap.<String, Object> builder()
-						.put("lines", Collections.singletonList(Collections.emptyList()))
 						.put("fileName", "{{site}} - {{config}}")
-						.put("dimensions", "A4")
-						.put("orientation", "Portrait")
-						.put("title", "Site de {{site}}")
-						.put("subtitle", "au {{date}}")
-						.put("bookmark", "Infos Sécurité")
+						.put("size", "a4")
+						.put("orientation", "landscape")
+						.put("pages", Collections.singletonList(ImmutableMap.<String, Object> builder()
+								.put("title", "Site de {{site}}")
+								.put("subtitle", "au {{date}}")
+								.put("bookmark", "Infos Sécurité")
+								.put("lines", Arrays.asList(
+															Collections.singletonList(ImmutableMap.<String, Object> builder()
+																	.put("type", "dashboard")
+																	.put("certificates", Arrays.asList(CERT_SST, CERT_FSST)).build()),
+															Arrays.asList(
+																			ImmutableMap.<String, Object> builder()
+																					.put("type", "cert")
+																					.put("cert", CERT_SST)
+																					.put("columns", Integer.valueOf(2)).build(),
+																			ImmutableMap.<String, Object> builder()
+																					.put("type", "cert")
+																					.put("cert", CERT_FSST)
+																					.put("columns", Integer.valueOf(1)).build())))
+								.build()))
 						.build()))
 				.execute();
 
