@@ -1,6 +1,5 @@
 package org.ccjmne.orca.api.rest;
 
-import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
@@ -57,38 +56,6 @@ public class UpdateEndpoint {
 		this.ctx = ctx;
 	}
 
-	@POST
-	@Path("departments")
-	@Consumes(MediaType.APPLICATION_JSON)
-	// TODO: remove
-	@Deprecated
-	public Integer createDept(final Map<String, String> dept) {
-		final Integer dept_pk = new Integer(this.ctx.nextval(Sequences.DEPARTMENTS_DEPT_PK_SEQ).intValue());
-		updateDepartment(dept_pk, dept);
-		return dept_pk;
-	}
-
-	@PUT
-	@Path("departments/{dept_pk}")
-	@Consumes(MediaType.APPLICATION_JSON)
-	// TODO: remove
-	@Deprecated
-	public boolean updateDepartment(@PathParam("dept_pk") final Integer dept_pk, final Map<String, String> dept) {
-		if (this.ctx.fetchExists(DEPARTMENTS, DEPARTMENTS.DEPT_PK.eq(dept_pk))) {
-			this.ctx.update(DEPARTMENTS)
-					.set(DEPARTMENTS.DEPT_NAME, dept.get(DEPARTMENTS.DEPT_NAME.getName()))
-					.set(DEPARTMENTS.DEPT_ID, dept.get(DEPARTMENTS.DEPT_ID.getName()))
-					.set(DEPARTMENTS.DEPT_NOTES, dept.get(DEPARTMENTS.DEPT_NOTES.getName()))
-					.where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).execute();
-			return false;
-		}
-
-		this.ctx.insertInto(DEPARTMENTS, DEPARTMENTS.DEPT_PK, DEPARTMENTS.DEPT_NAME, DEPARTMENTS.DEPT_ID, DEPARTMENTS.DEPT_NOTES)
-				.values(dept_pk, dept.get(DEPARTMENTS.DEPT_NAME.getName()), dept.get(DEPARTMENTS.DEPT_ID.getName()), dept.get(DEPARTMENTS.DEPT_NOTES.getName()))
-				.execute();
-		return true;
-	}
-
 	@PUT
 	@Path("sites/{site_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -132,13 +99,6 @@ public class UpdateEndpoint {
 			}
 		});
 
-	@DELETE
-	@Path("departments/{dept_pk}")
-	// TODO: remove
-	@Deprecated
-	public boolean deleteDept(@PathParam("dept_pk") final Integer dept_pk) {
-		// Database CASCADEs the deletion of linked users, if any
-		return this.ctx.delete(DEPARTMENTS).where(DEPARTMENTS.DEPT_PK.eq(dept_pk)).execute() == 1;
 	}
 
 	@DELETE
