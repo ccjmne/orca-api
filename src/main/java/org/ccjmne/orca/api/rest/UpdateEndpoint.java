@@ -4,15 +4,18 @@ import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
 import static org.ccjmne.orca.jooq.classes.Tables.USERS;
 
 import java.text.ParseException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -31,6 +34,7 @@ import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.ccjmne.orca.jooq.classes.tables.records.SitesEmployeesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.SitesTagsRecord;
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep3;
 import org.jooq.TableField;
@@ -88,29 +92,45 @@ public class UpdateEndpoint {
 	@PUT
 	@Path("sites/{site_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
-	// TODO: accept tags (forbid "*" and "null" tag values)
-	public boolean updateSite(@PathParam("site_pk") final String site_pk, final Map<String, String> site) {
-		if (this.ctx.fetchExists(SITES, SITES.SITE_PK.eq(site_pk))) {
-			this.ctx.update(SITES)
-					.set(SITES.SITE_PK, site.getOrDefault(SITES.SITE_PK.getName(), site_pk))
-					.set(SITES.SITE_NAME, site.get(SITES.SITE_NAME.getName()))
-					.set(SITES.SITE_DEPT_FK, Integer.valueOf(site.get(SITES.SITE_DEPT_FK.getName())))
-					.set(SITES.SITE_NOTES, site.get(SITES.SITE_NOTES.getName()))
-					.set(SITES.SITE_ADDRESS, site.get(SITES.SITE_ADDRESS.getName()))
-					.where(SITES.SITE_PK.eq(site_pk)).execute();
-			return false;
-		}
+	@SuppressWarnings("unchecked")
+	public Boolean insertSite(@PathParam("site_pk") final String site_pk, final Map<String, Object> site) {
+		return this.ctx.transactionResult(config -> {
+			try (final DSLContext transactionCtx = DSL.using(config)) {
+				final boolean exists = transactionCtx.fetchExists(SITES, SITES.SITE_PK.eq(site_pk));
+				if (exists) {
+					transactionCtx.update(SITES)
+							.set(SITES.SITE_PK, (String) site.getOrDefault(SITES.SITE_PK.getName(), site_pk))
+							.set(SITES.SITE_NAME, (String) site.get(SITES.SITE_NAME.getName()))
+							// .set(SITES.SITE_DEPT_FK, Integer.valueOf((String)
+							// site.get(SITES.SITE_DEPT_FK.getName())))
+							.set(SITES.SITE_NOTES, (String) site.get(SITES.SITE_NOTES.getName()))
+							.set(SITES.SITE_ADDRESS, (String) site.get(SITES.SITE_ADDRESS.getName()))
+							.where(SITES.SITE_PK.eq(site_pk)).execute();
+				} else {
+					transactionCtx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES, SITES.SITE_ADDRESS)
+							.values(
+									site_pk,
+									(String) site.get(SITES.SITE_NAME.getName()),
+									Integer.valueOf((String) site.get(SITES.SITE_DEPT_FK.getName())),
+									(String) site.get(SITES.SITE_NOTES.getName()),
+									(String) site.get(SITES.SITE_ADDRESS.getName()))
+							.execute();
+				}
 
-		this.ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES, SITES.SITE_ADDRESS)
-				.values(
-						site_pk,
-						site.get(SITES.SITE_NAME.getName()),
-						Integer.valueOf(site.get(SITES.SITE_DEPT_FK.getName())),
-						site.get(SITES.SITE_NOTES.getName()),
-						site.get(SITES.SITE_ADDRESS.getName()))
-				.execute();
-		return true;
-	}
+				transactionCtx.deleteFrom(SITES_TAGS).where(SITES_TAGS.SITA_SITE_FK.eq(site_pk)).execute();
+				transactionCtx.batchInsert(((Map<String, Object>) site.getOrDefault("tags", Collections.emptyMap())).entrySet().stream()
+						.map(tag -> {
+							if (Constants.TAGS_VALUE_NONE.equals(tag.getValue()) || Constants.TAGS_VALUE_UNIVERSAL.equals(tag.getValue())) {
+								throw new IllegalArgumentException(String.format("Invalid tag value: '%s'", tag.getValue()));
+							}
+
+							final String tag_value = String.valueOf(tag.getValue());
+							final Integer tag_key = Integer.valueOf(tag.getKey());
+							return new SitesTagsRecord(site_pk, tag_key, tag_value);
+						}).collect(Collectors.toList())).execute();
+				return Boolean.valueOf(!exists);
+			}
+		});
 
 	@DELETE
 	@Path("departments/{dept_pk}")
@@ -125,9 +145,10 @@ public class UpdateEndpoint {
 	@Path("sites/{site_pk}")
 	public Boolean deleteSite(@PathParam("site_pk") final String site_pk) {
 		// Database CASCADEs the deletion of linked users, if any
+		// Database CASCADEs the deletion of its tags
+		// Set deleted entity employees' site to UNASSIGNED
 		return this.ctx.transactionResult(config -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
-
 				final boolean exists = transactionCtx.selectFrom(SITES).where(SITES.SITE_PK.equal(site_pk)).fetch().isNotEmpty();
 				if (exists) {
 					transactionCtx.update(SITES_EMPLOYEES)
