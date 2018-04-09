@@ -123,17 +123,7 @@ public class DemoDataSitesEmployees {
 									String.format(pk, Integer.valueOf(i)),
 									city,
 									city.replaceAll("[\\s']", "").toLowerCase() + "@orca-solution.com",
-									random(DEPARTMENTS, DEPARTMENTS.DEPT_PK, DEPARTMENTS.DEPT_PK.ne(Constants.UNASSIGNED_DEPARTMENT))));
-	}
-
-	@SuppressWarnings("unchecked")
-	private static Insert<?> addDepartments(final Insert<?> query, final int i, final String pk) {
-		return ((InsertValuesStep2<DepartmentsRecord, String, String>) (i == 1 ? query : addDepartments(query, i - 1, pk)))
-				.values(String.format(pk, Integer.valueOf(i)), String.format("Département %c", Integer.valueOf(('A' - 1) + i)));
-	}
-
-	private static <R> Field<R> random(final Table<?> table, final Field<R> field, final Condition... conditions) {
-		return DSL.select(field).from(table).where(conditions).orderBy(DSL.rand()).limit(1).asField();
+									Constants.UNASSIGNED_DEPARTMENT));
 	}
 
 	private static List<? extends Field<?>> asFields(final Object... values) {
