@@ -1,6 +1,5 @@
 package org.ccjmne.orca.api.demo;
 
-import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
@@ -17,16 +16,15 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.jooq.classes.tables.records.DepartmentsRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.EmployeesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.SitesRecord;
-import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Insert;
-import org.jooq.InsertValuesStep2;
 import org.jooq.InsertValuesStep4;
 import org.jooq.InsertValuesStep7;
+import org.jooq.Record1;
+import org.jooq.Row1;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 
@@ -40,17 +38,32 @@ public class DemoDataSitesEmployees {
 	private static final Integer DEPARTMENT_TAG = Integer.valueOf(1);
 	private static final Integer ERP_TAG = Integer.valueOf(2);
 
+	@SuppressWarnings("null")
 	public static void generate(final DSLContext ctx) {
-		addDepartments(ctx.insertInto(DEPARTMENTS, DEPARTMENTS.DEPT_ID, DEPARTMENTS.DEPT_NAME), 10, "DEPT%02d").execute();
 		addSites(ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_ADDRESS, SITES.SITE_DEPT_FK), 200, "SITE%03d").execute();
 
 		// Department tags
 		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE)
 				.values(DemoDataSitesEmployees.DEPARTMENT_TAG, "Département", "DEPT", Constants.TAGS_TYPE_STRING).execute();
+		final Row1<String>[] departmentsTags = "ABCDEF".chars()
+				.mapToObj(c -> String.format("Département %s", Character.valueOf((char) c)))
+				.map(DSL::row)
+				.toArray(Row1[]::new);
+		final Table<Record1<String>> tagsTable = DSL.values(departmentsTags).asTable();
+		final Field<String> tagField = tagsTable.field(0, String.class);
 		ctx.insertInto(SITES_TAGS, SITES_TAGS.SITA_SITE_FK, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE)
 				.select(DSL
-						.select(SITES.SITE_PK, DSL.val(DEPARTMENT_TAG), DEPARTMENTS.DEPT_NAME)
-						.from(SITES).join(DEPARTMENTS).on(DEPARTMENTS.DEPT_PK.eq(SITES.SITE_DEPT_FK)))
+						.select(DSL.field("site", String.class), DSL.val(DEPARTMENT_TAG), DSL.field("tag", String.class))
+						.from(DSL.select(
+											SITES.SITE_PK.as("site"),
+											DSL
+													.rowNumber().over().orderBy(DSL.rand())
+													.mod(Integer.valueOf(departmentsTags.length))
+													.plus(Integer.valueOf(1))
+													.as("tag_fk"))
+								.from(SITES))
+						.join(DSL.select(tagField.as("tag"), DSL.rowNumber().over().as("tag_pk")).from(tagsTable))
+						.on(DSL.field("tag_fk").eq(DSL.field("tag_pk"))))
 				.execute();
 
 		// ERP tags
