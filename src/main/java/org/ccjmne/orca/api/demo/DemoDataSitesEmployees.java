@@ -60,10 +60,7 @@ public class DemoDataSitesEmployees {
 				.select(DSL
 						.select(SITES.SITE_PK,
 								DSL.val(ERP_TAG),
-								DSL.coerce(DSL
-										.when(	DSL.cast(DSL.rand().plus(Integer.valueOf(0)), Integer.class).mod(Integer.valueOf(2)).eq(Integer.valueOf(0)),
-												Boolean.TRUE)
-										.otherwise(Boolean.FALSE), String.class))
+								DSL.coerce(DSL.field(DSL.cast(DSL.rand(), Integer.class).mod(Integer.valueOf(2)).eq(Integer.valueOf(0))), String.class))
 						.from(SITES))
 				.execute();
 
