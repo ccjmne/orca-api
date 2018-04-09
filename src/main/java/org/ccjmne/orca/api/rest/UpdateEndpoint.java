@@ -98,7 +98,6 @@ public class UpdateEndpoint {
 				return Boolean.valueOf(!exists);
 			}
 		});
-
 	}
 
 	@DELETE
