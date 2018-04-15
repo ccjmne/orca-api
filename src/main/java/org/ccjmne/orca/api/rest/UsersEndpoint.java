@@ -1,6 +1,5 @@
 package org.ccjmne.orca.api.rest;
 
-import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES;
@@ -25,9 +24,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 
-import org.ccjmne.orca.jooq.classes.tables.records.UsersRolesRecord;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.jooq.classes.tables.records.UsersRolesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.JoinType;
@@ -39,6 +38,7 @@ import org.jooq.SelectQuery;
 import org.jooq.impl.DSL;
 
 @Path("users-admin")
+// TODO: FIX ACCESS LEVELS now that DEPARTMENTS don't exist anymore
 public class UsersEndpoint {
 
 	private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
@@ -62,11 +62,9 @@ public class UsersEndpoint {
 			query.addSelect(Constants.USERS_FIELDS);
 			query.addSelect(EMPLOYEES.fields());
 			query.addSelect(SITES.fields());
-			query.addSelect(DEPARTMENTS.fields());
 			query.addGroupBy(Constants.USERS_FIELDS);
 			query.addGroupBy(EMPLOYEES.fields());
 			query.addGroupBy(SITES.fields());
-			query.addGroupBy(DEPARTMENTS.fields());
 			query.addFrom(USERS);
 			query.addSelect(
 							DSL.arrayAgg(USERS_ROLES.USRO_TYPE).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("rolesTypes"),
@@ -75,7 +73,6 @@ public class UsersEndpoint {
 			query.addJoin(USERS_ROLES, JoinType.LEFT_OUTER_JOIN, USERS_ROLES.USER_ID.eq(USERS.USER_ID));
 			query.addJoin(EMPLOYEES, JoinType.LEFT_OUTER_JOIN, EMPLOYEES.EMPL_PK.eq(USERS.USER_EMPL_FK));
 			query.addJoin(SITES, JoinType.LEFT_OUTER_JOIN, SITES.SITE_PK.eq(USERS.USER_SITE_FK));
-			query.addJoin(DEPARTMENTS, JoinType.LEFT_OUTER_JOIN, DEPARTMENTS.DEPT_PK.eq(USERS.USER_DEPT_FK));
 			query.addConditions(USERS.USER_ID.ne(Constants.USER_ROOT));
 			final List<Map<String, Object>> users = query.fetchMaps();
 
@@ -124,11 +121,9 @@ public class UsersEndpoint {
 				.select(Constants.USERS_FIELDS)
 				.select(EMPLOYEES.fields())
 				.select(SITES.fields())
-				.select(DEPARTMENTS.fields())
 				.from(USERS)
 				.leftOuterJoin(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(USERS.USER_EMPL_FK))
 				.leftOuterJoin(SITES).on(SITES.SITE_PK.eq(USERS.USER_SITE_FK))
-				.leftOuterJoin(DEPARTMENTS).on(DEPARTMENTS.DEPT_PK.eq(USERS.USER_DEPT_FK))
 				.where(USERS.USER_ID.eq(user_id))
 
 				.fetchOneMap();
@@ -191,14 +186,13 @@ public class UsersEndpoint {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
 				final String password;
 				if (!transactionCtx.fetchExists(USERS, USERS.USER_ID.eq(user_id))) {
-					transactionCtx.insertInto(USERS, USERS.USER_ID, USERS.USER_PWD, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK, USERS.USER_DEPT_FK)
+					transactionCtx.insertInto(USERS, USERS.USER_ID, USERS.USER_PWD, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK)
 							.values(
 									DSL.val(user_id),
 									DSL.md5(password = generatePassword()),
 									DSL.val((String) data.get(USERS.USER_TYPE.getName())),
 									DSL.val((String) data.get(USERS.USER_EMPL_FK.getName())),
-									DSL.val((String) data.get(USERS.USER_SITE_FK.getName())),
-									DSL.val((Integer) data.get(USERS.USER_DEPT_FK.getName()), Integer.class))
+									DSL.val((String) data.get(USERS.USER_SITE_FK.getName())))
 							.execute();
 				} else {
 					password = null;
@@ -206,7 +200,6 @@ public class UsersEndpoint {
 							.set(USERS.USER_TYPE, (String) data.get(USERS.USER_TYPE.getName()))
 							.set(USERS.USER_EMPL_FK, (String) data.get(USERS.USER_EMPL_FK.getName()))
 							.set(USERS.USER_SITE_FK, (String) data.get(USERS.USER_SITE_FK.getName()))
-							.set(USERS.USER_DEPT_FK, (Integer) data.get(USERS.USER_DEPT_FK.getName()))
 							.where(USERS.USER_ID.eq(user_id)).execute();
 				}
 
@@ -217,16 +210,6 @@ public class UsersEndpoint {
 						final Field<Integer> specification;
 						switch (type) {
 							case Constants.ROLE_ACCESS:
-								if (Constants.USERTYPE_DEPARTMENT.equals(data.get(USERS.USER_TYPE.getName()))
-										&& ((((Integer) roles.get(type)).compareTo(Constants.ACCESS_LEVEL_DEPARTMENT)) < 0)) {
-									throw new IllegalArgumentException(
-																		String.format(
-																						"A user of type '%s' cannot be granted a role '%s' which level is lower than %d.",
-																						Constants.USERTYPE_DEPARTMENT,
-																						Constants.ROLE_ACCESS,
-																						Constants.ACCESS_LEVEL_DEPARTMENT));
-								}
-
 								//$FALL-THROUGH$
 							case Constants.ROLE_ADMIN:
 								specification = USERS_ROLES.USRO_LEVEL;

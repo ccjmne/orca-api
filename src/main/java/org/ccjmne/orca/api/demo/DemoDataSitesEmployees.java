@@ -40,7 +40,7 @@ public class DemoDataSitesEmployees {
 
 	@SuppressWarnings("null")
 	public static void generate(final DSLContext ctx) {
-		addSites(ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_ADDRESS, SITES.SITE_DEPT_FK), 200, "SITE%03d").execute();
+		addSites(ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_ADDRESS), 200, "SITE%03d").execute();
 
 		// Department tags
 		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE)
@@ -135,8 +135,7 @@ public class DemoDataSitesEmployees {
 				.values(asFields(
 									String.format(pk, Integer.valueOf(i)),
 									city,
-									city.replaceAll("[\\s']", "").toLowerCase() + "@orca-solution.com",
-									Constants.UNASSIGNED_DEPARTMENT));
+									city.replaceAll("[\\s']", "").toLowerCase() + "@orca-solution.com"));
 	}
 
 	private static List<? extends Field<?>> asFields(final Object... values) {

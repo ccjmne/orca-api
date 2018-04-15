@@ -74,11 +74,10 @@ public class UpdateEndpoint {
 							.set(SITES.SITE_ADDRESS, (String) site.get(SITES.SITE_ADDRESS.getName()))
 							.where(SITES.SITE_PK.eq(site_pk)).execute();
 				} else {
-					transactionCtx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK, SITES.SITE_NOTES, SITES.SITE_ADDRESS)
+					transactionCtx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_NOTES, SITES.SITE_ADDRESS)
 							.values(
 									site_pk,
 									(String) site.get(SITES.SITE_NAME.getName()),
-									Integer.valueOf((String) site.get(SITES.SITE_DEPT_FK.getName())),
 									(String) site.get(SITES.SITE_NOTES.getName()),
 									(String) site.get(SITES.SITE_ADDRESS.getName()))
 							.execute();

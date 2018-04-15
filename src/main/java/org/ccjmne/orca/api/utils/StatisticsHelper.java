@@ -144,7 +144,6 @@ public class StatisticsHelper {
 							certificatesStats.field(Constants.STATUS_SUCCESS, Integer.class).add(certificatesStats.field(Constants.STATUS_WARNING)),
 							Integer.valueOf(0));
 		return DSL.select(
-							SITES.SITE_DEPT_FK,
 							certificates.field(SITES_EMPLOYEES.SIEM_SITE_FK),
 							certificates.field(CERTIFICATES.CERT_PK),
 							DSL.coalesce(certificatesStats.field(Constants.STATUS_SUCCESS, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_SUCCESS),

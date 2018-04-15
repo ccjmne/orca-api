@@ -68,7 +68,6 @@ public class Constants {
 	public static final String USER_ROOT = "root";
 
 	public static final String UNASSIGNED_SITE = "0";
-	public static final Integer UNASSIGNED_DEPARTMENT = Integer.valueOf(0);
 	public static final Integer UNASSIGNED_TRAINERPROFILE = Integer.valueOf(0);
 
 	public static final String ROLE_USER = "user";
@@ -78,7 +77,6 @@ public class Constants {
 
 	public static final String USERTYPE_EMPLOYEE = "employee";
 	public static final String USERTYPE_SITE = "site";
-	public static final String USERTYPE_DEPARTMENT = "department";
 
 	public static final Integer ACCESS_LEVEL_TRAININGS = Integer.valueOf(4);
 	public static final Integer ACCESS_LEVEL_ALL_SITES = Integer.valueOf(3);
@@ -87,7 +85,7 @@ public class Constants {
 
 	// ---- SUBQUERIES AND FIELDS
 	// TODO: move to new static class?
-	public static Field<?>[] USERS_FIELDS = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK, USERS.USER_DEPT_FK };
+	public static Field<?>[] USERS_FIELDS = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK };
 	public static final Field<Integer> CURRENT_UPDATE = Constants.selectUpdate(null);
 
 	/**

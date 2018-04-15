@@ -1,6 +1,5 @@
 package org.ccjmne.orca.api.modules;
 
-import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
 import static org.ccjmne.orca.jooq.classes.Tables.USERS;
@@ -18,7 +17,6 @@ import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.jooq.classes.tables.records.UsersRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.UsersRolesRecord;
 import org.jooq.DSLContext;
-import org.jooq.impl.DSL;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 
@@ -26,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonGetter;
  * Provides tools to manage restrictions of resources access or manipulation
  * provided an authenticated {@link HttpServletRequest} or a specific user ID.
  */
+// TODO: FIX ACCESS LEVELS now that DEPARTMENTS don't exist anymore
 public class Restrictions {
 
 	private final DSLContext ctx;
@@ -39,7 +38,6 @@ public class Restrictions {
 	private final boolean manageOwnAccount;
 	private final List<String> accessibleSites;
 	private final List<Integer> manageableTypes;
-	private final Integer accessibleDepartment;
 
 	@Inject
 	public Restrictions(@Context final HttpServletRequest request, final DSLContext ctx) {
@@ -72,32 +70,8 @@ public class Restrictions {
 				&& (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(roles.get(Constants.ROLE_ACCESS).getUsroLevel()) <= 0);
 
 		final UsersRecord user = ctx.selectFrom(USERS).where(USERS.USER_ID.eq(user_id)).fetchOne();
-		this.accessibleDepartment = getAccessibleDepartment(user, roles.get(Constants.ROLE_ACCESS));
 		this.accessibleSites = listAccessibleSites(user, roles.get(Constants.ROLE_ACCESS));
 		this.manageableTypes = listManageableTypes(roles.get(Constants.ROLE_TRAINER));
-	}
-
-	private Integer getAccessibleDepartment(final UsersRecord user, final UsersRolesRecord role) {
-		if ((role == null) || !Constants.ACCESS_LEVEL_DEPARTMENT.equals(role.getUsroLevel())) {
-			return null;
-		}
-
-		switch (user.getUserType()) {
-			case Constants.USERTYPE_EMPLOYEE:
-				return this.ctx.selectFrom(SITES)
-						.where(SITES.SITE_PK.eq(DSL
-								.select(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES)
-								.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(user.getUserEmplFk())
-										.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.CURRENT_UPDATE))
-										.and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE)))
-								.asField()))
-						.fetchOne(SITES.SITE_DEPT_FK);
-			case Constants.USERTYPE_SITE:
-				return this.ctx.selectFrom(SITES).where(SITES.SITE_PK.eq(user.getUserSiteFk())).fetchOne(SITES.SITE_DEPT_FK);
-			default:
-				// Constants.USERTYPE_DEPARTMENT
-				return user.getUserDeptFk();
-		}
 	}
 
 	private List<String> listAccessibleSites(final UsersRecord user, final UsersRolesRecord role) {
@@ -107,8 +81,6 @@ public class Restrictions {
 
 		final String site;
 		switch (user.getUserType()) {
-			case Constants.USERTYPE_DEPARTMENT:
-				return this.ctx.selectFrom(SITES).where(SITES.SITE_DEPT_FK.eq(user.getUserDeptFk())).fetch(SITES.SITE_PK);
 			case Constants.USERTYPE_EMPLOYEE:
 				site = this.ctx.selectFrom(SITES_EMPLOYEES)
 						.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(user.getUserEmplFk())
@@ -119,12 +91,6 @@ public class Restrictions {
 			default:
 				// Constants.USERTYPE_SITE
 				site = user.getUserSiteFk();
-		}
-
-		if (Constants.ACCESS_LEVEL_DEPARTMENT.equals(role.getUsroLevel())) {
-			return this.ctx.selectFrom(SITES)
-					.where(SITES.SITE_DEPT_FK.eq(DSL.select(SITES.SITE_DEPT_FK).from(SITES).where(SITES.SITE_PK.eq(site))))
-					.fetch(SITES.SITE_PK);
 		}
 
 		return Collections.singletonList(site);
@@ -148,10 +114,6 @@ public class Restrictions {
 	public boolean canAccessSitesWith(final Map<Integer, List<String>> tags) {
 		// TODO: implement when upgrading the account management system
 		return true;
-	}
-
-	public boolean canAccessDepartment(final Integer dept_pk) {
-		return this.accessAllSites || ((this.accessibleDepartment != null) && this.accessibleDepartment.equals(dept_pk));
 	}
 
 	public boolean canAccessSite(final String site_pk) {
@@ -213,18 +175,6 @@ public class Restrictions {
 	 */
 	public boolean canManageOwnAccount() {
 		return this.manageOwnAccount;
-	}
-
-	/**
-	 * Get the department the current {@link HttpServletRequest}'s scope should
-	 * be restricted to, if relevant.
-	 *
-	 * @return The only department accessible or <code>null</code> if there is
-	 *         no such department.
-	 * @see {@link Restrictions#canAccessAllSites()}
-	 */
-	public Integer getAccessibleDepartment() {
-		return this.accessibleDepartment;
 	}
 
 	/**

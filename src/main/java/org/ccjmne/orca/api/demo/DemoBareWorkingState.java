@@ -1,7 +1,6 @@
 package org.ccjmne.orca.api.demo;
 
 import static org.ccjmne.orca.jooq.classes.Tables.CLIENT;
-import static org.ccjmne.orca.jooq.classes.Tables.DEPARTMENTS;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES;
@@ -50,12 +49,8 @@ public class DemoBareWorkingState {
 						Boolean.TRUE)
 				.execute();
 
-		ctx.insertInto(DEPARTMENTS, DEPARTMENTS.DEPT_PK, DEPARTMENTS.DEPT_ID, DEPARTMENTS.DEPT_NAME)
-				.values(Constants.UNASSIGNED_DEPARTMENT, "", "")
-				.execute();
-
-		ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_DEPT_FK)
-				.values(Constants.UNASSIGNED_SITE, "", Constants.UNASSIGNED_DEPARTMENT)
+		ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME)
+				.values(Constants.UNASSIGNED_SITE, "")
 				.execute();
 
 		ctx.insertInto(
