@@ -43,12 +43,17 @@ public class ResourcesUnrestricted {
 		this.ctx = ctx;
 	}
 
-	public Result<Record> listTrainingTypes() {
-		return this.ctx.select(TRAININGTYPES.fields()).select(TRAININGTYPE_CERTIFICATES).from(TRAININGTYPES)
+	public List<Map<String, Object>> listTrainingTypes() {
+		return this.ctx.select(TRAININGTYPES.fields())
+				.select(ResourcesHelper.arrayAgg(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK),
+						ResourcesHelper.arrayAgg(TRAININGTYPES_CERTIFICATES.TTCE_DURATION))
+				.from(TRAININGTYPES)
 				.join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
 				.groupBy(TRAININGTYPES.fields())
 				.orderBy(TRAININGTYPES.TRTY_ORDER)
-				.fetch();
+				.fetch(ResourcesHelper
+						.getMapperWithZip(	ResourcesHelper.getZipMapper(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK, TRAININGTYPES_CERTIFICATES.TTCE_DURATION),
+											"certificates"));
 	}
 
 	public Result<CertificatesRecord> listCertificates() {

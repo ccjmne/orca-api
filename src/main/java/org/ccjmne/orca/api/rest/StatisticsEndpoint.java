@@ -16,13 +16,12 @@ import java.sql.Date;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -35,7 +34,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
-import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
@@ -51,6 +49,7 @@ import org.jooq.Table;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 
 @Path("statistics")
@@ -81,6 +80,7 @@ public class StatisticsEndpoint {
 		this.restrictions = restrictions;
 	}
 
+	@SuppressWarnings("unchecked")
 	@GET
 	@Path("trainings")
 	// TODO: rewrite
@@ -97,8 +97,8 @@ public class StatisticsEndpoint {
 
 		final List<Record> trainings = this.resources.listTrainings(null, Collections.EMPTY_LIST, null, null, null, Boolean.TRUE);
 
-		final Map<Integer, List<Integer>> certs = this.commonResources.listTrainingTypes().entrySet().stream().collect(Collectors
-				.toMap(Entry::getKey, e -> Arrays.asList(e.getValue().get(ResourcesUnrestricted.TRAININGTYPE_CERTIFICATES))));
+		final Map<Integer, Set<Integer>> certs = Maps.transformValues(	this.commonResources.listTrainingTypes(),
+																		trty -> ((Map<Integer, Object>) trty.get("certificates")).keySet());
 		final Map<Integer, Iterable<TrainingsStatistics>> res = new HashMap<>();
 
 		for (final Integer interval : intervals) {
@@ -181,8 +181,7 @@ public class StatisticsEndpoint {
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
 												.in(Constants.select(	EMPLOYEES.EMPL_PK,
-																		this.restrictedResourcesAccess.selectEmployees(	null, null, null, dateStr,
-																																tagFilters))),
+																		this.restrictedResourcesAccess.selectEmployees(null, null, null, dateStr, tagFilters))),
 										SITES_EMPLOYEES.SIEM_SITE_FK
 												.in(Constants.select(SITES.SITE_PK, this.restrictedResourcesAccess.selectSites(null, tagFilters))),
 										tags_pk)
@@ -223,7 +222,7 @@ public class StatisticsEndpoint {
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
 											.in(Constants.select(	EMPLOYEES.EMPL_PK,
 																	this.restrictedResourcesAccess.selectEmployees(	null, site_pk, null, dateStr,
-																															Collections.emptyMap()))),
+																													Collections.emptyMap()))),
 									SITES_EMPLOYEES.SIEM_SITE_FK
 											.in(Constants.select(	SITES.SITE_PK,
 																	this.restrictedResourcesAccess.selectSites(site_pk, Collections.emptyMap())))))
@@ -268,8 +267,7 @@ public class StatisticsEndpoint {
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
 											.in(Constants.select(	EMPLOYEES.EMPL_PK,
-																	this.restrictedResourcesAccess.selectEmployees(	null, site_pk, null, dateStr,
-																															tagFilters))),
+																	this.restrictedResourcesAccess.selectEmployees(null, site_pk, null, dateStr, tagFilters))),
 									SITES_EMPLOYEES.SIEM_SITE_FK
 											.in(Constants.select(	SITES.SITE_PK,
 																	this.restrictedResourcesAccess.selectSites(site_pk, tagFilters))))
@@ -318,7 +316,7 @@ public class StatisticsEndpoint {
 												.in(Constants.select(	EMPLOYEES.EMPL_PK,
 																		this.restrictedResourcesAccess
 																				.selectEmployees(	empl_pk, site_pk, trng_pk, dateStr,
-																										ResourcesHelper.getTagsFromUri(uriInfo)))))
+																									ResourcesHelper.getTagsFromUri(uriInfo)))))
 				.asTable();
 
 		return this.ctx

@@ -4,8 +4,8 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 
 import java.sql.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics.TrainingsCertificateStatistics.TrainingsStatisticsData;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
@@ -18,11 +18,11 @@ public class TrainingsStatistics {
 
 	public static class TrainingsStatisticsBuilder {
 
-		private final Map<Integer, List<Integer>> certificatesByTrainingType;
+		private final Map<Integer, Set<Integer>> certificatesByTrainingType;
 		private final Map<Integer, TrainingsCertificateStatistics> certificates;
 		private Range<Date> dateRange;
 
-		protected TrainingsStatisticsBuilder(final Map<Integer, List<Integer>> certificatesByTrainingType, final Range<Date> dateRange) {
+		protected TrainingsStatisticsBuilder(final Map<Integer, Set<Integer>> certificatesByTrainingType, final Range<Date> dateRange) {
 			this.certificatesByTrainingType = certificatesByTrainingType;
 			this.certificates = new HashMap<>();
 			this.dateRange = dateRange;
@@ -87,9 +87,7 @@ public class TrainingsStatistics {
 		}
 	}
 
-	public static TrainingsStatisticsBuilder builder(
-														final Map<Integer, List<Integer>> certificatesByTrainingType,
-														final Range<Date> dateRange) {
+	public static TrainingsStatisticsBuilder builder(final Map<Integer, Set<Integer>> certificatesByTrainingType, final Range<Date> dateRange) {
 		return new TrainingsStatisticsBuilder(certificatesByTrainingType, dateRange);
 	}
 

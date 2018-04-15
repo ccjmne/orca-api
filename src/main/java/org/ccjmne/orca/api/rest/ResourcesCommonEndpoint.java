@@ -10,7 +10,6 @@ import javax.ws.rs.QueryParam;
 
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
-import org.jooq.Record;
 import org.jooq.Result;
 
 /**
@@ -30,7 +29,7 @@ public class ResourcesCommonEndpoint {
 
 	@GET
 	@Path("trainingtypes")
-	public Result<Record> listTrainingTypes() {
+	public List<Map<String, Object>> listTrainingTypes() {
 		return this.delegate.listTrainingTypes();
 	}
 

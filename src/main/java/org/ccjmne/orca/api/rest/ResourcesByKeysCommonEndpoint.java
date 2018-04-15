@@ -14,7 +14,8 @@ import javax.ws.rs.QueryParam;
 
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
-import org.jooq.Record;
+
+import com.google.common.collect.Maps;
 
 /**
  * Serves the resources whose access isn't restricted.<br />
@@ -37,8 +38,8 @@ public class ResourcesByKeysCommonEndpoint {
 
 	@GET
 	@Path("trainingtypes")
-	public Map<Integer, Record> listTrainingTypes() {
-		return this.resources.listTrainingTypes().intoMap(TRAININGTYPES.TRTY_PK);
+	public Map<Integer, Map<String, Object>> listTrainingTypes() {
+		return Maps.uniqueIndex(this.resources.listTrainingTypes(), trty -> (Integer) trty.get(TRAININGTYPES.TRTY_PK.getName()));
 	}
 
 	@GET
