@@ -1,6 +1,8 @@
 package org.ccjmne.orca.api.utils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,8 @@ import org.jooq.Record;
 import org.jooq.RecordMapper;
 import org.jooq.impl.DSL;
 import org.jooq.util.postgres.PostgresDSL;
+
+import com.google.common.collect.ImmutableList;
 
 public class ResourcesHelper {
 
@@ -96,20 +100,51 @@ public class ResourcesHelper {
 		return PostgresDSL.arrayRemove(DSL.arrayAggDistinct(field), DSL.castNull(field.getType())).as(field);
 	}
 
-	public static <T> RecordMapper<Record, Map<T, Object>> getZipMapper(final String key, final String... fields) {
+	private abstract static class RecordMapperWithZip<R extends Record, E> implements RecordMapper<R, E> {
+
+		private final Collection<String> zippedFields;
+
+		/* package */ RecordMapperWithZip(final Collection<String> zippedFields) {
+			super();
+			this.zippedFields = zippedFields;
+		}
+
+		public Collection<String> getZippedFields() {
+			return this.zippedFields;
+		}
+	}
+
+	public static RecordMapper<Record, Map<String, Object>> getMapperWithZip(
+																				final RecordMapperWithZip<Record, Map<Integer, Object>> zipMapper,
+																				final String zipAs) {
+		return record -> {
+			final Map<String, Object> res = new HashMap<>();
+			final List<String> fields = new ArrayList<>(Arrays.stream(record.fields()).map(Field::getName).collect(Collectors.toList()));
+			fields.removeAll(zipMapper.getZippedFields());
+			fields.forEach(field -> res.put(field, record.get(field)));
+			final Map<Integer, Object> map = zipMapper.map(record);
+			if (!map.isEmpty()) {
+				res.put(zipAs, map);
+			}
+
+			return res;
+		};
+	}
+
+	public static <T> RecordMapperWithZip<Record, Map<T, Object>> getZipMapper(final String key, final String... fields) {
 		return getZipMapper(true, key, fields);
 	}
 
-	public static <T> RecordMapper<Record, Map<T, Object>> getZipMapper(final Field<T> key, final Field<?>... fields) {
+	public static <T> RecordMapperWithZip<Record, Map<T, Object>> getZipMapper(final Field<T> key, final Field<?>... fields) {
 		return getZipMapper(true, key, fields);
 	}
 
-	public static <T> RecordMapper<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final Field<T> key, final Field<?>... fields) {
+	public static <T> RecordMapperWithZip<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final Field<T> key, final Field<?>... fields) {
 		return getZipMapper(ignoreFalsey, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
 	}
 
-	public static <T> RecordMapper<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final String key, final String... fields) {
-		return new RecordMapper<Record, Map<T, Object>>() {
+	public static <T> RecordMapperWithZip<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final String key, final String... fields) {
+		return new RecordMapperWithZip<Record, Map<T, Object>>(ImmutableList.<String> builder().addAll(Arrays.asList(fields)).add(key).build()) {
 
 			/**
 			 * Passing this method to {@link Stream#filter} would discard all
