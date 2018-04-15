@@ -38,7 +38,6 @@ import org.jooq.SelectQuery;
 import org.jooq.impl.DSL;
 
 @Path("users-admin")
-// TODO: FIX ACCESS LEVELS now that DEPARTMENTS don't exist anymore
 public class UsersEndpoint {
 
 	private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
@@ -152,7 +151,7 @@ public class UsersEndpoint {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public String createUser(@PathParam("user_id") final String user_id, final Map<String, Object> data) {
 		if (this.ctx.fetchExists(USERS, USERS.USER_ID.eq(user_id))) {
-			throw new IllegalArgumentException("The user '" + user_id + "' already exists.");
+			throw new IllegalArgumentException(String.format("The user '%s' already exists.", user_id));
 		}
 
 		return insertUserImpl(user_id, data);
@@ -163,7 +162,7 @@ public class UsersEndpoint {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public void updateUser(@PathParam("user_id") final String user_id, final Map<String, Object> data) {
 		if (!this.ctx.fetchExists(USERS, USERS.USER_ID.eq(user_id).and(USERS.USER_ID.ne(Constants.USER_ROOT)))) {
-			throw new IllegalArgumentException("The user '" + user_id + "' does not exist.");
+			throw new IllegalArgumentException(String.format("The user '%s' does not exist.", user_id));
 		}
 
 		insertUserImpl(user_id, data);
@@ -210,6 +209,11 @@ public class UsersEndpoint {
 						final Field<Integer> specification;
 						switch (type) {
 							case Constants.ROLE_ACCESS:
+								if (Constants.ACCESS_LEVEL_ONESELF.equals(roles.get(type))) {
+									throw new IllegalArgumentException(String
+											.format("Cannot create users with Access level '%d' in the current version.", Constants.ACCESS_LEVEL_ONESELF));
+								}
+
 								//$FALL-THROUGH$
 							case Constants.ROLE_ADMIN:
 								specification = USERS_ROLES.USRO_LEVEL;
@@ -248,7 +252,7 @@ public class UsersEndpoint {
 	 */
 	public static void changeIdImpl(final String user_id, final String newId, final DSLContext ctx) {
 		if (0 == ctx.update(USERS).set(USERS.USER_ID, newId).where(USERS.USER_ID.eq(user_id)).execute()) {
-			throw new IllegalArgumentException("The user '" + user_id + "' does not exist.");
+			throw new IllegalArgumentException(String.format("The user '%s' does not exist.", user_id));
 		}
 	}
 

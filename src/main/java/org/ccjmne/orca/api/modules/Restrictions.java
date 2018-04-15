@@ -75,22 +75,22 @@ public class Restrictions {
 	}
 
 	private List<String> listAccessibleSites(final UsersRecord user, final UsersRolesRecord role) {
-		if ((role == null) || (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(role.getUsroLevel()) <= 0)) {
+		if ((role == null)
+				|| (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(role.getUsroLevel()) <= 0)
+				|| Constants.ACCESS_LEVEL_ONESELF.equals(role.getUsroLevel())) {
 			return Collections.EMPTY_LIST;
 		}
 
 		final String site;
-		switch (user.getUserType()) {
-			case Constants.USERTYPE_EMPLOYEE:
-				site = this.ctx.selectFrom(SITES_EMPLOYEES)
-						.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(user.getUserEmplFk())
-								.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.CURRENT_UPDATE))
-								.and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE)))
-						.fetchOne(SITES_EMPLOYEES.SIEM_SITE_FK);
-				break;
-			default:
-				// Constants.USERTYPE_SITE
-				site = user.getUserSiteFk();
+		if (user.getUserType().equals(Constants.USERTYPE_EMPLOYEE)) {
+			site = this.ctx.selectFrom(SITES_EMPLOYEES)
+					.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(user.getUserEmplFk())
+							.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.CURRENT_UPDATE))
+							.and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE)))
+					.fetchOne(SITES_EMPLOYEES.SIEM_SITE_FK);
+		} else {
+			// Constants.USERTYPE_SITE
+			site = user.getUserSiteFk();
 		}
 
 		return Collections.singletonList(site);
@@ -106,14 +106,24 @@ public class Restrictions {
 				.fetch(TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK);
 	}
 
+	/**
+	 * There is no access restriction to sites by tag.<br />
+	 * For now, users can access either:
+	 * <ul>
+	 * <li>no site</li>
+	 * <li>a single site (theirs)</li>
+	 * <li>all sites</li>
+	 * </ul>
+	 */
 	public boolean canAccessSitesWith(final Integer tags_pk) {
-		// TODO: implement when upgrading the account management system
-		return true;
+		return canAccessAllSites();
 	}
 
+	/**
+	 * @see Restrictions#canAccessSitesWith(Integer)
+	 */
 	public boolean canAccessSitesWith(final Map<Integer, List<String>> tags) {
-		// TODO: implement when upgrading the account management system
-		return true;
+		return canAccessAllSites();
 	}
 
 	public boolean canAccessSite(final String site_pk) {
@@ -128,10 +138,9 @@ public class Restrictions {
 	/**
 	 * Checks whether the current {@link HttpServletRequest} can access all
 	 * existing sites.<br />
-	 * Should this method return <code>true</code>, both
-	 * {@link Restrictions#getAccessibleDepartment()} and
-	 * {@link Restrictions#getAccessibleSites()} return <code>null</code> and an
-	 * empty <code>List</code> respectively.
+	 * Should this method return <code>true</code>,
+	 * {@link Restrictions#getAccessibleSites()} would return an empty
+	 * <code>List</code>.
 	 *
 	 * @return <code>true</code> if all sites are accessible to the injected
 	 *         request.
