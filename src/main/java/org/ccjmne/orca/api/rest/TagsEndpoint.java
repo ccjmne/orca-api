@@ -51,12 +51,7 @@ public class TagsEndpoint {
 				if (exists) {
 					transactionCtx.update(TAGS).set(tagDefinition).where(TAGS.TAGS_PK.eq(tags_pk)).execute();
 				} else {
-					transactionCtx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE)
-							.values(tags_pk,
-									tagDefinition.get(TAGS.TAGS_NAME.getName()),
-									tagDefinition.get(TAGS.TAGS_SHORT.getName()),
-									tagDefinition.get(TAGS.TAGS_TYPE.getName()))
-							.execute();
+					transactionCtx.insertInto(TAGS).set(tagDefinition).execute();
 				}
 			}
 		});

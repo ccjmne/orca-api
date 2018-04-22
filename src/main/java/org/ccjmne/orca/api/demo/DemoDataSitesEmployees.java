@@ -43,8 +43,8 @@ public class DemoDataSitesEmployees {
 		addSites(ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_ADDRESS), 200, "SITE%03d").execute();
 
 		// Department tags
-		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE)
-				.values(DemoDataSitesEmployees.DEPARTMENT_TAG, "Département", "DEPT", Constants.TAGS_TYPE_STRING).execute();
+		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE, TAGS.TAGS_HEX_COLOUR)
+				.values(DemoDataSitesEmployees.DEPARTMENT_TAG, "Département", "DEPT", Constants.TAGS_TYPE_STRING, "#C71585").execute();
 		final Row1<String>[] departmentsTags = "ABCDEF".chars()
 				.mapToObj(c -> String.format("Département %s", Character.valueOf((char) c)))
 				.map(DSL::row)
@@ -68,8 +68,8 @@ public class DemoDataSitesEmployees {
 				.execute();
 
 		// ERP tags
-		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE)
-				.values(DemoDataSitesEmployees.ERP_TAG, "Établissement Recevant du Public", "ERP", Constants.TAGS_TYPE_BOOLEAN).execute();
+		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE, TAGS.TAGS_HEX_COLOUR)
+				.values(DemoDataSitesEmployees.ERP_TAG, "Établissement Recevant du Public", "ERP", Constants.TAGS_TYPE_BOOLEAN, "#008080").execute();
 		ctx.insertInto(SITES_TAGS, SITES_TAGS.SITA_SITE_FK, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE)
 				.select(DSL
 						.select(SITES.SITE_PK,
