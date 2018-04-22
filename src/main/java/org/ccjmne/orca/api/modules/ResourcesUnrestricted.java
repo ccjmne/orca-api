@@ -18,6 +18,7 @@ import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.JoinType;
 import org.jooq.Record;
 import org.jooq.Result;
 import org.jooq.SelectQuery;
@@ -48,7 +49,7 @@ public class ResourcesUnrestricted {
 				.select(ResourcesHelper.arrayAgg(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK),
 						ResourcesHelper.arrayAgg(TRAININGTYPES_CERTIFICATES.TTCE_DURATION))
 				.from(TRAININGTYPES)
-				.join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
+				.join(TRAININGTYPES_CERTIFICATES, JoinType.LEFT_OUTER_JOIN).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
 				.groupBy(TRAININGTYPES.fields())
 				.orderBy(TRAININGTYPES.TRTY_ORDER)
 				.fetch(ResourcesHelper
