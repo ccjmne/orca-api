@@ -61,7 +61,8 @@ public class DemoDataSitesEmployees {
 													.mod(Integer.valueOf(departmentsTags.length))
 													.plus(Integer.valueOf(1))
 													.as("tag_fk"))
-								.from(SITES))
+								.from(SITES)
+								.where(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE)))
 						.join(DSL.select(tagField.as("tag"), DSL.rowNumber().over().as("tag_pk")).from(tagsTable))
 						.on(DSL.field("tag_fk").eq(DSL.field("tag_pk"))))
 				.execute();
@@ -74,7 +75,8 @@ public class DemoDataSitesEmployees {
 						.select(SITES.SITE_PK,
 								DSL.val(ERP_TAG),
 								DSL.coerce(DSL.field(DSL.cast(DSL.rand(), Integer.class).mod(Integer.valueOf(2)).eq(Integer.valueOf(0))), String.class))
-						.from(SITES))
+						.from(SITES)
+						.where(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE)))
 				.execute();
 
 		for (int i = 0; i < 10; i++) {
