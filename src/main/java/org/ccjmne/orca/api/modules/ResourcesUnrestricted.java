@@ -53,7 +53,9 @@ public class ResourcesUnrestricted {
 				.groupBy(TRAININGTYPES.fields())
 				.orderBy(TRAININGTYPES.TRTY_ORDER)
 				.fetch(ResourcesHelper
-						.getMapperWithZip(	ResourcesHelper.getZipMapper(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK, TRAININGTYPES_CERTIFICATES.TTCE_DURATION),
+						.getMapperWithZip(	ResourcesHelper.getZipMapper(false,
+																		TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
+																		TRAININGTYPES_CERTIFICATES.TTCE_DURATION),
 											"certificates"));
 	}
 
