@@ -151,6 +151,8 @@ public class CertificatesEndpoint {
 									.from(DSL.values(certificates).as("unused", "cert_pk", "duration")))
 							.execute();
 				}
+			} catch (final Exception e) {
+				throw new IllegalArgumentException(e);
 			}
 		});
 
@@ -175,6 +177,8 @@ public class CertificatesEndpoint {
 						.where(CERTIFICATES.CERT_PK.eq(DSL.field("pk", Integer.class)))
 						.execute();
 				cleanOrdering(transactionCtx, CERTIFICATES, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_ORDER);
+			} catch (final Exception e) {
+				throw new IllegalArgumentException(e);
 			}
 		});
 	}

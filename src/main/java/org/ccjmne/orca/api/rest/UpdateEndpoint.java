@@ -68,8 +68,6 @@ public class UpdateEndpoint {
 					transactionCtx.update(SITES)
 							.set(SITES.SITE_PK, (String) site.getOrDefault(SITES.SITE_PK.getName(), site_pk))
 							.set(SITES.SITE_NAME, (String) site.get(SITES.SITE_NAME.getName()))
-							// .set(SITES.SITE_DEPT_FK, Integer.valueOf((String)
-							// site.get(SITES.SITE_DEPT_FK.getName())))
 							.set(SITES.SITE_NOTES, (String) site.get(SITES.SITE_NOTES.getName()))
 							.set(SITES.SITE_ADDRESS, (String) site.get(SITES.SITE_ADDRESS.getName()))
 							.where(SITES.SITE_PK.eq(site_pk)).execute();
