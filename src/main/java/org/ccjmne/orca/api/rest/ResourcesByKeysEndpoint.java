@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
@@ -66,11 +67,31 @@ public class ResourcesByKeysEndpoint {
 	@GET
 	@Path("sites-groups")
 	public Map<String, Record> listSitesGroups(
+												@QueryParam("group-by") final Integer tags_pk,
 												@QueryParam("date") final String dateStr,
 												@QueryParam("unlisted") final boolean unlisted,
-												@QueryParam("group-by") final Integer tags_pk,
 												@Context final UriInfo uriInfo) {
 		return this.resources.listSitesGroups(tags_pk, dateStr, unlisted, uriInfo).intoMap(SITES_TAGS.SITA_VALUE);
+	}
+
+	/**
+	 * Delegates to
+	 * {@link ResourcesByKeysEndpoint#listSitesGroups(String, boolean, Integer, UriInfo)}.<br
+	 * />
+	 * With this method, the <code>tags_pk</code> argument comes directly from
+	 * the query's <strong>path</strong> instead of its parameters.
+	 *
+	 * @param tags_pk
+	 *            The tag to group sites by.
+	 */
+	@GET
+	@Path("sites-groups/{group-by}")
+	public Map<String, Record> listSitesGroupsBy(
+													@PathParam("group-by") final Integer tags_pk,
+													@QueryParam("date") final String dateStr,
+													@QueryParam("unlisted") final boolean unlisted,
+													@Context final UriInfo uriInfo) {
+		return listSitesGroups(tags_pk, dateStr, unlisted, uriInfo);
 	}
 
 	@GET
