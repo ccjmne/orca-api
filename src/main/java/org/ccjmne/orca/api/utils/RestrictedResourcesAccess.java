@@ -8,14 +8,15 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
 
 import org.ccjmne.orca.api.modules.Restrictions;
+import org.jooq.Condition;
 import org.jooq.JoinType;
 import org.jooq.Record;
-import org.jooq.Select;
 import org.jooq.SelectQuery;
 import org.jooq.impl.DSL;
 
@@ -130,12 +131,17 @@ public class RestrictedResourcesAccess {
 			}
 
 			// this Optional can safely be get() since !filters.isEmpty()
-			query.addConditions(DSL.exists(filters.entrySet().stream().<Select<? extends Record>> map(e -> DSL
-					.selectZero().from(SITES_TAGS)
-					.where(SITES_TAGS.SITA_SITE_FK.eq(SITES.SITE_PK))
-					.and(SITES_TAGS.SITA_TAGS_FK.eq(e.getKey()))
-					.and(SITES_TAGS.SITA_VALUE.in(e.getValue())))
-					.reduce(Select::intersect).get()));
+			query.addConditions(DSL.and(filters.entrySet().stream()
+					.map(tag -> ((Function<Condition, Condition>) hasCorrectValue -> tag
+							.getValue().contains(Constants.TAGS_VALUE_NONE)
+																				? hasCorrectValue.or(DSL.notExists(DSL.selectZero().from(SITES_TAGS)
+																					.where(SITES_TAGS.SITA_SITE_FK.eq(SITES.SITE_PK))
+																					.and(SITES_TAGS.SITA_TAGS_FK.eq(tag.getKey()))))
+																			: hasCorrectValue).apply(DSL.exists(DSL.selectZero().from(SITES_TAGS)
+																					.where(SITES_TAGS.SITA_SITE_FK.eq(SITES.SITE_PK))
+																					.and(SITES_TAGS.SITA_TAGS_FK.eq(tag.getKey()))
+																					.and(SITES_TAGS.SITA_VALUE.in(tag.getValue())))))
+					.reduce(Condition::and).get()));
 		}
 
 		if (site_pk != null) {
