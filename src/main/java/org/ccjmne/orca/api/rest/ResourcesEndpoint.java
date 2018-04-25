@@ -16,7 +16,6 @@ import java.sql.Date;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -44,7 +43,6 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.JoinType;
 import org.jooq.Record;
-import org.jooq.RecordMapper;
 import org.jooq.Result;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
@@ -346,23 +344,8 @@ public class ResourcesEndpoint {
 			query.addJoin(EMPLOYEES_VOIDINGS, JoinType.LEFT_OUTER_JOIN, EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(EMPLOYEES.EMPL_PK));
 			query.addGroupBy(selected);
 
-			return this.ctx.fetch(query).map(new RecordMapper<Record, Map<String, Object>>() {
-
-				private final RecordMapper<Record, Map<Integer, Object>> zipMapper = ResourcesHelper
-						.getZipMapper(EMPLOYEES_VOIDINGS.EMVO_CERT_FK, EMPLOYEES_VOIDINGS.EMVO_DATE, EMPLOYEES_VOIDINGS.EMVO_REASON);
-
-				@Override
-				public Map<String, Object> map(final Record record) {
-					final Map<String, Object> res = new HashMap<>();
-					selected.forEach(field -> res.put(field.getName(), record.get(field)));
-					final Map<Integer, Object> map = this.zipMapper.map(record);
-					if (!map.isEmpty()) {
-						res.put("voidings", map);
-					}
-
-					return res;
-				}
-			});
+			return this.ctx.fetch(query).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
+					.getZipMapper(EMPLOYEES_VOIDINGS.EMVO_CERT_FK, EMPLOYEES_VOIDINGS.EMVO_DATE, EMPLOYEES_VOIDINGS.EMVO_REASON), "voidings"));
 		}
 	}
 
@@ -393,26 +376,10 @@ public class ResourcesEndpoint {
 									SITES_TAGS.SITA_SITE_FK.eq(sites.field(SITES.SITE_PK)));
 				withTags.addGroupBy(sites.fields());
 
-				return this.ctx.fetch(withTags).map(new RecordMapper<Record, Map<String, Object>>() {
-
-					private final BiFunction<RecordSlicer, ? super String, ? extends Object> coercer = (slicer, data) -> ResourcesHelper
-							.tagValueCoercer(slicer.get(TAGS.TAGS_TYPE), data);
-
-					private final RecordMapper<Record, Map<Integer, Object>> selectMapper = ResourcesHelper
-							.getSelectMapper(this.coercer, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE);
-
-					@Override
-					public Map<String, Object> map(final Record record) {
-						final Map<String, Object> res = new HashMap<>();
-						selectSites.getSelect().forEach(field -> res.put(field.getName(), record.get(field)));
-						final Map<Integer, Object> map = this.selectMapper.map(record);
-						if (!map.isEmpty()) {
-							res.put("tags", map);
-						}
-
-						return res;
-					}
-				});
+				final BiFunction<RecordSlicer, ? super String, ? extends Object> coercer = (slicer, data) -> ResourcesHelper
+						.tagValueCoercer(slicer.get(TAGS.TAGS_TYPE), data);
+				return this.ctx.fetch(withTags).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
+						.getSelectMapper(coercer, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE), "tags"));
 			}
 		}
 	}
