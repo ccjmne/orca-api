@@ -166,11 +166,11 @@ public class ResourcesEndpoint {
 	 */
 	@GET
 	@Path("sites-groups")
-	public Result<Record> listSitesGroups(
-											@QueryParam("group-by") final Integer tags_pk,
-											@QueryParam("date") final String dateStr,
-											@QueryParam("unlisted") final boolean unlisted,
-											@Context final UriInfo uriInfo) {
+	public List<Map<String, Object>> listSitesGroups(
+														@QueryParam("group-by") final Integer tags_pk,
+														@QueryParam("date") final String dateStr,
+														@QueryParam("unlisted") final boolean unlisted,
+														@Context final UriInfo uriInfo) {
 		return listSitesGroupsImpl(dateStr, unlisted, tags_pk, ResourcesHelper.getTagsFromUri(uriInfo));
 	}
 
@@ -196,11 +196,11 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("sites-groups/{tags_pk}/{sita_value}")
-	public Record lookupSitesGroup(
-									@PathParam("tags_pk") final Integer tags_pk,
-									@PathParam("sita_value") final String sita_value,
-									@QueryParam("date") final String dateStr,
-									@QueryParam("unlisted") final boolean unlisted) {
+	public Map<String, Object> lookupSitesGroup(
+												@PathParam("tags_pk") final Integer tags_pk,
+												@PathParam("sita_value") final String sita_value,
+												@QueryParam("date") final String dateStr,
+												@QueryParam("unlisted") final boolean unlisted) {
 		try {
 			return listSitesGroupsImpl(dateStr, unlisted, tags_pk, Collections.singletonMap(tags_pk, Collections.singletonList(sita_value))).get(0);
 		} catch (final IndexOutOfBoundsException e) {
@@ -377,18 +377,18 @@ public class ResourcesEndpoint {
 				withTags.addGroupBy(sites.fields());
 
 				final BiFunction<RecordSlicer, ? super String, ? extends Object> coercer = (slicer, data) -> ResourcesHelper
-						.tagValueCoercer(slicer.get(TAGS.TAGS_TYPE), data);
+						.coerceTagValue(slicer.get(TAGS.TAGS_TYPE), data);
 				return this.ctx.fetch(withTags).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
-						.getSelectMapper(coercer, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE), "tags"));
+						.getZipSelectMapper(coercer, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE), "tags"));
 			}
 		}
 	}
 
-	private Result<Record> listSitesGroupsImpl(
-												final String dateStr,
-												final boolean unlisted,
-												final Integer tags_pk,
-												final Map<Integer, List<String>> tagFilters) {
+	private List<Map<String, Object>> listSitesGroupsImpl(
+															final String dateStr,
+															final boolean unlisted,
+															final Integer tags_pk,
+															final Map<Integer, List<String>> tagFilters) {
 		try (final SelectQuery<Record> selectSites = this.restrictedResourcesAccess.selectSites(null, tagFilters)) {
 			selectSites.addSelect(SITES.fields());
 			selectSites.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("count"));
@@ -404,6 +404,7 @@ public class ResourcesEndpoint {
 				groupedSites.addSelect(DSL.sum(sites.field("count", Integer.class)).as("count"));
 				groupedSites.addSelect(DSL.sum(sites.field("permanent", Integer.class)).as("permanent"));
 				groupedSites.addSelect(DSL.count(sites.field(SITES.SITE_PK)).as("sites_count"));
+				groupedSites.addSelect(TAGS.TAGS_TYPE);
 				groupedSites.addFrom(sites);
 
 				if (tags_pk != null) {
@@ -420,8 +421,10 @@ public class ResourcesEndpoint {
 					groupedSites.addJoin(SITES_TAGS, JoinType.LEFT_OUTER_JOIN, DSL.condition(Boolean.FALSE));
 				}
 
-				groupedSites.addGroupBy(SITES_TAGS.SITA_VALUE);
-				return this.ctx.fetch(groupedSites);
+				groupedSites.addJoin(TAGS, JoinType.LEFT_OUTER_JOIN, TAGS.TAGS_PK.eq(SITES_TAGS.SITA_TAGS_FK));
+
+				groupedSites.addGroupBy(SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE);
+				return this.ctx.fetch(groupedSites).map(ResourcesHelper.getCoercerMapper(ResourcesHelper.TAG_VALUE_SCOERCER));
 			}
 		}
 	}

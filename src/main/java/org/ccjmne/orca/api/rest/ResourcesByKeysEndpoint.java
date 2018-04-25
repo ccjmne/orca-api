@@ -21,6 +21,8 @@ import javax.ws.rs.core.UriInfo;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.jooq.Record;
 
+import com.google.common.collect.Maps;
+
 /**
  * Serves the resources whose access is restricted based on the request's
  * associated {@link Restrictions}.<br />
@@ -66,12 +68,13 @@ public class ResourcesByKeysEndpoint {
 
 	@GET
 	@Path("sites-groups")
-	public Map<String, Record> listSitesGroups(
-												@QueryParam("group-by") final Integer tags_pk,
-												@QueryParam("date") final String dateStr,
-												@QueryParam("unlisted") final boolean unlisted,
-												@Context final UriInfo uriInfo) {
-		return this.resources.listSitesGroups(tags_pk, dateStr, unlisted, uriInfo).intoMap(SITES_TAGS.SITA_VALUE);
+	public Map<String, Map<String, Object>> listSitesGroups(
+															@QueryParam("group-by") final Integer tags_pk,
+															@QueryParam("date") final String dateStr,
+															@QueryParam("unlisted") final boolean unlisted,
+															@Context final UriInfo uriInfo) {
+		return Maps.uniqueIndex(this.resources.listSitesGroups(tags_pk, dateStr, unlisted, uriInfo),
+								entry -> String.valueOf(entry.get(SITES_TAGS.SITA_VALUE.getName())));
 	}
 
 	/**
@@ -86,11 +89,11 @@ public class ResourcesByKeysEndpoint {
 	 */
 	@GET
 	@Path("sites-groups/{group-by}")
-	public Map<String, Record> listSitesGroupsBy(
-													@PathParam("group-by") final Integer tags_pk,
-													@QueryParam("date") final String dateStr,
-													@QueryParam("unlisted") final boolean unlisted,
-													@Context final UriInfo uriInfo) {
+	public Map<String, Map<String, Object>> listSitesGroupsBy(
+																@PathParam("group-by") final Integer tags_pk,
+																@QueryParam("date") final String dateStr,
+																@QueryParam("unlisted") final boolean unlisted,
+																@Context final UriInfo uriInfo) {
 		return listSitesGroups(tags_pk, dateStr, unlisted, uriInfo);
 	}
 
