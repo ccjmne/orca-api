@@ -194,39 +194,43 @@ public class ResourcesHelper {
 	}
 
 	@SafeVarargs
-	public static <K, I, V> RecordMapper<Record, Map<K, V>> getSelectMapper(
-																			final BiFunction<RecordSlicer, ? super I, ? extends V> coercer,
-																			final Field<K> key,
-																			final Field<I>... fields) {
+	public static <K, I, V> ZipRecordMapper<Record, Map<K, V>> getSelectMapper(
+																				final BiFunction<RecordSlicer, ? super I, ? extends V> coercer,
+																				final Field<K> key,
+																				final Field<I>... fields) {
 		return getSelectMapper(coercer, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
 	}
 
-	public static <K, I, V> RecordMapper<Record, Map<K, V>> getSelectMapper(
-																			final BiFunction<RecordSlicer, ? super I, ? extends V> coercer,
-																			final String key,
-																			final String... fields) {
-		return record -> {
-			final Map<K, V> res = new HashMap<>();
+	public static <K, I, V> ZipRecordMapper<Record, Map<K, V>> getSelectMapper(
+																				final BiFunction<RecordSlicer, ? super I, ? extends V> coercer,
+																				final String key,
+																				final String... fields) {
+		return new ZipRecordMapper<Record, Map<K, V>>(ImmutableList.<String> builder().addAll(Arrays.asList(fields)).add(key).build()) {
+
+			@Override
 			@SuppressWarnings("unchecked")
-			final K[] keys = (K[]) record.get(key);
-			for (int i = 0; i < keys.length; i++) {
-				if (keys[i] == null) {
-					continue;
+			public Map<K, V> map(final Record record) {
+				final Map<K, V> res = new HashMap<>();
+				final K[] keys = (K[]) record.get(key);
+				for (int i = 0; i < keys.length; i++) {
+					if (keys[i] == null) {
+						continue;
+					}
+
+					final RecordSlicer slicer = new RecordSlicer(record, i);
+					final Optional<? extends V> value = Arrays.asList(fields).stream()
+							.map(field -> slicer.<I> get(field))
+							.map(x -> coercer.apply(slicer, x))
+							.filter(Objects::nonNull)
+							.findFirst();
+
+					if (value.isPresent()) {
+						res.put(keys[i], value.get());
+					}
 				}
 
-				final RecordSlicer slicer = new RecordSlicer(record, i);
-				final Optional<? extends V> value = Arrays.asList(fields).stream()
-						.map(field -> slicer.<I> get(field))
-						.map(x -> coercer.apply(slicer, x))
-						.filter(Objects::nonNull)
-						.findFirst();
-
-				if (value.isPresent()) {
-					res.put(keys[i], value.get());
-				}
+				return res;
 			}
-
-			return res;
 		};
 	}
 
