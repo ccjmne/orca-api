@@ -78,7 +78,7 @@ public class ResourcesUnrestricted {
 				Arrays.asList(TAGS.fields()).forEach(field -> res.put(field.getName(), record.get(field)));
 				res.put(TAG_VALUES.getName(),
 						Arrays.asList(record.get(TAG_VALUES)).stream()
-								.map(value -> ResourcesHelper.tagValueCoercer(record.get(TAGS.TAGS_TYPE), value))
+								.map(value -> ResourcesHelper.coerceTagValue(record.get(TAGS.TAGS_TYPE), value))
 								.collect(Collectors.toList()));
 				return res;
 			});
