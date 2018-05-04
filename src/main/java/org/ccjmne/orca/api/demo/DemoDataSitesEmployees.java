@@ -35,37 +35,28 @@ public class DemoDataSitesEmployees {
 
 	public static final Fairy FAIRY = Fairy.create(Locale.FRENCH);
 
-	private static final Integer DEPARTMENT_TAG = Integer.valueOf(1);
-	private static final Integer ERP_TAG = Integer.valueOf(2);
+	private static final Integer GEO_TAG = Integer.valueOf(1);
+	private static final Integer TYPE_TAG = Integer.valueOf(2);
+	private static final Integer ERP_TAG = Integer.valueOf(3);
 
 	@SuppressWarnings("null")
 	public static void generate(final DSLContext ctx) {
 		addSites(ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_ADDRESS), 200, "SITE%03d").execute();
 
-		// Department tags
+		// GEO tags
 		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE, TAGS.TAGS_HEX_COLOUR)
-				.values(DemoDataSitesEmployees.DEPARTMENT_TAG, "Département", "DEPT", Constants.TAGS_TYPE_STRING, "#C71585").execute();
-		final Row1<String>[] departmentsTags = "ABCDEF".chars()
-				.mapToObj(c -> String.format("Département %s", Character.valueOf((char) c)))
+				.values(DemoDataSitesEmployees.GEO_TAG, "Situation Géographique", "GEO", Constants.TAGS_TYPE_STRING, "#C71585").execute();
+		insertTags(ctx, DemoDataSitesEmployees.GEO_TAG, "ABCDEF".chars()
+				.mapToObj(c -> String.format("Zone %s", Character.valueOf((char) c)))
 				.map(DSL::row)
-				.toArray(Row1[]::new);
-		final Table<Record1<String>> tagsTable = DSL.values(departmentsTags).asTable();
-		final Field<String> tagField = tagsTable.field(0, String.class);
-		ctx.insertInto(SITES_TAGS, SITES_TAGS.SITA_SITE_FK, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE)
-				.select(DSL
-						.select(DSL.field("site", String.class), DSL.val(DEPARTMENT_TAG), DSL.field("tag", String.class))
-						.from(DSL.select(
-											SITES.SITE_PK.as("site"),
-											DSL
-													.rowNumber().over().orderBy(DSL.rand())
-													.mod(Integer.valueOf(departmentsTags.length))
-													.plus(Integer.valueOf(1))
-													.as("tag_fk"))
-								.from(SITES)
-								.where(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE)))
-						.join(DSL.select(tagField.as("tag"), DSL.rowNumber().over().as("tag_pk")).from(tagsTable))
-						.on(DSL.field("tag_fk").eq(DSL.field("tag_pk"))))
-				.execute();
+				.toArray(Row1[]::new));
+
+		// TYPE tags
+		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE, TAGS.TAGS_HEX_COLOUR)
+				.values(DemoDataSitesEmployees.TYPE_TAG, "Type d'Activité", "TYPE", Constants.TAGS_TYPE_STRING, "#FFA500").execute();
+		insertTags(ctx, DemoDataSitesEmployees.TYPE_TAG, Arrays.asList("Usine", "Bureaux", "Entrepôt", "Boutique").stream()
+				.map(DSL::row)
+				.toArray(Row1[]::new));
 
 		// ERP tags
 		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE, TAGS.TAGS_HEX_COLOUR)
@@ -95,7 +86,7 @@ public class DemoDataSitesEmployees {
 									.execute();
 		}
 
-		// Update dated from NCLSDevelopment's birth day :)
+		// Update dated from NCLS Development's birth day :)
 		final Integer update = ctx.insertInto(UPDATES, UPDATES.UPDT_DATE).values(Date.valueOf(LocalDate.of(2014, Month.DECEMBER, 8))).returning(UPDATES.UPDT_PK)
 				.fetchOne()
 				.get(UPDATES.UPDT_PK);
@@ -113,6 +104,26 @@ public class DemoDataSitesEmployees {
 											DSL.rowNumber().over().orderBy(DSL.rand()).as("site_id"))
 								.from(SITES).where(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE)).asTable("sites2"))
 						.on(DSL.field("linked_site_id").eq(DSL.field("site_id"))))
+				.execute();
+	}
+
+	public static void insertTags(final DSLContext ctx, final Integer tags_pk, final Row1<String>[] values) {
+		final Table<Record1<String>> tagsTable = DSL.values(values).asTable();
+		final Field<String> tagField = tagsTable.field(0, String.class);
+		ctx.insertInto(SITES_TAGS, SITES_TAGS.SITA_SITE_FK, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE)
+				.select(DSL
+						.select(DSL.field("site", String.class), DSL.val(tags_pk), DSL.field("tag", String.class))
+						.from(DSL.select(
+											SITES.SITE_PK.as("site"),
+											DSL
+													.rowNumber().over().orderBy(DSL.rand())
+													.mod(Integer.valueOf(values.length))
+													.plus(Integer.valueOf(1))
+													.as("tag_fk"))
+								.from(SITES)
+								.where(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE)))
+						.join(DSL.select(tagField.as("tag"), DSL.rowNumber().over().as("tag_pk")).from(tagsTable))
+						.on(DSL.field("tag_fk").eq(DSL.field("tag_pk"))))
 				.execute();
 	}
 
