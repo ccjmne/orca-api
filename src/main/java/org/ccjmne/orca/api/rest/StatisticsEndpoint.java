@@ -165,7 +165,7 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
-	@Path("sites-groups/{tags_pk}/{sita_value}/history")
+	@Path("sites-groups/history/{tags_pk}/{sita_value}")
 	public Map<Object, Object> getSitesGroupStatsHistory(
 															@PathParam("tags_pk") final Integer tags_pk,
 															@PathParam("sita_value") final String sita_value,
@@ -249,7 +249,7 @@ public class StatisticsEndpoint {
 	 * </pre>
 	 */
 	@GET
-	@Path("sites/{site_pk}/history")
+	@Path("sites/history/{site_pk}")
 	public Map<Object, Object> getSiteStatsHistory(
 													@PathParam("site_pk") final String site_pk,
 													@QueryParam("from") final String from,
