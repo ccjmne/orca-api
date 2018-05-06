@@ -165,6 +165,19 @@ public class StatisticsEndpoint {
 	}
 
 	@GET
+	@Path("sites-groups/history")
+	public Map<Object, Object> getSitesGroupStatsHistory(
+															@QueryParam("from") final String from,
+															@QueryParam("to") final String to,
+															@QueryParam("interval") final Integer interval,
+															@Context final UriInfo uriInfo)
+			throws ParseException {
+		return StatisticsEndpoint.computeDates(from, to, interval).stream()
+				.map(date -> Collections.singletonMap(date, getSitesGroupsStats(null, date.toString(), uriInfo).get(Constants.TAGS_VALUE_UNIVERSAL)))
+				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
+	}
+
+	@GET
 	@Path("sites-groups/history/{tags_pk}/{sita_value}")
 	public Map<Object, Object> getSitesGroupStatsHistory(
 															@PathParam("tags_pk") final Integer tags_pk,
