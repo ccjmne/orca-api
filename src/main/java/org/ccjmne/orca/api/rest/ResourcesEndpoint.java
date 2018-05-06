@@ -190,11 +190,11 @@ public class ResourcesEndpoint {
 	 */
 	@GET
 	@Path("sites-groups/{group-by}")
-	public Object listSitesGroupsBy(
-									@PathParam("group-by") final Integer tags_pk,
-									@QueryParam("date") final String dateStr,
-									@QueryParam("unlisted") final boolean unlisted,
-									@Context final UriInfo uriInfo) {
+	public List<Map<String, Object>> listSitesGroupsBy(
+														@PathParam("group-by") final Integer tags_pk,
+														@QueryParam("date") final String dateStr,
+														@QueryParam("unlisted") final boolean unlisted,
+														@Context final UriInfo uriInfo) {
 		return listSitesGroups(tags_pk, dateStr, unlisted, uriInfo);
 	}
 

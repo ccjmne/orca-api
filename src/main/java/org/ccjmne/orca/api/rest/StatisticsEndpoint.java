@@ -129,7 +129,10 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("sites-groups")
-	public Object getSitesGroupsStats(@QueryParam("group-by") final Integer tags_pk, @QueryParam("date") final String dateStr, @Context final UriInfo uriInfo) {
+	public Map<String, Map<Object, Object>> getSitesGroupsStats(
+																@QueryParam("group-by") final Integer tags_pk,
+																@QueryParam("date") final String dateStr,
+																@Context final UriInfo uriInfo) {
 		return getSitesGroupsStatsImpl(tags_pk, dateStr, ResourcesHelper.getTagsFromUri(uriInfo));
 	}
 
@@ -145,10 +148,10 @@ public class StatisticsEndpoint {
 	 */
 	@GET
 	@Path("sites-groups/{group-by}")
-	public Object getSitesGroupsStatsBy(
-										@PathParam("group-by") final Integer tags_pk,
-										@QueryParam("date") final String dateStr,
-										@Context final UriInfo uriInfo) {
+	public Map<String, Map<Object, Object>> getSitesGroupsStatsBy(
+																	@PathParam("group-by") final Integer tags_pk,
+																	@QueryParam("date") final String dateStr,
+																	@Context final UriInfo uriInfo) {
 		return getSitesGroupsStatsImpl(tags_pk, dateStr, ResourcesHelper.getTagsFromUri(uriInfo));
 	}
 
