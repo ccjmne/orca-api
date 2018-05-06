@@ -230,6 +230,9 @@ public class StatisticsEndpoint {
 	}
 
 	/**
+	 * All the <code>/history</code> methods only concern an
+	 * <strong>resource</strong>.<br />
+	 *
 	 * TODO: PostgreSQL's <code>generate_series</code> and only query the DB
 	 * once<br />
 	 * Code sample:

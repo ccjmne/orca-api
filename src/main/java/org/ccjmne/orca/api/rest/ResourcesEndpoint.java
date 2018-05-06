@@ -163,6 +163,10 @@ public class ResourcesEndpoint {
 	/**
 	 * @param tags_pk
 	 *            The tag to group sites by.
+	 * @param uriInfo
+	 *            Passed to {@link ResourcesHelper#getTagsFromUri(UriInfo)} in
+	 *            order to extract a map of tag as filters for
+	 *            {@link RestrictedResourcesAccess#selectSites(String, Map)}
 	 */
 	@GET
 	@Path("sites-groups")
