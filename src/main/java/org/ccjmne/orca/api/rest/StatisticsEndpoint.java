@@ -164,6 +164,10 @@ public class StatisticsEndpoint {
 		return getSitesGroupsStatsImpl(tags_pk, dateStr, Collections.singletonMap(tags_pk, Collections.singletonList(sita_value))).get(sita_value);
 	}
 
+	/**
+	 * All the <code>/history</code> methods only concern an
+	 * <strong>resource</strong>.
+	 */
 	@GET
 	@Path("sites-groups/history")
 	public Map<Object, Object> getSitesGroupStatsHistory(
@@ -177,6 +181,10 @@ public class StatisticsEndpoint {
 				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
 	}
 
+	/**
+	 * All the <code>/history</code> methods only concern an
+	 * <strong>resource</strong>.
+	 */
 	@GET
 	@Path("sites-groups/history/{tags_pk}/{sita_value}")
 	public Map<Object, Object> getSitesGroupStatsHistory(
