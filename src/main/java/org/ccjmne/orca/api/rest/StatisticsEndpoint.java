@@ -161,7 +161,8 @@ public class StatisticsEndpoint {
 													@PathParam("tags_pk") final Integer tags_pk,
 													@PathParam("sita_value") final String sita_value,
 													@QueryParam("date") final String dateStr) {
-		return getSitesGroupsStatsImpl(tags_pk, dateStr, Collections.singletonMap(tags_pk, Collections.singletonList(sita_value))).get(sita_value);
+		return getSitesGroupsStatsImpl(tags_pk, dateStr, Collections.singletonMap(tags_pk, Collections.singletonList(sita_value)))
+				.getOrDefault(sita_value, Collections.EMPTY_MAP);
 	}
 
 	/**
@@ -177,7 +178,8 @@ public class StatisticsEndpoint {
 															@Context final UriInfo uriInfo)
 			throws ParseException {
 		return StatisticsEndpoint.computeDates(from, to, interval).stream()
-				.map(date -> Collections.singletonMap(date, getSitesGroupsStats(null, date.toString(), uriInfo).get(Constants.TAGS_VALUE_UNIVERSAL)))
+				.map(date -> Collections.singletonMap(date, getSitesGroupsStats(null, date.toString(), uriInfo)
+						.getOrDefault(Constants.TAGS_VALUE_UNIVERSAL, Collections.emptyMap())))
 				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
 	}
 
