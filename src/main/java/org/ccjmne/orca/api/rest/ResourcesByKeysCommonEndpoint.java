@@ -9,7 +9,6 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.QueryParam;
 
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
@@ -49,7 +48,7 @@ public class ResourcesByKeysCommonEndpoint {
 
 	@GET
 	@Path("tags")
-	public Map<Integer, Map<String, Object>> listTags(@QueryParam("type") final Integer type) {
-		return Maps.uniqueIndex(this.resources.listTags(type), x -> (Integer) x.get(TAGS.TAGS_PK.getName()));
+	public Map<Integer, Map<String, Object>> listTags() {
+		return Maps.uniqueIndex(this.resources.listTags(), x -> (Integer) x.get(TAGS.TAGS_PK.getName()));
 	}
 }

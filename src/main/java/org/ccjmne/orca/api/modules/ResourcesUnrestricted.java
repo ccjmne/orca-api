@@ -57,8 +57,7 @@ public class ResourcesUnrestricted {
 		return this.ctx.selectFrom(CERTIFICATES).orderBy(CERTIFICATES.CERT_ORDER).fetch();
 	}
 
-	// TODO: remove type parameter
-	public List<Map<String, Object>> listTags(final Integer type) {
+	public List<Map<String, Object>> listTags() {
 		try (
 				final Select<?> valuesStats = DSL
 						.select(DSL.count(SITES_TAGS.SITA_VALUE).as("count"), SITES_TAGS.SITA_VALUE, SITES_TAGS.SITA_TAGS_FK)
