@@ -6,12 +6,14 @@ import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -43,6 +45,8 @@ public class ResourcesHelper {
 	 * {@link Constants#TAGS_TYPE_BOOLEAN} and
 	 * {@link Constants#TAGS_TYPE_STRING}.
 	 *
+	 * @param value
+	 *            The {@link String} literal to be coerced
 	 * @param type
 	 *            Either {@link Constants#TAGS_TYPE_BOOLEAN} or
 	 *            {@link Constants#TAGS_TYPE_STRING}
@@ -50,14 +54,12 @@ public class ResourcesHelper {
 	 * @return The coerced <code>value</code>, either into a {@link Boolean} or
 	 *         a {@link String}, depending on the supplied <code>type</code>
 	 */
-	public static Object coerceTagValue(final String type, final String value) {
+	public static Object coerceTagValue(final String value, final String type) {
 		return Constants.TAGS_TYPE_BOOLEAN.equals(type) ? Boolean.valueOf(value) : value;
 	}
 
-	public static final FieldsCoercer TAG_VALUE_SCOERCER = ResourcesHelper
-			.getBiFieldCoercer(	TAGS.TAGS_TYPE, SITES_TAGS.SITA_VALUE,
-								(BiFunction<? super Object, ? super Object, ? extends Object>) (type, value) -> ResourcesHelper
-										.coerceTagValue((String) type, (String) value));
+	public static final FieldsCoercer TAG_VALUE_COERCER = ResourcesHelper
+			.getBiFieldCoercer(SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE, (value, type) -> ResourcesHelper.coerceTagValue((String) value, (String) type));
 
 	/**
 	 * Delegates to {@link DSL#arrayAgg(Field)} and gives the resulting
@@ -108,28 +110,15 @@ public class ResourcesHelper {
 		return PostgresDSL.arrayRemove(DSL.arrayAggDistinct(field), DSL.castNull(field.getType())).as(field);
 	}
 
-	private abstract static class ZipRecordMapper<R extends Record, E> implements RecordMapper<R, E> {
-
-		private final Collection<String> zippedFields;
-
-		/* package */ ZipRecordMapper(final Collection<String> zippedFields) {
-			this.zippedFields = zippedFields;
-		}
-
-		public Collection<String> getZippedFields() {
-			return this.zippedFields;
-		}
-	}
-
-	public static RecordMapper<Record, Map<String, Object>> getMapperWithZip(
-																				final ZipRecordMapper<Record, Map<Integer, Object>> zipMapper,
-																				final String zipAs) {
+	public static <K, V> RecordMapper<Record, Map<String, Object>> getMapperWithZip(
+																					final ZipRecordMapper<Record, Map<K, V>> zipMapper,
+																					final String zipAs) {
 		return record -> {
 			final Map<String, Object> res = new HashMap<>();
 			final List<String> fields = new ArrayList<>(Arrays.stream(record.fields()).map(Field::getName).collect(Collectors.toList()));
 			fields.removeAll(zipMapper.getZippedFields());
 			fields.forEach(field -> res.put(field, record.get(field)));
-			final Map<Integer, Object> map = zipMapper.map(record);
+			final Map<K, V> map = zipMapper.map(record);
 			if (!map.isEmpty()) {
 				res.put(zipAs, map);
 			}
@@ -191,25 +180,25 @@ public class ResourcesHelper {
 	}
 
 	@SafeVarargs
-	public static <K, V> RecordMapper<Record, Map<K, V>> getZipSelectMapper(final Field<K> key, final Field<V>... fields) {
+	public static <K, V> ZipRecordMapper<Record, Map<K, V>> getZipSelectMapper(final Field<K> key, final Field<V>... fields) {
 		return getZipSelectMapper((r, x) -> x, key, fields);
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <K, V> RecordMapper<Record, Map<K, V>> getZipSelectMapper(final String key, final String... fields) {
+	public static <K, V> ZipRecordMapper<Record, Map<K, V>> getZipSelectMapper(final String key, final String... fields) {
 		return getZipSelectMapper((r, x) -> (V) x, key, fields);
 	}
 
 	@SafeVarargs
 	public static <K, I, V> ZipRecordMapper<Record, Map<K, V>> getZipSelectMapper(
-																					final BiFunction<RecordSlicer, ? super I, ? extends V> coercer,
+																					final BiFunction<? super RecordSlicer, ? super I, ? extends V> coercer,
 																					final Field<K> key,
 																					final Field<I>... fields) {
 		return getZipSelectMapper(coercer, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
 	}
 
 	public static <K, I, V> ZipRecordMapper<Record, Map<K, V>> getZipSelectMapper(
-																					final BiFunction<RecordSlicer, ? super I, ? extends V> coercer,
+																					final BiFunction<? super RecordSlicer, ? super I, ? extends V> coercer,
 																					final String key,
 																					final String... fields) {
 		return new ZipRecordMapper<Record, Map<K, V>>(ImmutableList.<String> builder().addAll(Arrays.asList(fields)).add(key).build()) {
@@ -227,7 +216,7 @@ public class ResourcesHelper {
 					final RecordSlicer slicer = new RecordSlicer(record, i);
 					final Optional<? extends V> value = Arrays.asList(fields).stream()
 							.map(field -> slicer.<I> get(field))
-							.map(x -> coercer.apply(slicer, x))
+							.map(slice -> coercer.apply(slicer, slice))
 							.filter(Objects::nonNull)
 							.findFirst();
 
@@ -242,24 +231,49 @@ public class ResourcesHelper {
 	}
 
 	public static FieldsCoercer getBiFieldCoercer(
-													final Field<?> typeField,
-													final Field<?> valueField,
+													final Field<?> coerce,
+													final Field<?> using,
 													final BiFunction<? super Object, ? super Object, ? extends Object> coercer) {
-		return new FieldsCoercer(Arrays.asList(typeField).stream().map(Field::getName).collect(Collectors.toList())) {
+		return new FieldsCoercer(Arrays.asList(using).stream().map(Field::getName).collect(Collectors.toList())) {
 
 			@Override
 			public void coerceWithin(final Map<String, Object> source) {
-				source.computeIfPresent(valueField.getName(), (unused, value) -> coercer.apply(source.get(typeField.getName()), value));
+				source.computeIfPresent(coerce.getName(), (unused, needsCoercing) -> coercer.apply(needsCoercing, source.get(using.getName())));
+			}
+		};
+	}
+
+	public static <V, U> FieldsCoercer getBiFieldSlicingCoercer(
+																final Field<V> coerce,
+																final Field<U> using,
+																final BiFunction<? super RecordSlicer, ? super V, ? extends Object> coercer) {
+		return new FieldsCoercer(Arrays.asList(using).stream().map(Field::getName).collect(Collectors.toList())) {
+
+			@Override
+			@SuppressWarnings("unchecked")
+			public void coerceWithin(final Map<String, Object> source) {
+				source.computeIfPresent(coerce.getName(), (unused, needsCoercing) -> {
+					final AtomicInteger i = new AtomicInteger();
+
+					return Arrays
+							.stream(needsCoercing instanceof Object[] ? (Object[]) needsCoercing : new Object[] { (needsCoercing) })
+							.map(value -> coercer.apply(new RecordSlicer(source, i.getAndIncrement()), (V) value)).collect(Collectors.toList());
+				});
 			}
 		};
 	}
 
 	public static RecordMapper<Record, Map<String, Object>> getCoercerMapper(final FieldsCoercer... coercers) {
-		return record -> {
-			final Map<String, Object> res = record.intoMap();
-			Arrays.stream(coercers).peek(c -> c.coerceWithin(res)).forEach(c -> c.getConsumedFields().forEach(res::remove));
-			return res;
-		};
+		return ResourcesHelper.coercing(record -> record.intoMap(), coercers);
+	}
+
+	public static RecordMapper<Record, Map<String, Object>> coercing(final RecordMapper<Record, Map<String, Object>> mapper, final FieldsCoercer... coercers) {
+		return record -> ResourcesHelper.apply(mapper.map(record), coercers);
+	}
+
+	public static Map<String, Object> apply(final Map<String, Object> map, final FieldsCoercer... coercers) {
+		Arrays.stream(coercers).peek(c -> c.coerceWithin(map)).forEach(c -> c.getConsumedFields().forEach(map::remove));
+		return map;
 	}
 
 	public static abstract class FieldsCoercer {
@@ -275,15 +289,38 @@ public class ResourcesHelper {
 		public Collection<String> getConsumedFields() {
 			return this.consumedFields;
 		}
+
+		public final FieldsCoercer nonConsuming() {
+			return new NonConsumingFieldsCoercer(this);
+		}
+
+		private class NonConsumingFieldsCoercer extends FieldsCoercer {
+
+			private final FieldsCoercer deletage;
+
+			protected NonConsumingFieldsCoercer(final FieldsCoercer deletage) {
+				super(Collections.EMPTY_LIST);
+				this.deletage = deletage;
+			}
+
+			@Override
+			public void coerceWithin(final Map<String, Object> source) {
+				this.deletage.coerceWithin(source);
+			}
+		}
 	}
 
 	public static class RecordSlicer {
 
-		private final Record record;
+		private final Map<String, Object> record;
 		private final int idx;
 
 		/* package */ RecordSlicer(final Record record, final int idx) {
-			this.record = record;
+			this(record.intoMap(), idx);
+		}
+
+		/* package */ RecordSlicer(final Map<String, Object> map, final int idx) {
+			this.record = map;
 			this.idx = idx;
 		}
 
@@ -298,6 +335,28 @@ public class ResourcesHelper {
 			} catch (final IndexOutOfBoundsException e) {
 				throw new IllegalArgumentException(String.format("This slicer could not operate on field: %s", field));
 			}
+		}
+
+		public final <T> T getRaw(final Field<T> field) {
+			return this.getRaw(field.getName());
+		}
+
+		@SuppressWarnings("unchecked")
+		public final <T> T getRaw(final String field) {
+			return (T) this.record.get(field);
+		}
+	}
+
+	private abstract static class ZipRecordMapper<R extends Record, E> implements RecordMapper<R, E> {
+
+		private final Collection<String> zippedFields;
+
+		/* package */ ZipRecordMapper(final Collection<String> zippedFields) {
+			this.zippedFields = zippedFields;
+		}
+
+		public Collection<String> getZippedFields() {
+			return this.zippedFields;
 		}
 	}
 }
