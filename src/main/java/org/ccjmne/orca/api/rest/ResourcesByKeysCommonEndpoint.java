@@ -5,7 +5,6 @@ import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
 
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -50,8 +49,7 @@ public class ResourcesByKeysCommonEndpoint {
 
 	@GET
 	@Path("tags")
-	public Map<Integer, Object> listTags(@QueryParam("type") final Integer type) {
-		return this.resources.listTags(type).stream().collect(Collectors
-				.toMap(x -> (Integer) x.get(TAGS.TAGS_PK.getName()), x -> x));
+	public Map<Integer, Map<String, Object>> listTags(@QueryParam("type") final Integer type) {
+		return Maps.uniqueIndex(this.resources.listTags(type), x -> (Integer) x.get(TAGS.TAGS_PK.getName()));
 	}
 }

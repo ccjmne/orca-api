@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
@@ -33,7 +32,6 @@ import javax.ws.rs.core.UriInfo;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
-import org.ccjmne.orca.api.utils.ResourcesHelper.RecordSlicer;
 import org.ccjmne.orca.api.utils.RestrictedResourcesAccess;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
@@ -380,10 +378,9 @@ public class ResourcesEndpoint {
 									SITES_TAGS.SITA_SITE_FK.eq(sites.field(SITES.SITE_PK)));
 				withTags.addGroupBy(sites.fields());
 
-				final BiFunction<RecordSlicer, ? super String, ? extends Object> coercer = (slicer, data) -> ResourcesHelper
-						.coerceTagValue(slicer.get(TAGS.TAGS_TYPE), data);
 				return this.ctx.fetch(withTags).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
-						.getZipSelectMapper(coercer, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE), "tags"));
+						.getZipSelectMapper((slicer, value) -> ResourcesHelper.coerceTagValue(value, slicer.get(TAGS.TAGS_TYPE)),
+											SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE), "tags"));
 			}
 		}
 	}
@@ -428,7 +425,7 @@ public class ResourcesEndpoint {
 				groupedSites.addJoin(TAGS, JoinType.LEFT_OUTER_JOIN, TAGS.TAGS_PK.eq(SITES_TAGS.SITA_TAGS_FK));
 
 				groupedSites.addGroupBy(SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE);
-				return this.ctx.fetch(groupedSites).map(ResourcesHelper.getCoercerMapper(ResourcesHelper.TAG_VALUE_SCOERCER));
+				return this.ctx.fetch(groupedSites).map(ResourcesHelper.getCoercerMapper(ResourcesHelper.TAG_VALUE_COERCER));
 			}
 		}
 	}

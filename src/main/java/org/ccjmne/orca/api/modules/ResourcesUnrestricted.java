@@ -6,11 +6,8 @@ import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -19,9 +16,9 @@ import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.JoinType;
-import org.jooq.Record;
 import org.jooq.Result;
-import org.jooq.SelectQuery;
+import org.jooq.Select;
+import org.jooq.impl.DSL;
 
 /**
  * Concentrate all accesses to the database (all usages of a {@link DSLContext})
@@ -29,9 +26,6 @@ import org.jooq.SelectQuery;
  * module.
  */
 public class ResourcesUnrestricted {
-
-	private static final Field<String[]> TAG_VALUES = ResourcesHelper
-			.arrayAggDistinctOmitNull(SITES_TAGS.SITA_VALUE).as("values");
 
 	// TODO: make private when rewriting training statistics computing
 	public static final Field<Integer[]> TRAININGTYPE_CERTIFICATES = ResourcesHelper
@@ -63,25 +57,31 @@ public class ResourcesUnrestricted {
 		return this.ctx.selectFrom(CERTIFICATES).orderBy(CERTIFICATES.CERT_ORDER).fetch();
 	}
 
+	// TODO: remove type parameter
 	public List<Map<String, Object>> listTags(final Integer type) {
-		try (final SelectQuery<Record> query = this.ctx
-				.select(TAGS.fields()).select(TAG_VALUES)
-				.from(TAGS).leftOuterJoin(SITES_TAGS).on(SITES_TAGS.SITA_TAGS_FK.eq(TAGS.TAGS_PK))
-				.groupBy(TAGS.fields()).getQuery()) {
-
-			if (type != null) {
-				query.addConditions(TAGS.TAGS_PK.eq(type));
-			}
-
-			return query.fetch(record -> {
-				final Map<String, Object> res = new HashMap<>();
-				Arrays.asList(TAGS.fields()).forEach(field -> res.put(field.getName(), record.get(field)));
-				res.put(TAG_VALUES.getName(),
-						Arrays.asList(record.get(TAG_VALUES)).stream()
-								.map(value -> ResourcesHelper.coerceTagValue(record.get(TAGS.TAGS_TYPE), value))
-								.collect(Collectors.toList()));
-				return res;
-			});
+		try (
+				final Select<?> valuesStats = DSL
+						.select(DSL.count(SITES_TAGS.SITA_VALUE).as("count"), SITES_TAGS.SITA_VALUE, SITES_TAGS.SITA_TAGS_FK)
+						.from(SITES_TAGS)
+						.groupBy(SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE);
+				final Select<?> tagsStats = DSL
+						.select(DSL.arrayAgg(valuesStats.field(SITES_TAGS.SITA_VALUE)).as("values"),
+								DSL.arrayAgg(valuesStats.field("count")).as("counts"),
+								DSL.sum(valuesStats.field("count", Integer.class)).as("count"), valuesStats.field(SITES_TAGS.SITA_TAGS_FK))
+						.from(valuesStats)
+						.groupBy(valuesStats.field(SITES_TAGS.SITA_TAGS_FK))) {
+			return this.ctx.select(TAGS.fields())
+					.select(tagsStats.field("values"),
+							tagsStats.field("values").as("counts.key"),
+							tagsStats.field("counts").as("counts.value"),
+							tagsStats.field("count"))
+					.from(TAGS).join(tagsStats, JoinType.LEFT_OUTER_JOIN).on(tagsStats.field(SITES_TAGS.SITA_TAGS_FK).eq(TAGS.TAGS_PK))
+					.fetch(ResourcesHelper
+							.coercing(	ResourcesHelper.getMapperWithZip(ResourcesHelper.getZipSelectMapper("counts.key", "counts.value"), "counts"),
+										ResourcesHelper
+												.getBiFieldSlicingCoercer(	tagsStats.field("values", String.class), TAGS.TAGS_TYPE,
+																			(slicer, v) -> ResourcesHelper.coerceTagValue(v, slicer.getRaw(TAGS.TAGS_TYPE)))
+												.nonConsuming()));
 		}
 	}
 }
