@@ -35,36 +35,32 @@ public class DemoDataSitesEmployees {
 
 	public static final Fairy FAIRY = Fairy.create(Locale.FRENCH);
 
-	private static final Integer GEO_TAG = Integer.valueOf(1);
-	private static final Integer TYPE_TAG = Integer.valueOf(2);
-	private static final Integer ERP_TAG = Integer.valueOf(3);
-
 	@SuppressWarnings("null")
 	public static void generate(final DSLContext ctx) {
 		addSites(ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_ADDRESS), 200, "SITE%03d").execute();
 
 		// GEO tags
-		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE, TAGS.TAGS_HEX_COLOUR)
-				.values(DemoDataSitesEmployees.GEO_TAG, "Situation Géographique", "GEO", Constants.TAGS_TYPE_STRING, "#C71585").execute();
-		insertTags(ctx, DemoDataSitesEmployees.GEO_TAG, "ABCDEF".chars()
+		final Integer geoTag = ctx.insertInto(TAGS, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE, TAGS.TAGS_HEX_COLOUR)
+				.values("Situation Géographique", "GEO", Constants.TAGS_TYPE_STRING, "#C71585").returning(TAGS.TAGS_PK).fetchOne().get(TAGS.TAGS_PK);
+		DemoDataSitesEmployees.insertTags(ctx, geoTag, "ABCDEF".chars()
 				.mapToObj(c -> String.format("Zone %s", Character.valueOf((char) c)))
 				.map(DSL::row)
 				.toArray(Row1[]::new));
 
 		// TYPE tags
-		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE, TAGS.TAGS_HEX_COLOUR)
-				.values(DemoDataSitesEmployees.TYPE_TAG, "Type d'Activité", "TYPE", Constants.TAGS_TYPE_STRING, "#FFA500").execute();
-		insertTags(ctx, DemoDataSitesEmployees.TYPE_TAG, Arrays.asList("Usine", "Bureaux", "Entrepôt", "Boutique").stream()
+		final Integer typeTag = ctx.insertInto(TAGS, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE, TAGS.TAGS_HEX_COLOUR)
+				.values("Type d'Activité", "TYPE", Constants.TAGS_TYPE_STRING, "#795548").returning(TAGS.TAGS_PK).fetchOne().get(TAGS.TAGS_PK);
+		DemoDataSitesEmployees.insertTags(ctx, typeTag, Arrays.asList("Usine", "Bureaux", "Entrepôt", "Boutique").stream()
 				.map(DSL::row)
 				.toArray(Row1[]::new));
 
 		// ERP tags
-		ctx.insertInto(TAGS, TAGS.TAGS_PK, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE, TAGS.TAGS_HEX_COLOUR)
-				.values(DemoDataSitesEmployees.ERP_TAG, "Établissement Recevant du Public", "ERP", Constants.TAGS_TYPE_BOOLEAN, "#008080").execute();
+		final Integer erpTag = ctx.insertInto(TAGS, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE, TAGS.TAGS_HEX_COLOUR)
+				.values("Établissement Recevant du Public", "ERP", Constants.TAGS_TYPE_BOOLEAN, "#009688").returning(TAGS.TAGS_PK).fetchOne().get(TAGS.TAGS_PK);
 		ctx.insertInto(SITES_TAGS, SITES_TAGS.SITA_SITE_FK, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE)
 				.select(DSL
 						.select(SITES.SITE_PK,
-								DSL.val(ERP_TAG),
+								DSL.val(erpTag),
 								DSL.coerce(DSL.field(DSL.cast(DSL.rand(), Integer.class).mod(Integer.valueOf(2)).eq(Integer.valueOf(0))), String.class))
 						.from(SITES)
 						.where(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE)))
