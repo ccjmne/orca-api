@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.RecordMapper;
@@ -207,7 +208,7 @@ public class ResourcesHelper {
 			@SuppressWarnings("unchecked")
 			public Map<K, V> map(final Record record) {
 				final Map<K, V> res = new HashMap<>();
-				final K[] keys = (K[]) record.get(key);
+				final K[] keys = (K[]) ObjectUtils.defaultIfNull(record.get(key), new Object[] {});
 				for (int i = 0; i < keys.length; i++) {
 					if (keys[i] == null) {
 						continue;
