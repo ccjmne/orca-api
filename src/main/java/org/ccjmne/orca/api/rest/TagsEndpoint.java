@@ -20,6 +20,7 @@ import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.Row2;
 import org.jooq.impl.DSL;
 
 @Path("tags")
@@ -63,6 +64,26 @@ public class TagsEndpoint {
 			}
 
 			return Boolean.valueOf(!exists);
+		});
+	}
+
+	@POST
+	@Path("reorder")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@SuppressWarnings({ "unchecked", "null" })
+	public void reassignCertificates(final Map<Integer, Integer> reassignmentMap) {
+		if (null == reassignmentMap) {
+			return;
+		}
+
+		Transactions.with(this.ctx, transactionCtx -> {
+			transactionCtx.update(TAGS)
+					.set(TAGS.TAGS_ORDER, DSL.field("new_order", Integer.class))
+					.from(DSL.values(reassignmentMap.entrySet().stream().map(entry -> DSL.row(entry.getKey(), entry.getValue())).toArray(Row2[]::new))
+							.as("unused", "pk", "new_order"))
+					.where(TAGS.TAGS_PK.eq(DSL.field("pk", Integer.class)))
+					.execute();
+			transactionCtx.execute(ResourcesHelper.cleanupSequence(TAGS, TAGS.TAGS_PK, TAGS.TAGS_ORDER));
 		});
 	}
 
