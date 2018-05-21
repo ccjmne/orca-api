@@ -149,6 +149,7 @@ public class StatisticsHelper {
 							DSL.coalesce(certificatesStats.field(Constants.STATUS_SUCCESS, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_SUCCESS),
 							DSL.coalesce(certificatesStats.field(Constants.STATUS_WARNING, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_WARNING),
 							DSL.coalesce(certificatesStats.field(Constants.STATUS_DANGER, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_DANGER),
+							validCount.as("count"),
 							targetCount.as("target"),
 							DSL
 									.when(validCount.ge(targetCount), Constants.STATUS_SUCCESS)
@@ -190,6 +191,7 @@ public class StatisticsHelper {
 		try (final SelectQuery<Record> q = DSL.select().getQuery()) {
 			q.addSelect(sitesStats.field(CERTIFICATES.CERT_PK));
 			q.addSelect(
+						DSL.sum(sitesStats.field("count", Integer.class)).as("count"),
 						DSL.sum(sitesStats.field(Constants.STATUS_SUCCESS, Integer.class)).as(Constants.STATUS_SUCCESS),
 						DSL.sum(sitesStats.field(Constants.STATUS_WARNING, Integer.class)).as(Constants.STATUS_WARNING),
 						DSL.sum(sitesStats.field(Constants.STATUS_DANGER, Integer.class)).as(Constants.STATUS_DANGER),

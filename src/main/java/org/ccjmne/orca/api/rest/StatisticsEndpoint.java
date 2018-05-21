@@ -104,7 +104,7 @@ public class StatisticsEndpoint {
 		for (final Integer interval : intervals) {
 			final List<TrainingsStatisticsBuilder> trainingsStatsBuilders = new ArrayList<>();
 
-			computeDates(fromStr, toStr, interval).stream().reduce((cur, next) -> {
+			StatisticsEndpoint.computeDates(fromStr, toStr, interval).stream().reduce((cur, next) -> {
 				trainingsStatsBuilders.add(TrainingsStatistics.builder(certs, Range.<Date> closedOpen(cur, next)));
 				return next;
 			});
@@ -116,11 +116,11 @@ public class StatisticsEndpoint {
 			// [to-i, to] <- closed
 			trainingsStatsBuilders.get(trainingsStatsBuilders.size() - 1).closeRange();
 
-			populateTrainingsStatsBuilders(
-											trainingsStatsBuilders,
-											trainings,
-											(training) -> training.getValue(TRAININGS.TRNG_DATE),
-											(builder, training) -> builder.registerTraining(training));
+			StatisticsEndpoint.populateTrainingsStatsBuilders(
+																trainingsStatsBuilders,
+																trainings,
+																(training) -> training.getValue(TRAININGS.TRNG_DATE),
+																(builder, training) -> builder.registerTraining(training));
 			res.put(interval, trainingsStatsBuilders.stream().map(TrainingsStatisticsBuilder::build).collect(Collectors.toList()));
 		}
 
@@ -133,7 +133,7 @@ public class StatisticsEndpoint {
 																@QueryParam("group-by") final Integer tags_pk,
 																@QueryParam("date") final String dateStr,
 																@Context final UriInfo uriInfo) {
-		return getSitesGroupsStatsImpl(tags_pk, dateStr, ResourcesHelper.getTagsFromUri(uriInfo));
+		return this.getSitesGroupsStatsImpl(tags_pk, dateStr, ResourcesHelper.getTagsFromUri(uriInfo));
 	}
 
 	/**
@@ -152,7 +152,7 @@ public class StatisticsEndpoint {
 																	@PathParam("group-by") final Integer tags_pk,
 																	@QueryParam("date") final String dateStr,
 																	@Context final UriInfo uriInfo) {
-		return getSitesGroupsStatsImpl(tags_pk, dateStr, ResourcesHelper.getTagsFromUri(uriInfo));
+		return this.getSitesGroupsStatsImpl(tags_pk, dateStr, ResourcesHelper.getTagsFromUri(uriInfo));
 	}
 
 	@GET
@@ -161,7 +161,7 @@ public class StatisticsEndpoint {
 													@PathParam("tags_pk") final Integer tags_pk,
 													@PathParam("sita_value") final String sita_value,
 													@QueryParam("date") final String dateStr) {
-		return getSitesGroupsStatsImpl(tags_pk, dateStr, Collections.singletonMap(tags_pk, Collections.singletonList(sita_value)))
+		return this.getSitesGroupsStatsImpl(tags_pk, dateStr, Collections.singletonMap(tags_pk, Collections.singletonList(sita_value)))
 				.getOrDefault(sita_value, Collections.EMPTY_MAP);
 	}
 
@@ -178,7 +178,7 @@ public class StatisticsEndpoint {
 															@Context final UriInfo uriInfo)
 			throws ParseException {
 		return StatisticsEndpoint.computeDates(from, to, interval).stream()
-				.map(date -> Collections.singletonMap(date, getSitesGroupsStats(null, date.toString(), uriInfo)
+				.map(date -> Collections.singletonMap(date, this.getSitesGroupsStats(null, date.toString(), uriInfo)
 						.getOrDefault(Constants.TAGS_VALUE_UNIVERSAL, Collections.emptyMap())))
 				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
 	}
@@ -197,7 +197,7 @@ public class StatisticsEndpoint {
 															@QueryParam("interval") final Integer interval)
 			throws ParseException {
 		return StatisticsEndpoint.computeDates(from, to, interval).stream()
-				.map(date -> Collections.singletonMap(date, getSitesGroupStats(tags_pk, sita_value, date.toString())))
+				.map(date -> Collections.singletonMap(date, this.getSitesGroupStats(tags_pk, sita_value, date.toString())))
 				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
 	}
 
@@ -216,6 +216,7 @@ public class StatisticsEndpoint {
 		return this.ctx.select(
 								sitesGroupsStats.field(SITES_TAGS.SITA_VALUE),
 								ResourcesHelper.arrayAgg(sitesGroupsStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
+								ResourcesHelper.arrayAgg(sitesGroupsStats.field("count")),
 								ResourcesHelper.arrayAgg(sitesGroupsStats.field(STATUS_SUCCESS)),
 								ResourcesHelper.arrayAgg(sitesGroupsStats.field(STATUS_WARNING)),
 								ResourcesHelper.arrayAgg(sitesGroupsStats.field(STATUS_DANGER)),
@@ -228,14 +229,14 @@ public class StatisticsEndpoint {
 				.groupBy(sitesGroupsStats.field(SITES_TAGS.SITA_VALUE))
 				.fetchMap(
 							sitesGroupsStats.field(SITES_TAGS.SITA_VALUE),
-							ResourcesHelper.getZipMapper(	"cert_pk", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "sites_" + STATUS_SUCCESS,
+							ResourcesHelper.getZipMapper(	"cert_pk", "count", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "sites_" + STATUS_SUCCESS,
 															"sites_" + STATUS_WARNING, "sites_" + STATUS_DANGER, "score", "validity"));
 	}
 
 	@GET
 	@Path("sites/{site_pk}")
 	/**
-	 * Could be written in a much simpler fashion using SITM_SITE_FK = SITE_PK,
+	 * Could be written in a much simpler fashion using SIEM_SITE_FK = SITE_PK,
 	 * but that would bypass all the {@link Restrictions} checks in
 	 * {@link RestrictedResourcesAccess}
 	 */
@@ -280,7 +281,7 @@ public class StatisticsEndpoint {
 													@QueryParam("interval") final Integer interval)
 			throws ParseException {
 		return StatisticsEndpoint.computeDates(from, to, interval).stream()
-				.map(date -> Collections.singletonMap(date, getSiteStats(site_pk, date.toString())))
+				.map(date -> Collections.singletonMap(date, this.getSiteStats(site_pk, date.toString())))
 				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
 	}
 
@@ -305,6 +306,7 @@ public class StatisticsEndpoint {
 		return this.ctx.select(
 								sitesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK),
 								ResourcesHelper.arrayAgg(sitesStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
+								ResourcesHelper.arrayAgg(sitesStats.field("count")),
 								ResourcesHelper.arrayAgg(sitesStats.field(STATUS_SUCCESS)),
 								ResourcesHelper.arrayAgg(sitesStats.field(STATUS_WARNING)),
 								ResourcesHelper.arrayAgg(sitesStats.field(STATUS_DANGER)),
@@ -314,7 +316,7 @@ public class StatisticsEndpoint {
 				.groupBy(sitesStats.field(SITES_EMPLOYEES.SIEM_SITE_FK))
 				.fetchMap(
 							SITES_EMPLOYEES.SIEM_SITE_FK,
-							ResourcesHelper.getZipMapper("cert_pk", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "target", "validity"));
+							ResourcesHelper.getZipMapper("cert_pk", "count", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "target", "validity"));
 	}
 
 	@GET
