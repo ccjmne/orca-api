@@ -23,8 +23,12 @@ import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.jooq.Field;
+import org.jooq.Query;
 import org.jooq.Record;
+import org.jooq.Record2;
 import org.jooq.RecordMapper;
+import org.jooq.Table;
+import org.jooq.Transaction;
 import org.jooq.impl.DSL;
 import org.jooq.util.postgres.PostgresDSL;
 
@@ -111,6 +115,33 @@ public class ResourcesHelper {
 		return PostgresDSL.arrayRemove(DSL.arrayAggDistinct(field), DSL.castNull(field.getType())).as(field);
 	}
 
+	/**
+	 * Generates a {@link Query} that will remove duplicates and reintroduce
+	 * missing entries in the virtual sequence of ordering values stored as a
+	 * {@link Table}'s {@link Field}.
+	 *
+	 * @param table
+	 *            The {@link Table} whose ordering field to cleanup
+	 * @param key
+	 *            A {@link Field} acting as unique ID for the records in this
+	 *            table (most likely its <em>primary key</em>)
+	 * @param order
+	 *            The {@link Field} by which this table's records are to be
+	 *            ordered
+	 * @return A {@link Query} to be executed, ideally within a
+	 *         {@link Transaction}
+	 */
+	public static Query cleanupSequence(final Table<?> table, final Field<Integer> key, final Field<Integer> order) {
+		final Field<Integer> newOrder = DSL.rowNumber().over().orderBy(order).as("new_order");
+		final Table<Record2<Integer, Integer>> reorderMap = DSL
+				.select(key, newOrder)
+				.from(table).asTable("reorder_map");
+
+		return DSL.update(table).set(order, reorderMap.field(newOrder))
+				.from(reorderMap)
+				.where(key.eq(reorderMap.field(key)));
+	}
+
 	public static <K, V> RecordMapper<Record, Map<String, Object>> getMapperWithZip(
 																					final ZipRecordMapper<Record, Map<K, V>> zipMapper,
 																					final String zipAs) {
@@ -129,15 +160,15 @@ public class ResourcesHelper {
 	}
 
 	public static <T> ZipRecordMapper<Record, Map<T, Object>> getZipMapper(final String key, final String... fields) {
-		return getZipMapper(true, key, fields);
+		return ResourcesHelper.getZipMapper(true, key, fields);
 	}
 
 	public static <T> ZipRecordMapper<Record, Map<T, Object>> getZipMapper(final Field<T> key, final Field<?>... fields) {
-		return getZipMapper(true, key, fields);
+		return ResourcesHelper.getZipMapper(true, key, fields);
 	}
 
 	public static <T> ZipRecordMapper<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final Field<T> key, final Field<?>... fields) {
-		return getZipMapper(ignoreFalsey, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
+		return ResourcesHelper.getZipMapper(ignoreFalsey, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
 	}
 
 	public static <T> ZipRecordMapper<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final String key, final String... fields) {
@@ -171,7 +202,7 @@ public class ResourcesHelper {
 
 					final RecordSlicer slicer = new RecordSlicer(record, i);
 					res.put(keys[i], Arrays.asList(fields).stream()
-							.filter(field -> checkTruthy(slicer.get(field)))
+							.filter(field -> this.checkTruthy(slicer.get(field)))
 							.collect(Collectors.toMap(field -> field, field -> slicer.get(field))));
 				}
 
@@ -182,12 +213,12 @@ public class ResourcesHelper {
 
 	@SafeVarargs
 	public static <K, V> ZipRecordMapper<Record, Map<K, V>> getZipSelectMapper(final Field<K> key, final Field<V>... fields) {
-		return getZipSelectMapper((r, x) -> x, key, fields);
+		return ResourcesHelper.getZipSelectMapper((r, x) -> x, key, fields);
 	}
 
 	@SuppressWarnings("unchecked")
 	public static <K, V> ZipRecordMapper<Record, Map<K, V>> getZipSelectMapper(final String key, final String... fields) {
-		return getZipSelectMapper((r, x) -> (V) x, key, fields);
+		return ResourcesHelper.getZipSelectMapper((r, x) -> (V) x, key, fields);
 	}
 
 	@SafeVarargs
@@ -195,7 +226,7 @@ public class ResourcesHelper {
 																					final BiFunction<? super RecordSlicer, ? super I, ? extends V> coercer,
 																					final Field<K> key,
 																					final Field<I>... fields) {
-		return getZipSelectMapper(coercer, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
+		return ResourcesHelper.getZipSelectMapper(coercer, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
 	}
 
 	public static <K, I, V> ZipRecordMapper<Record, Map<K, V>> getZipSelectMapper(
