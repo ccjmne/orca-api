@@ -75,6 +75,7 @@ public class ResourcesUnrestricted {
 							tagsStats.field("counts").as("counts.value"),
 							tagsStats.field("count"))
 					.from(TAGS).join(tagsStats, JoinType.LEFT_OUTER_JOIN).on(tagsStats.field(SITES_TAGS.SITA_TAGS_FK).eq(TAGS.TAGS_PK))
+					.orderBy(TAGS.TAGS_ORDER)
 					.fetch(ResourcesHelper
 							.coercing(	ResourcesHelper.getMapperWithZip(ResourcesHelper.getZipSelectMapper("counts.key", "counts.value"), "counts"),
 										ResourcesHelper
