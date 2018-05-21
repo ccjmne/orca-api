@@ -51,7 +51,7 @@
 		<dependency>
 			<groupId>org.ccjmne.orca</groupId>
 			<artifactId>orca-jooq-generation</artifactId>
-			<version>2.0.4-sites-tags.2</version>
+			<version>2.0.4-sites-tags.3</version>
 		</dependency>
 
 		<!-- AWS INTEGRATION -->
