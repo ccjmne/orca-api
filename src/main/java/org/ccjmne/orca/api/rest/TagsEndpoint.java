@@ -15,8 +15,11 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.modules.Restrictions;
+import org.ccjmne.orca.api.utils.ResourcesHelper;
+import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.jooq.DSLContext;
+import org.jooq.Record;
 import org.jooq.impl.DSL;
 
 @Path("tags")
@@ -37,31 +40,38 @@ public class TagsEndpoint {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Integer createTag(final Map<String, String> tagDefinition) {
 		final Integer tags_pk = new Integer(this.ctx.nextval(Sequences.TAGS_TAGS_PK_SEQ).intValue());
-		updateTag(tags_pk, tagDefinition);
+		this.updateTag(tags_pk, tagDefinition);
 		return tags_pk;
 	}
 
+	/**
+	 * @return <code>true</code> iff a new {@link Record} was created
+	 */
 	@PUT
 	@Path("{tags_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
-	public boolean updateTag(@PathParam("tags_pk") final Integer tags_pk, final Map<String, String> tagDefinition) {
-		final boolean exists = this.ctx.fetchExists(TAGS, TAGS.TAGS_PK.eq(tags_pk));
-		this.ctx.transaction((config) -> {
-			try (final DSLContext transactionCtx = DSL.using(config)) {
-				if (exists) {
-					transactionCtx.update(TAGS).set(tagDefinition).where(TAGS.TAGS_PK.eq(tags_pk)).execute();
-				} else {
-					transactionCtx.insertInto(TAGS).set(tagDefinition).execute();
-				}
+	public Boolean updateTag(@PathParam("tags_pk") final Integer tags_pk, final Map<String, String> tagDefinition) {
+		return Transactions.with(this.ctx, transactionCtx -> {
+			final boolean exists = transactionCtx.fetchExists(TAGS, TAGS.TAGS_PK.eq(tags_pk));
+			if (exists) {
+				transactionCtx.update(TAGS).set(tagDefinition).where(TAGS.TAGS_PK.eq(tags_pk)).execute();
+			} else {
+				transactionCtx.insertInto(TAGS)
+						.set(tagDefinition)
+						.set(TAGS.TAGS_ORDER, DSL.select(DSL.coalesce(DSL.max(TAGS.TAGS_ORDER), Integer.valueOf(0)).add(Integer.valueOf(1))).from(TAGS))
+						.execute();
 			}
-		});
 
-		return exists;
+			return Boolean.valueOf(!exists);
+		});
 	}
 
 	@DELETE
 	@Path("{tags_pk}")
 	public void deleteTag(@PathParam("tags_pk") final Integer tags_pk) {
-		this.ctx.delete(TAGS).where(TAGS.TAGS_PK.eq(tags_pk)).execute();
+		Transactions.with(this.ctx, transactionCtx -> {
+			transactionCtx.delete(TAGS).where(TAGS.TAGS_PK.eq(tags_pk)).execute();
+			transactionCtx.execute(ResourcesHelper.cleanupSequence(TAGS, TAGS.TAGS_PK, TAGS.TAGS_ORDER));
+		});
 	}
 }
