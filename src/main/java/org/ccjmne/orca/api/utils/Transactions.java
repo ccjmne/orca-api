@@ -13,6 +13,8 @@ public class Transactions {
 		ctx.transaction(config -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
 				task.accept(transactionCtx);
+			} catch (final Exception e) {
+				throw new IllegalArgumentException(e);
 			}
 		});
 	}
@@ -21,6 +23,8 @@ public class Transactions {
 		return ctx.transactionResult(config -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
 				return task.apply(transactionCtx);
+			} catch (final Exception e) {
+				throw new IllegalArgumentException(e);
 			}
 		});
 	}
