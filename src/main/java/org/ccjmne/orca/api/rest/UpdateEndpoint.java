@@ -60,6 +60,8 @@ public class UpdateEndpoint {
 	@Path("sites/{site_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@SuppressWarnings("unchecked")
+	// TODO: the PRIMARY KEY should DEFINITELY BE different from the exposed
+	// (and CHOSEN) id
 	public Boolean insertSite(@PathParam("site_pk") final String site_pk, final Map<String, Object> site) {
 		return this.ctx.transactionResult(config -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
@@ -88,9 +90,7 @@ public class UpdateEndpoint {
 								throw new IllegalArgumentException(String.format("Invalid tag value: '%s'", tag.getValue()));
 							}
 
-							final String tag_value = String.valueOf(tag.getValue());
-							final Integer tag_key = Integer.valueOf(tag.getKey());
-							return new SitesTagsRecord(site_pk, tag_key, tag_value);
+							return new SitesTagsRecord(site_pk, Integer.valueOf(tag.getKey()), String.valueOf(tag.getValue()));
 						}).collect(Collectors.toList())).execute();
 				return Boolean.valueOf(!exists);
 			}
@@ -133,7 +133,8 @@ public class UpdateEndpoint {
 					try (final InsertValuesStep3<SitesEmployeesRecord, Integer, String, String> query = transactionCtx
 							.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_UPDT_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_EMPL_FK)) {
 						for (final Map<String, String> employee : employees) {
-							query.values(updt_pk, employee.get(SITES_EMPLOYEES.SIEM_SITE_FK.getName()), updateEmployee(employee, transactionCtx));
+							query.values(	updt_pk, employee.get(SITES_EMPLOYEES.SIEM_SITE_FK.getName()),
+											UpdateEndpoint.updateEmployee(employee, transactionCtx));
 						}
 
 						query.execute();
@@ -181,7 +182,7 @@ public class UpdateEndpoint {
 	private static String updateEmployee(final Map<String, String> employee, final DSLContext context) throws ParseException {
 		final String empl_pk = employee.get(EMPLOYEES.EMPL_PK.getName());
 		final Map<TableField<?, ?>, Object> record = new HashMap<>();
-		record.put(EMPLOYEES.EMPL_FIRSTNAME, titleCase(employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName())));
+		record.put(EMPLOYEES.EMPL_FIRSTNAME, UpdateEndpoint.titleCase(employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName())));
 		record.put(EMPLOYEES.EMPL_SURNAME, employee.get(EMPLOYEES.EMPL_SURNAME.getName()).toUpperCase());
 		record.put(EMPLOYEES.EMPL_DOB, SafeDateFormat.parseAsSql(employee.get(EMPLOYEES.EMPL_DOB.getName())));
 		record.put(EMPLOYEES.EMPL_PERMANENT, Boolean.valueOf("CDI".equalsIgnoreCase(employee.get(EMPLOYEES.EMPL_PERMANENT.getName()))));

@@ -15,13 +15,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.jooq.classes.tables.records.EmployeesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.SitesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
-import org.jooq.Insert;
-import org.jooq.InsertValuesStep4;
+import org.jooq.InsertValuesStep3;
 import org.jooq.InsertValuesStep7;
 import org.jooq.Record1;
 import org.jooq.Row1;
@@ -37,7 +37,7 @@ public class DemoDataSitesEmployees {
 
 	@SuppressWarnings("null")
 	public static void generate(final DSLContext ctx) {
-		addSites(ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_ADDRESS), 200, "SITE%03d").execute();
+		DemoDataSitesEmployees.addSites(ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_ADDRESS), 200, "SITE%03d").execute();
 
 		// GEO tags
 		final Integer geoTag = ctx.insertInto(TAGS, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE, TAGS.TAGS_HEX_COLOUR)
@@ -67,19 +67,19 @@ public class DemoDataSitesEmployees {
 				.execute();
 
 		for (int i = 0; i < 10; i++) {
-			addEmployees(
-							ctx.insertInto(
-											EMPLOYEES,
-											EMPLOYEES.EMPL_PK,
-											EMPLOYEES.EMPL_FIRSTNAME,
-											EMPLOYEES.EMPL_SURNAME,
-											EMPLOYEES.EMPL_DOB,
-											EMPLOYEES.EMPL_ADDRESS,
-											EMPLOYEES.EMPL_GENDER,
-											EMPLOYEES.EMPL_PERMANENT),
-							500,
-							String.format("EMPL%02d%%03d", Integer.valueOf(i)))
-									.execute();
+			DemoDataSitesEmployees.addEmployees(
+												ctx.insertInto(
+																EMPLOYEES,
+																EMPLOYEES.EMPL_PK,
+																EMPLOYEES.EMPL_FIRSTNAME,
+																EMPLOYEES.EMPL_SURNAME,
+																EMPLOYEES.EMPL_DOB,
+																EMPLOYEES.EMPL_ADDRESS,
+																EMPLOYEES.EMPL_GENDER,
+																EMPLOYEES.EMPL_PERMANENT),
+												500,
+												String.format("EMPL%02d%%03d", Integer.valueOf(i)))
+					.execute();
 		}
 
 		// Update dated from NCLS Development's birth day :)
@@ -123,10 +123,13 @@ public class DemoDataSitesEmployees {
 				.execute();
 	}
 
-	@SuppressWarnings("unchecked")
-	private static Insert<?> addEmployees(final Insert<?> query, final int i, final String pk) {
+	// TODO: rewrite bulk insert of employees and sites
+	private static InsertValuesStep7<EmployeesRecord, String, String, String, Date, String, Boolean, Boolean> addEmployees(
+																															final InsertValuesStep7<EmployeesRecord, String, String, String, Date, String, Boolean, Boolean> query,
+																															final int i,
+																															final String pk) {
 		final Person person = FAIRY.person();
-		return ((InsertValuesStep7<EmployeesRecord, String, String, String, Date, String, Boolean, Boolean>) (i == 1 ? query : addEmployees(query, i - 1, pk)))
+		return (i == 1 ? query : DemoDataSitesEmployees.addEmployees(query, i - 1, pk))
 				.values(
 						String.format(pk, Integer.valueOf(i)),
 						person.getFirstName(),
@@ -137,14 +140,17 @@ public class DemoDataSitesEmployees {
 						Boolean.valueOf(FAIRY.baseProducer().trueOrFalse() || FAIRY.baseProducer().trueOrFalse()));
 	}
 
-	@SuppressWarnings("unchecked")
-	private static Insert<?> addSites(final Insert<?> query, final int i, final String pk) {
+	// TODO: rewrite bulk insert of employees and sites
+	private static InsertValuesStep3<SitesRecord, String, String, String> addSites(
+																					final InsertValuesStep3<SitesRecord, String, String, String> query,
+																					final int i,
+																					final String pk) {
 		final String city = FAIRY.person().getAddress().getCity();
-		return ((InsertValuesStep4<SitesRecord, String, String, String, Integer>) (i == 1 ? query : addSites(query, i - 1, pk)))
-				.values(asFields(
-									String.format(pk, Integer.valueOf(i)),
-									city,
-									city.replaceAll("[\\s']", "").toLowerCase() + "@orca-solution.com"));
+		return (i == 1 ? query : DemoDataSitesEmployees.addSites(query, i - 1, pk))
+				.values(DemoDataSitesEmployees.asFields(
+														String.format(pk, Integer.valueOf(i)),
+														city,
+														StringUtils.stripAccents(city.replaceAll("[\\s']", "").toLowerCase()) + "@orca-solution.com"));
 	}
 
 	private static List<? extends Field<?>> asFields(final Object... values) {
