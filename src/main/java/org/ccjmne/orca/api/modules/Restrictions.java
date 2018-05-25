@@ -36,7 +36,7 @@ public class Restrictions {
 	private final boolean manageCertificates;
 	private final boolean manageUsers;
 	private final boolean manageOwnAccount;
-	private final List<String> accessibleSites;
+	private final List<Integer> accessibleSites;
 	private final List<Integer> manageableTypes;
 
 	@Inject
@@ -70,18 +70,18 @@ public class Restrictions {
 				&& (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(roles.get(Constants.ROLE_ACCESS).getUsroLevel()) <= 0);
 
 		final UsersRecord user = ctx.selectFrom(USERS).where(USERS.USER_ID.eq(user_id)).fetchOne();
-		this.accessibleSites = listAccessibleSites(user, roles.get(Constants.ROLE_ACCESS));
-		this.manageableTypes = listManageableTypes(roles.get(Constants.ROLE_TRAINER));
+		this.accessibleSites = this.listAccessibleSites(user, roles.get(Constants.ROLE_ACCESS));
+		this.manageableTypes = this.listManageableTypes(roles.get(Constants.ROLE_TRAINER));
 	}
 
-	private List<String> listAccessibleSites(final UsersRecord user, final UsersRolesRecord role) {
+	private List<Integer> listAccessibleSites(final UsersRecord user, final UsersRolesRecord role) {
 		if ((role == null)
 				|| (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(role.getUsroLevel()) <= 0)
 				|| Constants.ACCESS_LEVEL_ONESELF.equals(role.getUsroLevel())) {
 			return Collections.EMPTY_LIST;
 		}
 
-		final String site;
+		final Integer site;
 		if (user.getUserType().equals(Constants.USERTYPE_EMPLOYEE)) {
 			site = this.ctx.selectFrom(SITES_EMPLOYEES)
 					.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(user.getUserEmplFk())
@@ -116,17 +116,17 @@ public class Restrictions {
 	 * </ul>
 	 */
 	public boolean canAccessSitesWith(final Integer tags_pk) {
-		return canAccessAllSites();
+		return this.canAccessAllSites();
 	}
 
 	/**
 	 * @see Restrictions#canAccessSitesWith(Integer)
 	 */
 	public boolean canAccessSitesWith(final Map<Integer, List<String>> tags) {
-		return canAccessAllSites();
+		return this.canAccessAllSites();
 	}
 
-	public boolean canAccessSite(final String site_pk) {
+	public boolean canAccessSite(final Integer site_pk) {
 		return this.accessAllSites || (this.accessibleSites.contains(site_pk));
 	}
 
@@ -193,7 +193,7 @@ public class Restrictions {
 	 * @return The list of accessible sites if relevant.
 	 * @see {@link Restrictions#canAccessAllSites()}
 	 */
-	public List<String> getAccessibleSites() {
+	public List<Integer> getAccessibleSites() {
 		return this.accessibleSites;
 	}
 

@@ -65,9 +65,10 @@ public class Constants {
 	public static final String TAGS_TYPE_STRING = "s";
 	public static final String TAGS_TYPE_BOOLEAN = "b";
 
+	public static final Integer EMPLOYEE_ROOT = Integer.valueOf(0);
 	public static final String USER_ROOT = "root";
 
-	public static final String UNASSIGNED_SITE = "0";
+	public static final Integer UNASSIGNED_SITE = Integer.valueOf(0);
 	public static final Integer UNASSIGNED_TRAINERPROFILE = Integer.valueOf(0);
 
 	public static final String ROLE_USER = "user";

@@ -42,7 +42,7 @@ public class TrainingsEndpoint {
 	public Integer addTraining(final Map<String, Object> training) {
 		return this.ctx.transactionResult(config -> {
 			try (final DSLContext transactionContext = DSL.using(config)) {
-				return insertTraining(new Integer(transactionContext.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transactionContext);
+				return this.insertTraining(new Integer(transactionContext.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transactionContext);
 			}
 		});
 	}
@@ -53,7 +53,7 @@ public class TrainingsEndpoint {
 		this.ctx.transaction(config -> {
 			try (final DSLContext transactionContext = DSL.using(config)) {
 				for (final Map<String, Object> training : trainings) {
-					insertTraining(new Integer(transactionContext.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transactionContext);
+					this.insertTraining(new Integer(transactionContext.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transactionContext);
 				}
 			}
 		});
@@ -64,8 +64,8 @@ public class TrainingsEndpoint {
 	public Boolean updateTraining(@PathParam("trng_pk") final Integer trng_pk, final Map<String, Object> training) {
 		return this.ctx.transactionResult(config -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
-				final Boolean exists = deleteTrainingImpl(trng_pk, transactionCtx);
-				insertTraining(trng_pk, training, transactionCtx);
+				final Boolean exists = this.deleteTrainingImpl(trng_pk, transactionCtx);
+				this.insertTraining(trng_pk, training, transactionCtx);
 				return exists;
 			}
 		});
@@ -76,7 +76,7 @@ public class TrainingsEndpoint {
 	public Boolean deleteTraining(@PathParam("trng_pk") final Integer trng_pk) {
 		return this.ctx.transactionResult(config -> {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
-				return deleteTrainingImpl(trng_pk, transactionCtx);
+				return this.deleteTrainingImpl(trng_pk, transactionCtx);
 			}
 		});
 	}
@@ -102,7 +102,7 @@ public class TrainingsEndpoint {
 			throw new ForbiddenException();
 		}
 
-		validateOutcomes(map);
+		TrainingsEndpoint.validateOutcomes(map);
 
 		transactionContext
 				.insertInto(
@@ -122,7 +122,7 @@ public class TrainingsEndpoint {
 						(String) map.get(TRAININGS.TRNG_COMMENT.getName()))
 				.execute();
 
-		((Map<String, Map<String, String>>) map.getOrDefault("trainees", Collections.EMPTY_MAP))
+		((Map<Integer, Map<String, String>>) map.getOrDefault("trainees", Collections.emptyMap()))
 				.forEach((trem_empl_fk, data) -> transactionContext
 						.insertInto(
 									TRAININGS_EMPLOYEES,
@@ -137,7 +137,7 @@ public class TrainingsEndpoint {
 								data.get(TRAININGS_EMPLOYEES.TREM_COMMENT.getName()))
 						.execute());
 
-		((List<String>) map.getOrDefault("trainers", Collections.EMPTY_LIST))
+		((List<Integer>) map.getOrDefault("trainers", Collections.EMPTY_LIST))
 				.forEach(trainer -> transactionContext
 						.insertInto(TRAININGS_TRAINERS, TRAININGS_TRAINERS.TRTR_TRNG_FK, TRAININGS_TRAINERS.TRTR_EMPL_FK)
 						.values(trng_pk, trainer).execute());

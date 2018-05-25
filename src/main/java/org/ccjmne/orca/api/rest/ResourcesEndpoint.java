@@ -72,14 +72,14 @@ public class ResourcesEndpoint {
 	@GET
 	@Path("employees")
 	public List<Map<String, Object>> listEmployees(
-													@QueryParam("employee") final String empl_pk,
-													@QueryParam("site") final String site_pk,
+													@QueryParam("employee") final Integer empl_pk,
+													@QueryParam("site") final Integer site_pk,
 													@QueryParam("training") final Integer trng_pk,
 													@QueryParam("date") final String dateStr,
 													@QueryParam("fields") final String fields,
 													@Context final UriInfo uriInfo) {
 		final Map<Integer, List<String>> tagFilters = ResourcesHelper.getTagsFromUri(uriInfo);
-		return listEmployeesImpl(empl_pk, site_pk, trng_pk, dateStr, fields, tagFilters);
+		return this.listEmployeesImpl(empl_pk, site_pk, trng_pk, dateStr, fields, tagFilters);
 	}
 
 	/**
@@ -90,9 +90,9 @@ public class ResourcesEndpoint {
 	// the advanced search module) to users who can access training sessions?
 	@GET
 	@Path("employees/trainings")
-	public Map<String, Result<Record>> listEmployeesTrainings(
-																@QueryParam("employee") final String empl_pk,
-																@QueryParam("site") final String site_pk,
+	public Map<Integer, Result<Record>> listEmployeesTrainings(
+																@QueryParam("employee") final Integer empl_pk,
+																@QueryParam("site") final Integer site_pk,
 																@QueryParam("training") final Integer trng_pk,
 																@QueryParam("date") final String dateStr,
 																@Context final UriInfo uriInfo) {
@@ -112,9 +112,9 @@ public class ResourcesEndpoint {
 
 	@GET
 	@Path("employees/{empl_pk}")
-	public Map<String, Object> lookupEmployee(@PathParam("empl_pk") final String empl_pk, @QueryParam("date") final String dateStr) {
+	public Map<String, Object> lookupEmployee(@PathParam("empl_pk") final Integer empl_pk, @QueryParam("date") final String dateStr) {
 		try {
-			return listEmployeesImpl(empl_pk, null, null, dateStr, Constants.FIELDS_ALL, Collections.emptyMap()).get(0);
+			return this.listEmployeesImpl(empl_pk, null, null, dateStr, Constants.FIELDS_ALL, Collections.emptyMap()).get(0);
 		} catch (final IndexOutOfBoundsException e) {
 			throw new NotFoundException();
 		}
@@ -133,26 +133,26 @@ public class ResourcesEndpoint {
 	 * @param uriInfo
 	 *            Passed to {@link ResourcesHelper#getTagsFromUri(UriInfo)} in
 	 *            order to extract a map of tag as filters for
-	 *            {@link RestrictedResourcesAccess#selectSites(String, Map)}
+	 *            {@link RestrictedResourcesAccess#selectSites(Integer, Map)}
 	 */
 	@GET
 	@Path("sites")
 	public List<Map<String, Object>> listSites(
-												@QueryParam("site") final String site_pk,
+												@QueryParam("site") final Integer site_pk,
 												@QueryParam("date") final String dateStr,
 												@QueryParam("unlisted") final boolean unlisted,
 												@Context final UriInfo uriInfo) {
-		return listSitesImpl(site_pk, dateStr, unlisted, ResourcesHelper.getTagsFromUri(uriInfo));
+		return this.listSitesImpl(site_pk, dateStr, unlisted, ResourcesHelper.getTagsFromUri(uriInfo));
 	}
 
 	@GET
 	@Path("sites/{site_pk}")
 	public Map<String, Object> lookupSite(
-											@PathParam("site_pk") final String site_pk,
+											@PathParam("site_pk") final Integer site_pk,
 											@QueryParam("date") final String dateStr,
 											@QueryParam("unlisted") final boolean unlisted) {
 		try {
-			return listSitesImpl(site_pk, dateStr, unlisted, Collections.emptyMap()).get(0);
+			return this.listSitesImpl(site_pk, dateStr, unlisted, Collections.emptyMap()).get(0);
 		} catch (final IndexOutOfBoundsException e) {
 			throw new NotFoundException();
 		}
@@ -164,7 +164,7 @@ public class ResourcesEndpoint {
 	 * @param uriInfo
 	 *            Passed to {@link ResourcesHelper#getTagsFromUri(UriInfo)} in
 	 *            order to extract a map of tag as filters for
-	 *            {@link RestrictedResourcesAccess#selectSites(String, Map)}
+	 *            {@link RestrictedResourcesAccess#selectSites(Integer, Map)}
 	 */
 	@GET
 	@Path("sites-groups")
@@ -173,7 +173,7 @@ public class ResourcesEndpoint {
 														@QueryParam("date") final String dateStr,
 														@QueryParam("unlisted") final boolean unlisted,
 														@Context final UriInfo uriInfo) {
-		return listSitesGroupsImpl(dateStr, unlisted, tags_pk, ResourcesHelper.getTagsFromUri(uriInfo));
+		return this.listSitesGroupsImpl(dateStr, unlisted, tags_pk, ResourcesHelper.getTagsFromUri(uriInfo));
 	}
 
 	/**
@@ -193,7 +193,7 @@ public class ResourcesEndpoint {
 														@QueryParam("date") final String dateStr,
 														@QueryParam("unlisted") final boolean unlisted,
 														@Context final UriInfo uriInfo) {
-		return listSitesGroups(tags_pk, dateStr, unlisted, uriInfo);
+		return this.listSitesGroups(tags_pk, dateStr, unlisted, uriInfo);
 	}
 
 	@GET
@@ -204,7 +204,7 @@ public class ResourcesEndpoint {
 												@QueryParam("date") final String dateStr,
 												@QueryParam("unlisted") final boolean unlisted) {
 		try {
-			return listSitesGroupsImpl(dateStr, unlisted, tags_pk, Collections.singletonMap(tags_pk, Collections.singletonList(sita_value))).get(0);
+			return this.listSitesGroupsImpl(dateStr, unlisted, tags_pk, Collections.singletonMap(tags_pk, Collections.singletonList(sita_value))).get(0);
 		} catch (final IndexOutOfBoundsException e) {
 			throw new NotFoundException();
 		}
@@ -214,7 +214,7 @@ public class ResourcesEndpoint {
 	@Path("trainings")
 	// TODO: rewrite
 	public Result<Record> listTrainings(
-										@QueryParam("employee") final String empl_pk,
+										@QueryParam("employee") final Integer empl_pk,
 										@QueryParam("type") final List<Integer> types,
 										@QueryParam("date") final String dateStr,
 										@QueryParam("from") final String fromStr,
@@ -314,8 +314,8 @@ public class ResourcesEndpoint {
 	}
 
 	private List<Map<String, Object>> listEmployeesImpl(
-														final String empl_pk,
-														final String site_pk,
+														final Integer empl_pk,
+														final Integer site_pk,
 														final Integer trng_pk,
 														final String dateStr,
 														final String fields,
@@ -332,6 +332,7 @@ public class ResourcesEndpoint {
 								EMPLOYEES.EMPL_SURNAME,
 								EMPLOYEES.EMPL_GENDER,
 								EMPLOYEES.EMPL_PERMANENT,
+								EMPLOYEES.EMPL_EXTERNAL_ID,
 								SITES_EMPLOYEES.SIEM_SITE_FK);
 			}
 
@@ -352,7 +353,7 @@ public class ResourcesEndpoint {
 	}
 
 	private List<Map<String, Object>> listSitesImpl(
-													final String site_pk,
+													final Integer site_pk,
 													final String dateStr,
 													final boolean unlisted,
 													final Map<Integer, List<String>> tagFilters) {

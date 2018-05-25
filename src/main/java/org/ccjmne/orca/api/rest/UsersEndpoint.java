@@ -154,7 +154,7 @@ public class UsersEndpoint {
 			throw new IllegalArgumentException(String.format("The user '%s' already exists.", user_id));
 		}
 
-		return insertUserImpl(user_id, data);
+		return this.insertUserImpl(user_id, data);
 	}
 
 	@PUT
@@ -165,7 +165,7 @@ public class UsersEndpoint {
 			throw new IllegalArgumentException(String.format("The user '%s' does not exist.", user_id));
 		}
 
-		insertUserImpl(user_id, data);
+		this.insertUserImpl(user_id, data);
 	}
 
 	/**
@@ -188,17 +188,17 @@ public class UsersEndpoint {
 					transactionCtx.insertInto(USERS, USERS.USER_ID, USERS.USER_PWD, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK)
 							.values(
 									DSL.val(user_id),
-									DSL.md5(password = generatePassword()),
+									DSL.md5(password = UsersEndpoint.generatePassword()),
 									DSL.val((String) data.get(USERS.USER_TYPE.getName())),
-									DSL.val((String) data.get(USERS.USER_EMPL_FK.getName())),
-									DSL.val((String) data.get(USERS.USER_SITE_FK.getName())))
+									DSL.val((Integer) data.get(USERS.USER_EMPL_FK.getName())),
+									DSL.val((Integer) data.get(USERS.USER_SITE_FK.getName())))
 							.execute();
 				} else {
 					password = null;
 					transactionCtx.update(USERS)
 							.set(USERS.USER_TYPE, (String) data.get(USERS.USER_TYPE.getName()))
-							.set(USERS.USER_EMPL_FK, (String) data.get(USERS.USER_EMPL_FK.getName()))
-							.set(USERS.USER_SITE_FK, (String) data.get(USERS.USER_SITE_FK.getName()))
+							.set(USERS.USER_EMPL_FK, (Integer) data.get(USERS.USER_EMPL_FK.getName()))
+							.set(USERS.USER_SITE_FK, (Integer) data.get(USERS.USER_SITE_FK.getName()))
 							.where(USERS.USER_ID.eq(user_id)).execute();
 				}
 
@@ -244,7 +244,7 @@ public class UsersEndpoint {
 	@PUT
 	@Path("users/{user_id}/{new_id}")
 	public void changeId(@PathParam("user_id") final String user_id, @PathParam("new_id") final String newId) {
-		changeIdImpl(user_id, newId, this.ctx);
+		UsersEndpoint.changeIdImpl(user_id, newId, this.ctx);
 	}
 
 	/**
@@ -265,7 +265,7 @@ public class UsersEndpoint {
 	@DELETE
 	@Path("users/{user_id}/password")
 	public String resetPassword(@PathParam("user_id") final String user_id) {
-		final String password = generatePassword();
+		final String password = UsersEndpoint.generatePassword();
 		this.ctx.update(USERS).set(USERS.USER_PWD, DSL.md5(password)).where(USERS.USER_ID.eq(user_id)).execute();
 		return password;
 	}
@@ -289,7 +289,7 @@ public class UsersEndpoint {
 						.from(TRAINERPROFILES).fetchOne(TRAINERPROFILES.TRPR_PK.getName(), Integer.class);
 				transactionCtx.insertInto(TRAINERPROFILES, TRAINERPROFILES.TRPR_PK, TRAINERPROFILES.TRPR_ID)
 						.values(trpr_pk, (String) level.get(TRAINERPROFILES.TRPR_ID.getName())).execute();
-				insertTypes(trpr_pk, (List<Integer>) level.get("types"), transactionCtx);
+				UsersEndpoint.insertTypes(trpr_pk, (List<Integer>) level.get("types"), transactionCtx);
 				return trpr_pk;
 			}
 		});
@@ -304,7 +304,7 @@ public class UsersEndpoint {
 			try (final DSLContext transactionCtx = DSL.using(config)) {
 				transactionCtx.update(TRAINERPROFILES).set(TRAINERPROFILES.TRPR_ID, (String) level.get(TRAINERPROFILES.TRPR_ID.getName()))
 						.where(TRAINERPROFILES.TRPR_PK.eq(trpr_pk)).execute();
-				insertTypes(trpr_pk, (List<Integer>) level.get("types"), transactionCtx);
+				UsersEndpoint.insertTypes(trpr_pk, (List<Integer>) level.get("types"), transactionCtx);
 			}
 		});
 	}

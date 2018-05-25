@@ -241,7 +241,7 @@ public class StatisticsEndpoint {
 	 * {@link RestrictedResourcesAccess}
 	 */
 	public Map<Integer, ? extends Record> getSiteStats(
-														@PathParam("site_pk") final String site_pk,
+														@PathParam("site_pk") final Integer site_pk,
 														@QueryParam("date") final String dateStr) {
 		return this.ctx.selectQuery(StatisticsHelper
 				.selectSitesStats(
@@ -275,7 +275,7 @@ public class StatisticsEndpoint {
 	@GET
 	@Path("sites/history/{site_pk}")
 	public Map<Object, Object> getSiteStatsHistory(
-													@PathParam("site_pk") final String site_pk,
+													@PathParam("site_pk") final Integer site_pk,
 													@QueryParam("from") final String from,
 													@QueryParam("to") final String to,
 													@QueryParam("interval") final Integer interval)
@@ -287,8 +287,8 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("sites")
-	public Map<String, Map<Integer, Object>> getSitesStats(
-															@QueryParam("site") final String site_pk,
+	public Map<Integer, Map<Integer, Object>> getSitesStats(
+															@QueryParam("site") final Integer site_pk,
 															@QueryParam("date") final String dateStr,
 															@Context final UriInfo uriInfo) {
 		final Map<Integer, List<String>> tagFilters = ResourcesHelper.getTagsFromUri(uriInfo);
@@ -322,7 +322,7 @@ public class StatisticsEndpoint {
 	@GET
 	@Path("employees/{empl_pk}")
 	public Map<Integer, ? extends Record> getEmployeeStats(
-															@PathParam("empl_pk") final String empl_pk,
+															@PathParam("empl_pk") final Integer empl_pk,
 															@QueryParam("date") final String dateStr) {
 		return this.ctx.selectQuery(StatisticsHelper
 				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK
@@ -333,9 +333,9 @@ public class StatisticsEndpoint {
 
 	@GET
 	@Path("employees")
-	public Map<String, Map<Integer, Object>> getEmployeesStats(
-																@QueryParam("employee") final String empl_pk,
-																@QueryParam("site") final String site_pk,
+	public Map<Integer, Map<Integer, Object>> getEmployeesStats(
+																@QueryParam("employee") final Integer empl_pk,
+																@QueryParam("site") final Integer site_pk,
 																@QueryParam("training") final Integer trng_pk,
 																@QueryParam("date") final String dateStr,
 																@Context final UriInfo uriInfo) {

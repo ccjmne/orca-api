@@ -49,8 +49,8 @@ public class DemoBareWorkingState {
 						Boolean.TRUE)
 				.execute();
 
-		ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME)
-				.values(Constants.UNASSIGNED_SITE, "")
+		ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_EXTERNAL_ID)
+				.values(Constants.UNASSIGNED_SITE, "", "::decommissioned::site")
 				.execute();
 
 		ctx.insertInto(
@@ -60,18 +60,20 @@ public class DemoBareWorkingState {
 						EMPLOYEES.EMPL_SURNAME,
 						EMPLOYEES.EMPL_DOB,
 						EMPLOYEES.EMPL_PERMANENT,
-						EMPLOYEES.EMPL_GENDER)
+						EMPLOYEES.EMPL_GENDER,
+						EMPLOYEES.EMPL_EXTERNAL_ID)
 				.values(
-						Constants.USER_ROOT,
+						Constants.EMPLOYEE_ROOT,
 						"Admin",
 						DEMO_CLIENT_ID,
 						new java.sql.Date(new Date().getTime()),
 						Boolean.valueOf(false),
-						Boolean.valueOf(false))
+						Boolean.valueOf(false),
+						"::root::employee")
 				.execute();
 
 		ctx.insertInto(USERS, USERS.USER_ID, USERS.USER_PWD, USERS.USER_TYPE, USERS.USER_EMPL_FK)
-				.values(DSL.val(Constants.USER_ROOT), DSL.md5(DEMO_PASSWORD), DSL.val(Constants.USERTYPE_EMPLOYEE), DSL.val(Constants.USER_ROOT))
+				.values(DSL.val(Constants.USER_ROOT), DSL.md5(DEMO_PASSWORD), DSL.val(Constants.USERTYPE_EMPLOYEE), DSL.val(Constants.EMPLOYEE_ROOT))
 				.execute();
 
 		ctx.insertInto(TRAINERPROFILES, TRAINERPROFILES.TRPR_PK, TRAINERPROFILES.TRPR_ID)

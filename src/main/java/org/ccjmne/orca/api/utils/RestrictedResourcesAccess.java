@@ -54,7 +54,7 @@ public class RestrictedResourcesAccess {
 	 * <li>{@link Restrictions#canAccessTrainings()} is <code>true</code></li>
 	 * </ul>
 	 */
-	public boolean accessUnassignedEmployees(final String empl_pk, final String site_pk, final Integer trng_pk, final Map<Integer, List<String>> tagFilters) {
+	public boolean accessUnassignedEmployees(final Integer empl_pk, final Integer site_pk, final Integer trng_pk, final Map<Integer, List<String>> tagFilters) {
 		if ((empl_pk != null) && this.restrictions.canAccessTrainings()) {
 			return true;
 		}
@@ -63,20 +63,20 @@ public class RestrictedResourcesAccess {
 	}
 
 	public SelectQuery<Record> selectEmployees(
-												final String empl_pk,
-												final String site_pk,
+												final Integer empl_pk,
+												final Integer site_pk,
 												final Integer trng_pk,
 												final String dateStr,
 												final Map<Integer, List<String>> tagFilters) {
 		final SelectQuery<Record> query = DSL.select().getQuery();
 		query.addFrom(EMPLOYEES);
-		query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.USER_ROOT));
+		query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT));
 		query.addJoin(
 						SITES_EMPLOYEES,
-						accessUnassignedEmployees(empl_pk, site_pk, trng_pk, tagFilters) ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
+						this.accessUnassignedEmployees(empl_pk, site_pk, trng_pk, tagFilters) ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
 						SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
 						SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)),
-						SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, selectSites(site_pk, tagFilters))));
+						SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.selectSites(site_pk, tagFilters))));
 
 		if (trng_pk != null) {
 			if (!this.restrictions.canAccessTrainings()) {
@@ -113,7 +113,7 @@ public class RestrictedResourcesAccess {
 	 *            Non-null. Map of tag types and values to satisfy for the sites
 	 *            to be selected
 	 */
-	public SelectQuery<Record> selectSites(final String site_pk, final Map<Integer, List<String>> filters) {
+	public SelectQuery<Record> selectSites(final Integer site_pk, final Map<Integer, List<String>> filters) {
 		final SelectQuery<Record> query = DSL.select().getQuery();
 		query.addFrom(SITES);
 		query.addConditions(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE));

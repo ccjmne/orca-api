@@ -8,7 +8,6 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -44,26 +43,26 @@ public class ResourcesByKeysEndpoint {
 
 	@GET
 	@Path("employees")
-	public Map<String, Map<String, Object>> listEmployees(
-															@QueryParam("employee") final String empl_pk,
-															@QueryParam("site") final String site_pk,
+	public Map<Integer, Map<String, Object>> listEmployees(
+															@QueryParam("employee") final Integer empl_pk,
+															@QueryParam("site") final Integer site_pk,
 															@QueryParam("training") final Integer trng_pk,
 															@QueryParam("date") final String dateStr,
 															@QueryParam("fields") final String fields,
 															@Context final UriInfo uriInfo) {
-		return this.resources.listEmployees(empl_pk, site_pk, trng_pk, dateStr, fields, uriInfo).stream()
-				.collect(Collectors.toMap(record -> String.valueOf(record.get(EMPLOYEES.EMPL_PK.getName())), record -> record));
+		return Maps.uniqueIndex(this.resources.listEmployees(empl_pk, site_pk, trng_pk, dateStr, fields, uriInfo),
+								entry -> (Integer) entry.get(EMPLOYEES.EMPL_PK.getName()));
 	}
 
 	@GET
 	@Path("sites")
-	public Map<String, Object> listSites(
-											@QueryParam("site") final String site_pk,
-											@QueryParam("date") final String dateStr,
-											@QueryParam("unlisted") final boolean unlisted,
-											@Context final UriInfo uriInfo) {
-		return this.resources.listSites(site_pk, dateStr, unlisted, uriInfo).stream()
-				.collect(Collectors.toMap(record -> String.valueOf(record.get(SITES.SITE_PK.getName())), record -> record));
+	public Map<Integer, Map<String, Object>> listSites(
+														@QueryParam("site") final Integer site_pk,
+														@QueryParam("date") final String dateStr,
+														@QueryParam("unlisted") final boolean unlisted,
+														@Context final UriInfo uriInfo) {
+		return Maps.uniqueIndex(this.resources.listSites(site_pk, dateStr, unlisted, uriInfo),
+								entry -> (Integer) entry.get(SITES.SITE_PK.getName()));
 	}
 
 	@GET
@@ -94,13 +93,13 @@ public class ResourcesByKeysEndpoint {
 																@QueryParam("date") final String dateStr,
 																@QueryParam("unlisted") final boolean unlisted,
 																@Context final UriInfo uriInfo) {
-		return listSitesGroups(tags_pk, dateStr, unlisted, uriInfo);
+		return this.listSitesGroups(tags_pk, dateStr, unlisted, uriInfo);
 	}
 
 	@GET
 	@Path("trainings")
 	public Map<Integer, Record> listTrainings(
-												@QueryParam("employee") final String empl_pk,
+												@QueryParam("employee") final Integer empl_pk,
 												@QueryParam("type") final List<Integer> types,
 												@QueryParam("date") final String dateStr,
 												@QueryParam("from") final String fromStr,

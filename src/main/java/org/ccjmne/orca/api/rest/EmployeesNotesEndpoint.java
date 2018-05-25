@@ -37,7 +37,7 @@ public class EmployeesNotesEndpoint {
 	@PUT
 	@Path("{empl_pk}")
 	@Consumes(MediaType.APPLICATION_JSON)
-	public void setNotes(@PathParam("empl_pk") final String empl_pk, final Map<String, String> data) {
+	public void setNotes(@PathParam("empl_pk") final Integer empl_pk, final Map<String, String> data) {
 		this.ctx.update(EMPLOYEES).set(EMPLOYEES.EMPL_NOTES, data.get(EMPLOYEES.EMPL_NOTES.getName()))
 				.where(EMPLOYEES.EMPL_PK.eq(empl_pk)).execute();
 	}
@@ -46,7 +46,7 @@ public class EmployeesNotesEndpoint {
 	@Path("{empl_pk}/voiding")
 	@Consumes(MediaType.APPLICATION_JSON)
 	public void optOut(
-						@PathParam("empl_pk") final String empl_pk,
+						@PathParam("empl_pk") final Integer empl_pk,
 						@QueryParam("cert_pk") final Integer cert_pk,
 						@QueryParam("date") final java.sql.Date date,
 						final Map<String, String> data) {
@@ -70,7 +70,7 @@ public class EmployeesNotesEndpoint {
 
 	@DELETE
 	@Path("{empl_pk}/voiding")
-	public void optBackIn(@PathParam("empl_pk") final String empl_pk, @QueryParam("cert_pk") final Integer cert_pk) {
+	public void optBackIn(@PathParam("empl_pk") final Integer empl_pk, @QueryParam("cert_pk") final Integer cert_pk) {
 		this.ctx.deleteFrom(EMPLOYEES_VOIDINGS).where(EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(empl_pk))
 				.and(EMPLOYEES_VOIDINGS.EMVO_CERT_FK.eq(cert_pk)).execute();
 	}
