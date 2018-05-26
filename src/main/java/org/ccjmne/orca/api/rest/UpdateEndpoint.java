@@ -26,6 +26,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
@@ -61,7 +62,7 @@ public class UpdateEndpoint {
 	@SuppressWarnings("unchecked")
 	public Boolean insertSite(@PathParam("site_pk") final Integer site_pk, final Map<String, Object> siteDefinition) {
 		return Transactions.with(this.ctx, transactionCtx -> {
-
+			final Map<String, Object> tags = ObjectUtils.defaultIfNull((Map<String, Object>) siteDefinition.remove("tags"), Collections.emptyMap());
 			final boolean exists = transactionCtx.fetchExists(SITES, SITES.SITE_PK.eq(site_pk));
 			if (exists) {
 				transactionCtx.update(SITES).set(siteDefinition).where(SITES.SITE_PK.eq(site_pk)).execute();
@@ -73,7 +74,7 @@ public class UpdateEndpoint {
 			}
 
 			transactionCtx.deleteFrom(SITES_TAGS).where(SITES_TAGS.SITA_SITE_FK.eq(site_pk)).execute();
-			transactionCtx.batchInsert(((Map<String, Object>) siteDefinition.getOrDefault("tags", Collections.emptyMap())).entrySet().stream()
+			transactionCtx.batchInsert(tags.entrySet().stream()
 					.map(tag -> {
 						if (Constants.TAGS_VALUE_NONE.equals(tag.getValue()) || Constants.TAGS_VALUE_UNIVERSAL.equals(tag.getValue())) {
 							throw new IllegalArgumentException(String.format("Invalid tag value: '%s'", tag.getValue()));
