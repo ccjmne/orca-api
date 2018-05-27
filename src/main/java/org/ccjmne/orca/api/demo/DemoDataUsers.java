@@ -18,7 +18,7 @@ import org.jooq.impl.DSL;
 public class DemoDataUsers {
 
 	private static final Random RANDOM = new Random();
-	private static final Field<String> GENERATED_PASSWORD = DSL.md5("");
+	private static final Field<String> GENERATED_PASSWORD = DSL.md5(DemoBareWorkingState.DEMO_PASSWORD);
 
 	public static void generate(final DSLContext ctx) {
 		ctx.selectFrom(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT)).orderBy(DSL.rand()).limit(30).forEach(empl -> {

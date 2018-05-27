@@ -19,7 +19,7 @@ import com.amazonaws.services.s3.model.DeleteObjectRequest;
 
 public class DemoBareWorkingState {
 
-	private static final String DEMO_PASSWORD = "pwd";
+	public static final String DEMO_PASSWORD = "pwd";
 
 	private static final String DEMO_CLIENT_ID = "demo";
 	private static final String DEMO_CLIENT_NAME = "Version de démonstration";
