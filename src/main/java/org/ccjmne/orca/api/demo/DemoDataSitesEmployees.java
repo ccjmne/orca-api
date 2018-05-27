@@ -15,7 +15,11 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.jooq.classes.tables.records.EmployeesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.SitesRecord;
+import org.ccjmne.orca.jooq.classes.tables.records.SitesTagsRecord;
 import org.jooq.DSLContext;
+import org.jooq.Insert;
 import org.jooq.Record1;
 import org.jooq.Row1;
 import org.jooq.Table;
@@ -24,8 +28,8 @@ import org.jooq.impl.DSL;
 public class DemoDataSitesEmployees {
 
 	public static void generate(final DSLContext ctx) {
-		DemoDataSitesEmployees.addSites(ctx, 200);
-		DemoDataSitesEmployees.addEmployees(ctx, 5000);
+		ctx.batchInsert(DemoDataSitesEmployees.addSites(200)).execute();
+		ctx.batchInsert(DemoDataSitesEmployees.addEmployees(5000)).execute();
 
 		// GEO tags
 		DemoDataSitesEmployees.insertTags(	ctx, ctx.insertInto(TAGS, TAGS.TAGS_NAME, TAGS.TAGS_SHORT, TAGS.TAGS_TYPE, TAGS.TAGS_HEX_COLOUR)
@@ -87,11 +91,11 @@ public class DemoDataSitesEmployees {
 				.execute();
 	}
 
-	private static void addEmployees(final DSLContext ctx, final int amount) {
-		ctx.batchInsert(IntStream.rangeClosed(1, amount).mapToObj(FakeRecords::randomEmployee).collect(Collectors.toList())).execute();
+	private static List<EmployeesRecord> addEmployees(final int amount) {
+		return IntStream.rangeClosed(1, amount).mapToObj(new FakeRecords()::employee).collect(Collectors.toList());
 	}
 
-	private static void addSites(final DSLContext ctx, final int amount) {
-		ctx.batchInsert(IntStream.rangeClosed(1, amount).mapToObj(FakeRecords::randomSite).collect(Collectors.toList())).execute();
+	private static List<SitesRecord> addSites(final int amount) {
+		return IntStream.rangeClosed(1, amount).mapToObj(new FakeRecords()::site).collect(Collectors.toList());
 	}
 }

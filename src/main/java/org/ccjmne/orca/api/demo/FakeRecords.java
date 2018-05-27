@@ -27,49 +27,51 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.Range;
 
+@SuppressWarnings("unchecked")
 public class FakeRecords {
 
 	private static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
-	private static final FakeRecords INSTANCE = new FakeRecords();
 
-	private final Map<String, List<String>> firstNames;
-	private final List<String> lastNames;
-	private final List<String> cities;
+	private static Map<String, List<String>> FIRST_NAMES;
+	private static List<String> LAST_NAMES;
+	private static List<String> CITIES;
 
-	private final Range<LocalDate> dobRange = Range.closed(LocalDate.now().minusYears(60), LocalDate.now().minusYears(20));
-	private final Range<LocalDate> cancelledTraining = Range.closed(LocalDate.now().minusYears(4), LocalDate.now());
-	private final Range<LocalDate> completedTraining = Range.closed(LocalDate.now().minusYears(4), LocalDate.now());
-	private final Range<LocalDate> scheduledTraining = Range.closed(LocalDate.now(), LocalDate.now().plusMonths(6));
-
-	public static SitesRecord randomSite(final int primaryKey) {
-		return INSTANCE.site(Integer.valueOf(primaryKey));
-	}
-
-	public static EmployeesRecord randomEmployee(final int primaryKey) {
-		return INSTANCE.employee(Integer.valueOf(primaryKey));
-	}
-
-	public static Table<Record4<Integer, Date, String, String>> randomSessions(final String outcome, final int amount) {
-		return INSTANCE.sessions(outcome, amount);
-	}
-
-	@SuppressWarnings("unchecked")
-	private FakeRecords() {
+	static {
 		try {
 			final Map<String, Object> res = new ObjectMapper(new YAMLFactory())
 					.readValue(	FakeRecords.class.getClassLoader().getResourceAsStream("resources.yaml"),
 								TypeFactory.defaultInstance().constructParametricType(Map.class, String.class, Object.class));
-			this.lastNames = (List<String>) res.get("lastNames");
-			this.firstNames = (Map<String, List<String>>) res.get("firstNames");
-			this.cities = (List<String>) res.get("cities");
+			FakeRecords.LAST_NAMES = (List<String>) res.get("lastNames");
+			FakeRecords.FIRST_NAMES = (Map<String, List<String>>) res.get("firstNames");
+			FakeRecords.CITIES = (List<String>) res.get("cities");
 		} catch (final Exception e) {
 			// Can *not* happen
 			throw new RuntimeException(e);
 		}
 	}
 
-	private SitesRecord site(final Integer primaryKey) {
-		final String cityName = FakeRecords.anyFrom(this.cities);
+	private final Range<LocalDate> dobRange;
+	private final Range<LocalDate> cancelledTraining;
+	private final Range<LocalDate> completedTraining;
+	private final Range<LocalDate> scheduledTraining;
+
+	public static <R> Field<R> random(final Table<?> table, final Field<R> field, final Condition... conditions) {
+		return DSL.select(field).from(table).where(conditions).orderBy(DSL.rand()).limit(1).asField();
+	}
+
+	public static List<? extends Field<?>> asFields(final Object... values) {
+		return Arrays.asList(values).stream().map(v -> v instanceof Field<?> ? (Field<?>) v : DSL.val(v)).collect(Collectors.toList());
+	}
+
+	public FakeRecords() {
+		this.dobRange = Range.closed(LocalDate.now().minusYears(60), LocalDate.now().minusYears(20));
+		this.cancelledTraining = Range.closed(LocalDate.now().minusYears(4), LocalDate.now());
+		this.completedTraining = Range.closed(LocalDate.now().minusYears(4), LocalDate.now());
+		this.scheduledTraining = Range.closed(LocalDate.now(), LocalDate.now().plusMonths(6));
+	}
+
+	public SitesRecord site(final Integer primaryKey) {
+		final String cityName = FakeRecords.anyFrom(FakeRecords.CITIES);
 		return new SitesRecord(	primaryKey,
 								cityName,
 								"",
@@ -77,15 +79,15 @@ public class FakeRecords {
 								String.format("site-%04d", primaryKey));
 	}
 
-	private EmployeesRecord employee(final Integer primaryKey) {
+	public EmployeesRecord employee(final Integer primaryKey) {
 		final boolean isMale = RANDOM.nextBoolean();
-		final String firstName = FakeRecords.anyFrom(this.firstNames.get(isMale ? "male" : "female"));
-		final String surname = FakeRecords.anyFrom(this.lastNames);
+		final String firstName = FakeRecords.anyFrom(FakeRecords.FIRST_NAMES.get(isMale ? "male" : "female"));
+		final String surname = FakeRecords.anyFrom(FakeRecords.LAST_NAMES);
 		return new EmployeesRecord(
 									primaryKey,
 									firstName,
 									surname,
-									FakeRecords.anyFrom(this.dobRange),
+									FakeRecords.anyWithin(this.dobRange),
 									Boolean.valueOf(RANDOM.nextBoolean()),
 									FakeRecords.asEmail(String.format("%s.%s", firstName, surname)),
 									"",
@@ -93,20 +95,19 @@ public class FakeRecords {
 									String.format("empl-%04d", primaryKey));
 	}
 
-	@SuppressWarnings("unchecked")
-	private Table<Record4<Integer, Date, String, String>> sessions(final String outcome, final int amount) {
+	public Table<Record4<Integer, Date, String, String>> sessions(final String outcome, final int amount) {
 		return DSL.values(IntStream.range(0, amount)
 				.mapToObj(i -> {
 					final Date date;
 					switch (outcome) {
 						case Constants.TRNG_OUTCOME_CANCELLED:
-							date = FakeRecords.anyFrom(this.cancelledTraining);
+							date = FakeRecords.anyWithin(this.cancelledTraining);
 							break;
 						case Constants.TRNG_OUTCOME_COMPLETED:
-							date = FakeRecords.anyFrom(this.completedTraining);
+							date = FakeRecords.anyWithin(this.completedTraining);
 							break;
 						case Constants.TRNG_OUTCOME_SCHEDULED:
-							date = FakeRecords.anyFrom(this.scheduledTraining);
+							date = FakeRecords.anyWithin(this.scheduledTraining);
 							break;
 						default:
 							// Can *not* happen
@@ -130,16 +131,8 @@ public class FakeRecords {
 		return source.get(RANDOM.nextInt(source.size()));
 	}
 
-	private static Date anyFrom(final Range<LocalDate> dateRange) {
+	private static Date anyWithin(final Range<LocalDate> dateRange) {
 		return Date.valueOf(LocalDate
 				.ofEpochDay(RANDOM.nextLong(dateRange.lowerEndpoint().toEpochDay(), dateRange.upperEndpoint().toEpochDay())));
-	}
-
-	private static List<? extends Field<?>> asFields(final Object... values) {
-		return Arrays.asList(values).stream().map(v -> v instanceof Field<?> ? (Field<?>) v : DSL.val(v)).collect(Collectors.toList());
-	}
-
-	private static <R> Field<R> random(final Table<?> table, final Field<R> field, final Condition... conditions) {
-		return DSL.select(field).from(table).where(conditions).orderBy(DSL.rand()).limit(1).asField();
 	}
 }
