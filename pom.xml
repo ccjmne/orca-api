@@ -78,12 +78,6 @@
 			<version>2.2.3</version>
 		</dependency>
 
-		<dependency>
-			<groupId>io.codearte.jfairy</groupId>
-			<artifactId>jfairy</artifactId>
-			<version>0.5.7</version>
-		</dependency>
-
 		<!-- DB CONNECTIONS POOL -->
 		<dependency>
 			<groupId>com.zaxxer</groupId>
