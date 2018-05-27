@@ -60,7 +60,7 @@ public class FakeRecords {
 	}
 
 	public static List<? extends Field<?>> asFields(final Object... values) {
-		return Arrays.asList(values).stream().map(v -> v instanceof Field<?> ? (Field<?>) v : DSL.val(v)).collect(Collectors.toList());
+		return Arrays.stream(values).map(v -> null == v ? DSL.field("?", v) : v instanceof Field<?> ? (Field<?>) v : DSL.val(v)).collect(Collectors.toList());
 	}
 
 	public FakeRecords() {
