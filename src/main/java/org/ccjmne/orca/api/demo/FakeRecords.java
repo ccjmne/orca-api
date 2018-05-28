@@ -70,29 +70,18 @@ public class FakeRecords {
 		this.scheduledTraining = Range.closed(LocalDate.now(), LocalDate.now().plusMonths(6));
 	}
 
-	public SitesRecord site(final Integer primaryKey) {
+	public SitesRecord site(final Integer uniqueId) {
 		final String cityName = FakeRecords.anyFrom(FakeRecords.CITIES);
-		return new SitesRecord(	primaryKey,
-								cityName,
-								"",
-								FakeRecords.asEmail(cityName),
-								String.format("site-%04d", primaryKey));
+		return new SitesRecord(null, cityName, "", FakeRecords.asEmail(cityName), String.format("site-%04d", uniqueId));
 	}
 
-	public EmployeesRecord employee(final Integer primaryKey) {
+	public EmployeesRecord employee(final Integer uniqueId) {
 		final boolean isMale = RANDOM.nextBoolean();
 		final String firstName = FakeRecords.anyFrom(FakeRecords.FIRST_NAMES.get(isMale ? "male" : "female"));
 		final String surname = FakeRecords.anyFrom(FakeRecords.LAST_NAMES);
-		return new EmployeesRecord(
-									primaryKey,
-									firstName,
-									surname,
-									FakeRecords.anyWithin(this.dobRange),
-									Boolean.valueOf(RANDOM.nextBoolean()),
-									FakeRecords.asEmail(String.format("%s.%s", firstName, surname)),
-									"",
-									Boolean.valueOf(isMale),
-									String.format("empl-%04d", primaryKey));
+		return new EmployeesRecord(	null, firstName, surname, FakeRecords.anyWithin(this.dobRange), Boolean.valueOf(RANDOM.nextBoolean()),
+									FakeRecords.asEmail(String.format("%s.%s", firstName, surname)), "", Boolean.valueOf(isMale),
+									String.format("empl-%04d", uniqueId));
 	}
 
 	public Table<Record4<Integer, Date, String, String>> sessions(final String outcome, final int amount) {
