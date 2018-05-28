@@ -12,6 +12,9 @@ import java.util.Date;
 import org.ccjmne.orca.api.rest.ClientEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.Sequence;
+import org.jooq.TableField;
 import org.jooq.impl.DSL;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -52,6 +55,7 @@ public class DemoBareWorkingState {
 		ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_EXTERNAL_ID)
 				.values(Constants.UNASSIGNED_SITE, "", "::decommissioned::site")
 				.execute();
+		ctx.alterSequence(DemoBareWorkingState.sequenceFor(SITES.SITE_PK)).restartWith(Integer.valueOf(1)).execute();
 
 		ctx.insertInto(
 						EMPLOYEES,
@@ -71,6 +75,7 @@ public class DemoBareWorkingState {
 						Boolean.valueOf(false),
 						"::root::employee")
 				.execute();
+		ctx.alterSequence(DemoBareWorkingState.sequenceFor(EMPLOYEES.EMPL_PK)).restartWith(Integer.valueOf(1)).execute();
 
 		ctx.insertInto(USERS, USERS.USER_ID, USERS.USER_PWD, USERS.USER_TYPE, USERS.USER_EMPL_FK)
 				.values(DSL.val(Constants.USER_ROOT), DSL.md5(DEMO_PASSWORD), DSL.val(Constants.USERTYPE_EMPLOYEE), DSL.val(Constants.EMPLOYEE_ROOT))
@@ -87,5 +92,10 @@ public class DemoBareWorkingState {
 				.values(Constants.USER_ROOT, Constants.ROLE_ADMIN, Integer.valueOf(4), null)
 				.execute();
 
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T extends Number> Sequence<T> sequenceFor(final TableField<? extends Record, T> ownedBy) {
+		return (Sequence<T>) CLIENT.getSchema().getSequence(String.format("%s_%s_seq", ownedBy.getTable().getName(), ownedBy.getName()));
 	}
 }

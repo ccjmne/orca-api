@@ -95,10 +95,10 @@ public class DemoDataSitesEmployees {
 	}
 
 	private static List<EmployeesRecord> addEmployees(final int amount) {
-		return IntStream.rangeClosed(1, amount).mapToObj(new FakeRecords()::employee).collect(Collectors.toList());
+		return IntStream.rangeClosed(1, amount).mapToObj(new FakeRecords()::employee).peek(empl -> empl.reset(EMPLOYEES.EMPL_PK)).collect(Collectors.toList());
 	}
 
 	private static List<SitesRecord> addSites(final int amount) {
-		return IntStream.rangeClosed(1, amount).mapToObj(new FakeRecords()::site).collect(Collectors.toList());
+		return IntStream.rangeClosed(1, amount).mapToObj(new FakeRecords()::site).peek(site -> site.reset(SITES.SITE_PK)).collect(Collectors.toList());
 	}
 }
