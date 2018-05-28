@@ -26,6 +26,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.classes.tables.records.UsersRolesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -181,63 +182,61 @@ public class UsersEndpoint {
 	 */
 	@SuppressWarnings("unchecked")
 	public String insertUserImpl(final String user_id, final Map<String, Object> data) {
-		return this.ctx.transactionResult((config) -> {
-			try (final DSLContext transactionCtx = DSL.using(config)) {
-				final String password;
-				if (!transactionCtx.fetchExists(USERS, USERS.USER_ID.eq(user_id))) {
-					transactionCtx.insertInto(USERS, USERS.USER_ID, USERS.USER_PWD, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK)
-							.values(
-									DSL.val(user_id),
-									DSL.md5(password = UsersEndpoint.generatePassword()),
-									DSL.val((String) data.get(USERS.USER_TYPE.getName())),
-									DSL.val((Integer) data.get(USERS.USER_EMPL_FK.getName())),
-									DSL.val((Integer) data.get(USERS.USER_SITE_FK.getName())))
-							.execute();
-				} else {
-					password = null;
-					transactionCtx.update(USERS)
-							.set(USERS.USER_TYPE, (String) data.get(USERS.USER_TYPE.getName()))
-							.set(USERS.USER_EMPL_FK, (Integer) data.get(USERS.USER_EMPL_FK.getName()))
-							.set(USERS.USER_SITE_FK, (Integer) data.get(USERS.USER_SITE_FK.getName()))
-							.where(USERS.USER_ID.eq(user_id)).execute();
-				}
+		return Transactions.with(this.ctx, transactionCtx -> {
+			final String password;
+			if (!transactionCtx.fetchExists(USERS, USERS.USER_ID.eq(user_id))) {
+				transactionCtx.insertInto(USERS, USERS.USER_ID, USERS.USER_PWD, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK)
+						.values(
+								DSL.val(user_id),
+								DSL.md5(password = UsersEndpoint.generatePassword()),
+								DSL.val((String) data.get(USERS.USER_TYPE.getName())),
+								DSL.val((Integer) data.get(USERS.USER_EMPL_FK.getName())),
+								DSL.val((Integer) data.get(USERS.USER_SITE_FK.getName())))
+						.execute();
+			} else {
+				password = null;
+				transactionCtx.update(USERS)
+						.set(USERS.USER_TYPE, (String) data.get(USERS.USER_TYPE.getName()))
+						.set(USERS.USER_EMPL_FK, (Integer) data.get(USERS.USER_EMPL_FK.getName()))
+						.set(USERS.USER_SITE_FK, (Integer) data.get(USERS.USER_SITE_FK.getName()))
+						.where(USERS.USER_ID.eq(user_id)).execute();
+			}
 
-				transactionCtx.delete(USERS_ROLES).where(USERS_ROLES.USER_ID.eq(user_id)).execute();
-				final Map<String, Object> roles = (Map<String, Object>) data.get("roles");
-				if ((roles != null) && !roles.isEmpty()) {
-					for (final String type : roles.keySet()) {
-						final Field<Integer> specification;
-						switch (type) {
-							case Constants.ROLE_ACCESS:
-								if (Constants.ACCESS_LEVEL_ONESELF.equals(roles.get(type))) {
-									throw new IllegalArgumentException(String
-											.format("Cannot create users with Access level '%d' in the current version.", Constants.ACCESS_LEVEL_ONESELF));
-								}
+			transactionCtx.delete(USERS_ROLES).where(USERS_ROLES.USER_ID.eq(user_id)).execute();
+			final Map<String, Object> roles = (Map<String, Object>) data.get("roles");
+			if ((roles != null) && !roles.isEmpty()) {
+				for (final String type : roles.keySet()) {
+					final Field<Integer> specification;
+					switch (type) {
+						case Constants.ROLE_ACCESS:
+							if (Constants.ACCESS_LEVEL_ONESELF.equals(roles.get(type))) {
+								throw new IllegalArgumentException(String
+										.format("Cannot create users with Access level '%d' in the current version.", Constants.ACCESS_LEVEL_ONESELF));
+							}
 
-								//$FALL-THROUGH$
-							case Constants.ROLE_ADMIN:
-								specification = USERS_ROLES.USRO_LEVEL;
-								break;
-							case Constants.ROLE_TRAINER:
-								specification = USERS_ROLES.USRO_TRPR_FK;
-								break;
-							default:
-								specification = null;
-						}
+							//$FALL-THROUGH$
+						case Constants.ROLE_ADMIN:
+							specification = USERS_ROLES.USRO_LEVEL;
+							break;
+						case Constants.ROLE_TRAINER:
+							specification = USERS_ROLES.USRO_TRPR_FK;
+							break;
+						default:
+							specification = null;
+					}
 
-						if (specification == null) {
-							transactionCtx.insertInto(USERS_ROLES).set(USERS_ROLES.USER_ID, user_id).set(USERS_ROLES.USRO_TYPE, type).execute();
-						} else {
-							transactionCtx.insertInto(USERS_ROLES)
-									.set(USERS_ROLES.USER_ID, user_id)
-									.set(USERS_ROLES.USRO_TYPE, type)
-									.set(specification, (Integer) roles.get(type)).execute();
-						}
+					if (specification == null) {
+						transactionCtx.insertInto(USERS_ROLES).set(USERS_ROLES.USER_ID, user_id).set(USERS_ROLES.USRO_TYPE, type).execute();
+					} else {
+						transactionCtx.insertInto(USERS_ROLES)
+								.set(USERS_ROLES.USER_ID, user_id)
+								.set(USERS_ROLES.USRO_TYPE, type)
+								.set(specification, (Integer) roles.get(type)).execute();
 					}
 				}
-
-				return password;
 			}
+
+			return password;
 		});
 	}
 
@@ -250,10 +249,16 @@ public class UsersEndpoint {
 	/**
 	 * Not part of the exposed API. Used by {@link AccountEndpoint} only.
 	 */
-	public static void changeIdImpl(final String user_id, final String newId, final DSLContext ctx) {
-		if (0 == ctx.update(USERS).set(USERS.USER_ID, newId).where(USERS.USER_ID.eq(user_id)).execute()) {
-			throw new IllegalArgumentException(String.format("The user '%s' does not exist.", user_id));
-		}
+	/* package */ static void changeIdImpl(final String user_id, final String newId, final DSLContext ctx) {
+		Transactions.with(ctx, transactionCtx -> {
+			if (transactionCtx.fetchExists(USERS, USERS.USER_ID.ne(user_id).and(USERS.USER_ID.eq(newId)))) {
+				throw new IllegalArgumentException(String.format("The ID '%s' is already attributed to another user and thus is not available.", newId));
+			}
+
+			if (0 == transactionCtx.update(USERS).set(USERS.USER_ID, newId).where(USERS.USER_ID.eq(user_id)).execute()) {
+				throw new IllegalArgumentException(String.format("The user '%s' does not exist.", user_id));
+			}
+		});
 	}
 
 	@DELETE
@@ -283,15 +288,13 @@ public class UsersEndpoint {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@SuppressWarnings({ "unchecked", "null" })
 	public Integer createTrainerprofile(final Map<String, Object> level) {
-		return this.ctx.transactionResult((config) -> {
-			try (final DSLContext transactionCtx = DSL.using(config)) {
-				final Integer trpr_pk = transactionCtx.select(DSL.max(TRAINERPROFILES.TRPR_PK).add(Integer.valueOf(1)).as(TRAINERPROFILES.TRPR_PK.getName()))
-						.from(TRAINERPROFILES).fetchOne(TRAINERPROFILES.TRPR_PK.getName(), Integer.class);
-				transactionCtx.insertInto(TRAINERPROFILES, TRAINERPROFILES.TRPR_PK, TRAINERPROFILES.TRPR_ID)
-						.values(trpr_pk, (String) level.get(TRAINERPROFILES.TRPR_ID.getName())).execute();
-				UsersEndpoint.insertTypes(trpr_pk, (List<Integer>) level.get("types"), transactionCtx);
-				return trpr_pk;
-			}
+		return Transactions.with(this.ctx, transactionCtx -> {
+			final Integer trpr_pk = transactionCtx.select(DSL.max(TRAINERPROFILES.TRPR_PK).add(Integer.valueOf(1)).as(TRAINERPROFILES.TRPR_PK.getName()))
+					.from(TRAINERPROFILES).fetchOne(TRAINERPROFILES.TRPR_PK.getName(), Integer.class);
+			transactionCtx.insertInto(TRAINERPROFILES, TRAINERPROFILES.TRPR_PK, TRAINERPROFILES.TRPR_ID)
+					.values(trpr_pk, (String) level.get(TRAINERPROFILES.TRPR_ID.getName())).execute();
+			UsersEndpoint.insertTypes(trpr_pk, (List<Integer>) level.get("types"), transactionCtx);
+			return trpr_pk;
 		});
 	}
 
@@ -300,12 +303,10 @@ public class UsersEndpoint {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@SuppressWarnings("unchecked")
 	public void updateTrainerprofile(@PathParam("trpr_pk") final Integer trpr_pk, final Map<String, Object> level) {
-		this.ctx.transaction((config) -> {
-			try (final DSLContext transactionCtx = DSL.using(config)) {
-				transactionCtx.update(TRAINERPROFILES).set(TRAINERPROFILES.TRPR_ID, (String) level.get(TRAINERPROFILES.TRPR_ID.getName()))
-						.where(TRAINERPROFILES.TRPR_PK.eq(trpr_pk)).execute();
-				UsersEndpoint.insertTypes(trpr_pk, (List<Integer>) level.get("types"), transactionCtx);
-			}
+		Transactions.with(this.ctx, transactionCtx -> {
+			transactionCtx.update(TRAINERPROFILES).set(TRAINERPROFILES.TRPR_ID, (String) level.get(TRAINERPROFILES.TRPR_ID.getName()))
+					.where(TRAINERPROFILES.TRPR_PK.eq(trpr_pk)).execute();
+			UsersEndpoint.insertTypes(trpr_pk, (List<Integer>) level.get("types"), transactionCtx);
 		});
 	}
 
