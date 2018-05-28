@@ -72,7 +72,7 @@ public class FakeRecords {
 
 	public SitesRecord site(final Integer uniqueId) {
 		final String cityName = FakeRecords.anyFrom(FakeRecords.CITIES);
-		return new SitesRecord(null, cityName, "", FakeRecords.asEmail(cityName), String.format("site-%04d", uniqueId));
+		return new SitesRecord(null, cityName, "", FakeRecords.asEmail(cityName), String.format("S%04d", uniqueId));
 	}
 
 	public EmployeesRecord employee(final Integer uniqueId) {
@@ -81,7 +81,7 @@ public class FakeRecords {
 		final String surname = FakeRecords.anyFrom(FakeRecords.LAST_NAMES);
 		return new EmployeesRecord(	null, firstName, surname, FakeRecords.anyWithin(this.dobRange), Boolean.valueOf(RANDOM.nextBoolean()),
 									FakeRecords.asEmail(String.format("%s.%s", firstName, surname)), "", Boolean.valueOf(isMale),
-									String.format("empl-%04d", uniqueId));
+									String.format("E%04d", uniqueId));
 	}
 
 	public Table<Record4<Integer, Date, String, String>> sessions(final String outcome, final int amount) {
