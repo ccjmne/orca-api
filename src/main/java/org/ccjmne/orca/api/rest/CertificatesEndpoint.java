@@ -131,7 +131,7 @@ public class CertificatesEndpoint {
 
 				transactionCtx
 						.insertInto(TRAINERPROFILES_TRAININGTYPES, TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK, TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK)
-						.values(Constants.UNASSIGNED_TRAINERPROFILE, trty_pk).execute();
+						.values(Constants.DEFAULT_TRAINERPROFILE, trty_pk).execute();
 			}
 
 			transactionCtx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(trty_pk)).execute();

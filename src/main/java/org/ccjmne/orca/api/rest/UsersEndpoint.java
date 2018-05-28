@@ -326,7 +326,7 @@ public class UsersEndpoint {
 
 	@SuppressWarnings("unchecked")
 	private static void insertTypes(final Integer trpr_pk, final List<Integer> types, final DSLContext transactionCtx) {
-		if (Constants.UNASSIGNED_TRAINERPROFILE.equals(trpr_pk)) {
+		if (Constants.DEFAULT_TRAINERPROFILE.equals(trpr_pk)) {
 			return;
 		}
 

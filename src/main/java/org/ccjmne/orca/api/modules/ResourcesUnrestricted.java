@@ -63,7 +63,7 @@ public class ResourcesUnrestricted {
 				final Select<?> valuesStats = DSL
 						.select(DSL.count(SITES_TAGS.SITA_VALUE).as("count"), SITES_TAGS.SITA_VALUE, SITES_TAGS.SITA_TAGS_FK)
 						.from(SITES_TAGS)
-						.where(SITES_TAGS.SITA_SITE_FK.ne(Constants.UNASSIGNED_SITE))
+						.where(SITES_TAGS.SITA_SITE_FK.ne(Constants.DECOMMISSIONED_SITE))
 						.groupBy(SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE);
 				final Select<?> tagsStats = DSL
 						.select(DSL.arrayAgg(valuesStats.field(SITES_TAGS.SITA_VALUE)).as("values"),

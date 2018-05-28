@@ -70,14 +70,14 @@ public class DemoDataSitesEmployees {
 				.select(DSL.select(DSL.val(update), DSL.field("site_pk", Integer.class), DSL.field("empl_pk", Integer.class))
 						.from(DSL.select(
 											EMPLOYEES.EMPL_PK,
-											DSL.floor(DSL.rand().mul(DSL.select(DSL.count()).from(SITES).where(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE))
+											DSL.floor(DSL.rand().mul(DSL.select(DSL.count()).from(SITES).where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE))
 													.asField()).add(DSL.val(1)))
 													.as("linked_site_id"))
 								.from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT)).asTable("employees_view"))
 						.join(DSL.select(
 											SITES.SITE_PK,
 											DSL.rowNumber().over().orderBy(DSL.rand()).as("site_id"))
-								.from(SITES).where(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE)).asTable("sites_view"))
+								.from(SITES).where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE)).asTable("sites_view"))
 						.on(DSL.field("linked_site_id").eq(DSL.field("site_id"))))
 				.execute();
 	}
@@ -89,7 +89,7 @@ public class DemoDataSitesEmployees {
 						.from(DSL
 								.select(SITES.SITE_PK.as("site"),
 										DSL.rowNumber().over().orderBy(DSL.rand()).mod(Integer.valueOf(values.length)).plus(Integer.valueOf(1)).as("tag_fk"))
-								.from(SITES).where(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE)))
+								.from(SITES).where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE)))
 						.join(DSL.select(tagsTable.field(0, String.class).as("tag"), DSL.rowNumber().over().as("tag_pk")).from(tagsTable))
 						.on(DSL.field("tag_fk").eq(DSL.field("tag_pk"))));
 	}

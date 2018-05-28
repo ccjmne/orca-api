@@ -135,14 +135,14 @@ public class DemoCommonResources {
 				.execute();
 
 		ctx.insertInto(TRAINERPROFILES_TRAININGTYPES, TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK, TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK)
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), DemoCommonResources.getType(TRTY_SSTI))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), DemoCommonResources.getType(TRTY_SSTR))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), DemoCommonResources.getType(TRTY_EPI))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), DemoCommonResources.getType(TRTY_DAE))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), DemoCommonResources.getType(TRTY_H0B0))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), DemoCommonResources.getType(TRTY_EVAC))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), DemoCommonResources.getType(TRTY_FSSTI))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), DemoCommonResources.getType(TRTY_FSSTR))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_SSTI))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_SSTR))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_EPI))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_DAE))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_H0B0))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_EVAC))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_FSSTI))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_FSSTR))
 
 				.values(DemoCommonResources.getTrainerProfile(TRAINERPROFILE_ALTERNATE), DemoCommonResources.getType(TRTY_EPI))
 				.values(DemoCommonResources.getTrainerProfile(TRAINERPROFILE_ALTERNATE), DemoCommonResources.getType(TRTY_DAE))

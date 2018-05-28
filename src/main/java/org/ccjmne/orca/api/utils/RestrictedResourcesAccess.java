@@ -116,7 +116,7 @@ public class RestrictedResourcesAccess {
 	public SelectQuery<Record> selectSites(final Integer site_pk, final Map<Integer, List<String>> filters) {
 		final SelectQuery<Record> query = DSL.select().getQuery();
 		query.addFrom(SITES);
-		query.addConditions(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE));
+		query.addConditions(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE));
 		if ((site_pk == null) && !this.restrictions.canAccessAllSites()) {
 			if (this.restrictions.getAccessibleSites().isEmpty()) {
 				throw new ForbiddenException();

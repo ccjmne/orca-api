@@ -45,7 +45,7 @@ public class DemoDataUsers {
 			}
 		});
 
-		ctx.selectFrom(SITES).where(SITES.SITE_PK.ne(Constants.UNASSIGNED_SITE)).orderBy(DSL.rand()).limit(10).forEach(site -> {
+		ctx.selectFrom(SITES).where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE)).orderBy(DSL.rand()).limit(10).forEach(site -> {
 			ctx.insertInto(USERS, USERS.USER_ID, USERS.USER_TYPE, USERS.USER_SITE_FK, USERS.USER_PWD)
 					.values(FakeRecords.asFields(site.getSiteExternalId(), Constants.USERTYPE_SITE, site.getSitePk(), GENERATED_PASSWORD))
 					.execute();

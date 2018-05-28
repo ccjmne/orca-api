@@ -86,7 +86,7 @@ public class Restrictions {
 			site = this.ctx.selectFrom(SITES_EMPLOYEES)
 					.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(user.getUserEmplFk())
 							.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.CURRENT_UPDATE))
-							.and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.UNASSIGNED_SITE)))
+							.and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.DECOMMISSIONED_SITE)))
 					.fetchOne(SITES_EMPLOYEES.SIEM_SITE_FK);
 		} else {
 			// Constants.USERTYPE_SITE

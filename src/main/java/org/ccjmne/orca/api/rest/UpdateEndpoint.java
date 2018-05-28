@@ -99,7 +99,7 @@ public class UpdateEndpoint {
 			final boolean exists = transactionCtx.selectFrom(SITES).where(SITES.SITE_PK.equal(site_pk)).fetch().isNotEmpty();
 			if (exists) {
 				transactionCtx.update(SITES_EMPLOYEES)
-						.set(SITES_EMPLOYEES.SIEM_SITE_FK, Constants.UNASSIGNED_SITE)
+						.set(SITES_EMPLOYEES.SIEM_SITE_FK, Constants.DECOMMISSIONED_SITE)
 						.where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk)).execute();
 				transactionCtx.delete(SITES).where(SITES.SITE_PK.eq(site_pk)).execute();
 			}
@@ -145,7 +145,7 @@ public class UpdateEndpoint {
 					.select(
 							transactionCtx.select(
 													EMPLOYEES.EMPL_PK,
-													DSL.val(Constants.UNASSIGNED_SITE),
+													DSL.val(Constants.DECOMMISSIONED_SITE),
 													DSL.val(updt_pk))
 									.from(EMPLOYEES)
 									.where(EMPLOYEES.EMPL_PK

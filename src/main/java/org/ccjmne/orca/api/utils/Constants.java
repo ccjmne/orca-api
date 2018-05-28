@@ -46,7 +46,6 @@ public class Constants {
 
 	public static final String TAGS_VALUE_UNIVERSAL = "*";
 	public static final String TAGS_VALUE_NONE = "null";
-
 	// ----
 
 	// ---- DATABASE CONSTANTS
@@ -65,11 +64,11 @@ public class Constants {
 	public static final String TAGS_TYPE_STRING = "s";
 	public static final String TAGS_TYPE_BOOLEAN = "b";
 
-	public static final Integer EMPLOYEE_ROOT = Integer.valueOf(0);
 	public static final String USER_ROOT = "root";
 
-	public static final Integer UNASSIGNED_SITE = Integer.valueOf(0);
-	public static final Integer UNASSIGNED_TRAINERPROFILE = Integer.valueOf(0);
+	public static final Integer EMPLOYEE_ROOT = Integer.valueOf(0);
+	public static final Integer DECOMMISSIONED_SITE = Integer.valueOf(0);
+	public static final Integer DEFAULT_TRAINERPROFILE = Integer.valueOf(0);
 
 	public static final String ROLE_USER = "user";
 	public static final String ROLE_ACCESS = "access";
@@ -108,7 +107,7 @@ public class Constants {
 		return DSL.select(table.field(field)).from(table);
 	}
 
-	/* package */ static Field<Date> fieldDate(final String dateStr) {
+	public static Field<Date> fieldDate(final String dateStr) {
 		return dateStr != null ? DSL.date(dateStr) : DSL.currentDate();
 	}
 
