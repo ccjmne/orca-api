@@ -122,7 +122,7 @@ public class TrainingsEndpoint {
 						(String) map.get(TRAININGS.TRNG_COMMENT.getName()))
 				.execute();
 
-		((Map<Integer, Map<String, String>>) map.getOrDefault("trainees", Collections.emptyMap()))
+		((Map<String, Map<String, String>>) map.getOrDefault("trainees", Collections.emptyMap()))
 				.forEach((trem_empl_fk, data) -> transactionContext
 						.insertInto(
 									TRAININGS_EMPLOYEES,
@@ -132,7 +132,7 @@ public class TrainingsEndpoint {
 									TRAININGS_EMPLOYEES.TREM_COMMENT)
 						.values(
 								trng_pk,
-								trem_empl_fk,
+								Integer.valueOf(trem_empl_fk),
 								data.get(TRAININGS_EMPLOYEES.TREM_OUTCOME.getName()),
 								data.get(TRAININGS_EMPLOYEES.TREM_COMMENT.getName()))
 						.execute());
