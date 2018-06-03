@@ -106,9 +106,11 @@
 		</web-resource-collection>
 		<auth-constraint>
 			<description>Restricted to users with account management privileges</description>
-			<role-name>*</role-name>
+			<role-name>user</role-name>
 		</auth-constraint>
 	</security-constraint>
+
+
 
 	<security-constraint>
 		<web-resource-collection>
@@ -126,6 +128,8 @@
 		</auth-constraint>
 	</security-constraint>
 
+
+
 	<security-constraint>
 		<web-resource-collection>
 			<web-resource-name>Trainers-only Management API</web-resource-name>
@@ -141,6 +145,8 @@
 			<role-name>trainer</role-name>
 		</auth-constraint>
 	</security-constraint>
+
+
 
 	<security-constraint>
 		<web-resource-collection>
@@ -164,6 +170,8 @@
 			<role-name>admin</role-name>
 		</auth-constraint>
 	</security-constraint>
+
+
 
 	<security-constraint>
 		<web-resource-collection>
