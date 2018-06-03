@@ -380,8 +380,10 @@ public class ResourcesEndpoint {
 				withTags.addGroupBy(sites.fields());
 
 				return this.ctx.fetch(withTags).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
-						.getZipSelectMapper((slicer, value) -> ResourcesHelper.coerceTagValue(value, slicer.get(TAGS.TAGS_TYPE)),
-											SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE), "tags"));
+						.getZipSelectMapper((slicer, value) -> ResourcesHelper.coerceTagValue(value, slicer.get(ResourcesHelper.arrayAgg(TAGS.TAGS_TYPE))),
+											ResourcesHelper.arrayAgg(SITES_TAGS.SITA_TAGS_FK),
+											ResourcesHelper.arrayAgg(SITES_TAGS.SITA_VALUE),
+											ResourcesHelper.arrayAgg(TAGS.TAGS_TYPE)), "tags"));
 			}
 		}
 	}

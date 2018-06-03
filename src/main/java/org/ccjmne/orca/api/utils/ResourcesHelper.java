@@ -212,7 +212,7 @@ public class ResourcesHelper {
 	}
 
 	@SafeVarargs
-	public static <K, V> ZipRecordMapper<Record, Map<K, V>> getZipSelectMapper(final Field<K> key, final Field<V>... fields) {
+	public static <K, V> ZipRecordMapper<Record, Map<K, V>> getZipSelectMapper(final Field<K[]> key, final Field<V[]>... fields) {
 		return ResourcesHelper.getZipSelectMapper((r, x) -> x, key, fields);
 	}
 
@@ -224,8 +224,8 @@ public class ResourcesHelper {
 	@SafeVarargs
 	public static <K, I, V> ZipRecordMapper<Record, Map<K, V>> getZipSelectMapper(
 																					final BiFunction<? super RecordSlicer, ? super I, ? extends V> coercer,
-																					final Field<K> key,
-																					final Field<I>... fields) {
+																					final Field<K[]> key,
+																					final Field<I[]>... fields) {
 		return ResourcesHelper.getZipSelectMapper(coercer, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
 	}
 
@@ -356,7 +356,7 @@ public class ResourcesHelper {
 			this.idx = idx;
 		}
 
-		public final <T> T get(final Field<T> field) {
+		public final <T> T get(final Field<T[]> field) {
 			return this.get(field.getName());
 		}
 
