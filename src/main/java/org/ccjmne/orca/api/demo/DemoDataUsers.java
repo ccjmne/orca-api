@@ -26,7 +26,7 @@ public class DemoDataUsers {
 					.values(FakeRecords.asFields(empl.getEmplExternalId(), Constants.USERTYPE_EMPLOYEE, empl.getEmplPk(), GENERATED_PASSWORD))
 					.execute();
 
-			final int access = RANDOM.nextInt(4) + 1;
+			final int access = RANDOM.nextInt(3) + 2; // between [2, 4]
 			try (InsertValuesStep4<UsersRolesRecord, String, String, Integer, Integer> roles = ctx
 					.insertInto(USERS_ROLES, USERS_ROLES.USER_ID, USERS_ROLES.USRO_TYPE, USERS_ROLES.USRO_LEVEL, USERS_ROLES.USRO_TRPR_FK)
 					.values(empl.getEmplExternalId(), Constants.ROLE_USER, null, null)
@@ -50,7 +50,7 @@ public class DemoDataUsers {
 					.values(FakeRecords.asFields(site.getSiteExternalId(), Constants.USERTYPE_SITE, site.getSitePk(), GENERATED_PASSWORD))
 					.execute();
 
-			final int access = RANDOM.nextInt(4) + 1;
+			final int access = RANDOM.nextInt(3) + 2; // between [2, 4]
 			try (InsertValuesStep4<UsersRolesRecord, String, String, Integer, Integer> roles = ctx
 					.insertInto(USERS_ROLES, USERS_ROLES.USER_ID, USERS_ROLES.USRO_TYPE, USERS_ROLES.USRO_LEVEL, USERS_ROLES.USRO_TRPR_FK)
 					.values(site.getSiteExternalId(), Constants.ROLE_ACCESS, Integer.valueOf(access), null)) {
