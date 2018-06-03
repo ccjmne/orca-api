@@ -102,7 +102,7 @@ public class Constants {
 	 * @return A sub-query containing the sole specified {@code field} from the
 	 *         given {@code query}.
 	 */
-	public static <T> Select<Record1<T>> select(final Field<T> field, final SelectQuery<? extends Record> query) {
+	public static <T> Select<Record1<T>> select(final Field<T> field, final SelectQuery<?> query) {
 		final TableLike<? extends Record> table = query.asTable();
 		return DSL.select(table.field(field)).from(table);
 	}
