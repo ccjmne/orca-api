@@ -8,7 +8,6 @@ import static org.ccjmne.orca.jooq.classes.Tables.USERS;
 import static org.ccjmne.orca.jooq.classes.Tables.USERS_ROLES;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -26,17 +25,16 @@ import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.Transactions;
-import org.ccjmne.orca.jooq.classes.tables.records.UsersRolesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
-import org.jooq.JoinType;
 import org.jooq.Record;
-import org.jooq.RecordMapper;
 import org.jooq.Row1;
 import org.jooq.Row2;
-import org.jooq.SelectQuery;
 import org.jooq.impl.DSL;
+
+import com.google.common.collect.ObjectArrays;
 
 @Path("users-admin")
 public class UsersEndpoint {
@@ -57,52 +55,21 @@ public class UsersEndpoint {
 
 	@GET
 	@Path("users")
+	@SuppressWarnings("null")
 	public List<Map<String, Object>> getUsers() {
-		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
-			query.addSelect(Constants.USERS_FIELDS);
-			query.addSelect(EMPLOYEES.fields());
-			query.addSelect(SITES.fields());
-			query.addGroupBy(Constants.USERS_FIELDS);
-			query.addGroupBy(EMPLOYEES.fields());
-			query.addGroupBy(SITES.fields());
-			query.addFrom(USERS);
-			query.addSelect(
-							DSL.arrayAgg(USERS_ROLES.USRO_TYPE).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("rolesTypes"),
-							DSL.arrayAgg(USERS_ROLES.USRO_LEVEL).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("rolesLevels"),
-							DSL.arrayAgg(USERS_ROLES.USRO_TRPR_FK).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("rolesTrprFks"));
-			query.addJoin(USERS_ROLES, JoinType.LEFT_OUTER_JOIN, USERS_ROLES.USER_ID.eq(USERS.USER_ID));
-			query.addJoin(EMPLOYEES, JoinType.LEFT_OUTER_JOIN, EMPLOYEES.EMPL_PK.eq(USERS.USER_EMPL_FK));
-			query.addJoin(SITES, JoinType.LEFT_OUTER_JOIN, SITES.SITE_PK.eq(USERS.USER_SITE_FK));
-			query.addConditions(USERS.USER_ID.ne(Constants.USER_ROOT));
-			final List<Map<String, Object>> users = query.fetchMaps();
-
-			for (final Map<String, Object> user : users) {
-				final String[] rolesTypes = (String[]) user.remove("rolesTypes");
-				final Integer[] rolesLevels = (Integer[]) user.remove("rolesLevels");
-				final Integer[] rolesTrprFks = (Integer[]) user.remove("rolesTrprFks");
-				final Map<String, Object> roles = new HashMap<>();
-				if ((rolesTypes != null) && (rolesTypes.length > 0)) {
-					for (int i = 0; i < rolesTypes.length; i++) {
-						switch (rolesTypes[i]) {
-							case Constants.ROLE_ACCESS:
-							case Constants.ROLE_ADMIN:
-								roles.put(rolesTypes[i], rolesLevels[i]);
-								break;
-							case Constants.ROLE_TRAINER:
-								roles.put(rolesTypes[i], rolesTrprFks[i]);
-								break;
-							default:
-								roles.put(rolesTypes[i], Boolean.TRUE);
-						}
-					}
-				}
-
-				user.put("roles", roles);
-
-			}
-
-			return users;
-		}
+		return this.ctx.select(Constants.USERS_FIELDS).select(EMPLOYEES.fields()).select(SITES.fields())
+				.select(DSL.arrayAgg(USERS_ROLES.USRO_TYPE).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("type_array"),
+						DSL.arrayAgg(USERS_ROLES.USRO_LEVEL).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("level_array"),
+						DSL.arrayAgg(USERS_ROLES.USRO_TRPR_FK).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("trainer_array"),
+						DSL.arrayAgg(DSL.when(USERS_ROLES.USRO_TYPE.isNotNull(), Boolean.TRUE)).as("true_array"))
+				.from(USERS)
+				.leftOuterJoin(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(USERS.USER_EMPL_FK))
+				.leftOuterJoin(SITES).on(SITES.SITE_PK.eq(USERS.USER_SITE_FK))
+				.leftOuterJoin(USERS_ROLES).on(USERS_ROLES.USER_ID.eq(USERS.USER_ID))
+				.where(USERS.USER_ID.ne(Constants.USER_ROOT))
+				.groupBy(ObjectArrays.concat(ObjectArrays.concat(Constants.USERS_FIELDS, EMPLOYEES.fields(), Field.class), SITES.fields(), Field.class))
+				.fetch(ResourcesHelper.getMapperWithZip(ResourcesHelper
+						.getZipSelectMapper("type_array", "level_array", "trainer_array", "true_array"), "roles"));
 	}
 
 	@GET
@@ -116,32 +83,21 @@ public class UsersEndpoint {
 	 * Returns account information and corresponding {@link Restrictions} for a
 	 * given user ID.
 	 */
+	@SuppressWarnings("null")
 	public static Map<String, Object> getUserInfoImpl(final String user_id, final DSLContext ctx) {
-		final Map<String, Object> res = ctx
-				.select(Constants.USERS_FIELDS)
-				.select(EMPLOYEES.fields())
-				.select(SITES.fields())
+		final Map<String, Object> res = ctx.select(Constants.USERS_FIELDS).select(EMPLOYEES.fields()).select(SITES.fields())
+				.select(DSL.arrayAgg(USERS_ROLES.USRO_TYPE).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("type_array"),
+						DSL.arrayAgg(USERS_ROLES.USRO_LEVEL).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("level_array"),
+						DSL.arrayAgg(USERS_ROLES.USRO_TRPR_FK).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("trainer_array"),
+						DSL.arrayAgg(DSL.when(USERS_ROLES.USRO_TYPE.isNotNull(), Boolean.TRUE)).as("true_array"))
 				.from(USERS)
 				.leftOuterJoin(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(USERS.USER_EMPL_FK))
 				.leftOuterJoin(SITES).on(SITES.SITE_PK.eq(USERS.USER_SITE_FK))
+				.leftOuterJoin(USERS_ROLES).on(USERS_ROLES.USER_ID.eq(USERS.USER_ID))
 				.where(USERS.USER_ID.eq(user_id))
-
-				.fetchOneMap();
-
-		res.put(
-				"roles",
-				ctx.selectFrom(USERS_ROLES).where(USERS_ROLES.USER_ID.eq(user_id))
-						.fetchMap(USERS_ROLES.USRO_TYPE, (RecordMapper<UsersRolesRecord, Object>) entry -> {
-							switch (entry.getUsroType()) {
-								case Constants.ROLE_ACCESS:
-								case Constants.ROLE_ADMIN:
-									return entry.getUsroLevel();
-								case Constants.ROLE_TRAINER:
-									return entry.getUsroTrprFk();
-								default:
-									return Boolean.TRUE;
-							}
-						}));
+				.groupBy(ObjectArrays.concat(ObjectArrays.concat(Constants.USERS_FIELDS, EMPLOYEES.fields(), Field.class), SITES.fields(), Field.class))
+				.fetchOne(ResourcesHelper.getMapperWithZip(ResourcesHelper
+						.getZipSelectMapper("type_array", "level_array", "trainer_array", "true_array"), "roles"));
 
 		res.put("restrictions", Restrictions.forUser(user_id, ctx));
 		return res;
