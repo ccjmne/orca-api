@@ -83,9 +83,10 @@ public class ClientEndpoint {
 			throw new ForbiddenException();
 		}
 
-		final File file = getFile(fileStream);
+		final File file = ClientEndpoint.getFile(fileStream);
 		try (BufferedInputStream is = new BufferedInputStream(new FileInputStream(file))) {
 			final String mimeType = URLConnection.guessContentTypeFromStream(is);
+			// TODO: handle SVG files (it's complicated)
 			if (!mimeType.startsWith("image/")) {
 				throw new IllegalArgumentException("Expected an image. Got " + mimeType);
 			}
