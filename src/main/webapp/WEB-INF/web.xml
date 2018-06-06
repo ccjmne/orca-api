@@ -39,7 +39,7 @@
 		<web-resource-collection>
 			<web-resource-name>Account's relevant certificates API</web-resource-name>
 
-			<url-pattern>/account/certificates</url-pattern>
+			<url-pattern>/account/observed-certificates</url-pattern>
 			<http-method>GET</http-method>
 			<http-method>PUT</http-method>
 		</web-resource-collection>
