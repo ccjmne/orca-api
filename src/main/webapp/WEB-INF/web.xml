@@ -27,7 +27,6 @@
 
 			<url-pattern>/account/*</url-pattern>
 			<url-pattern>/resources-common/*</url-pattern>
-			<url-pattern>/resources-by-keys-common/*</url-pattern>
 			<http-method>GET</http-method>
 		</web-resource-collection>
 		<auth-constraint>
@@ -118,7 +117,6 @@
 
 			<url-pattern>/statistics/*</url-pattern>
 			<url-pattern>/resources/*</url-pattern>
-			<url-pattern>/resources-by-keys/*</url-pattern>
 			<http-method>GET</http-method>
 		</web-resource-collection>
 

@@ -22,8 +22,7 @@ import com.google.common.collect.Maps;
  *
  * @author ccjmne
  */
-@Path("resources-by-keys-common")
-// TODO: resources-common-by-keys?
+@Path("resources-common/keyed")
 // TODO: merge with ResourcesCommonEndpoint?
 public class ResourcesByKeysCommonEndpoint {
 

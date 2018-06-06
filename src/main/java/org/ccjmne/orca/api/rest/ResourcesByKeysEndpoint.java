@@ -30,7 +30,7 @@ import com.google.common.collect.Maps;
  *
  * @author ccjmne
  */
-@Path("resources-by-keys")
+@Path("resources/keyed")
 // TODO: merge with ResourcesEndpoint?
 public class ResourcesByKeysEndpoint {
 
