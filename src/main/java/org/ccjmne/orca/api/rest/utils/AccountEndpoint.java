@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.rest;
+package org.ccjmne.orca.api.rest.utils;
 
 import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
@@ -21,6 +21,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.modules.Restrictions;
+import org.ccjmne.orca.api.rest.admin.UsersEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.jooq.DSLContext;

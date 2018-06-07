@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.rest;
+package org.ccjmne.orca.api.rest.admin;
 
 import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
 

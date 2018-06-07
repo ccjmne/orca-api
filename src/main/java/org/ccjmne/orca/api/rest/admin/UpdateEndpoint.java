@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.rest;
+package org.ccjmne.orca.api.rest.admin;
 
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
@@ -28,6 +28,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.ccjmne.orca.api.modules.Restrictions;
+import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.Transactions;

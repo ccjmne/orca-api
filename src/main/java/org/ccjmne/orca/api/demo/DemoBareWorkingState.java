@@ -9,7 +9,7 @@ import static org.ccjmne.orca.jooq.classes.Tables.USERS_ROLES;
 
 import java.util.Date;
 
-import org.ccjmne.orca.api.rest.ClientEndpoint;
+import org.ccjmne.orca.api.rest.pub.ClientEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.DSLContext;
 import org.jooq.Record;

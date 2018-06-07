@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.rest;
+package org.ccjmne.orca.api.rest.fetch;
 
 import java.util.List;
 import java.util.Map;

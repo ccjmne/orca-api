@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.rest;
+package org.ccjmne.orca.api.rest.admin;
 
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
@@ -24,6 +24,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.modules.Restrictions;
+import org.ccjmne.orca.api.rest.utils.AccountEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.Transactions;
@@ -205,7 +206,7 @@ public class UsersEndpoint {
 	/**
 	 * Not part of the exposed API. Used by {@link AccountEndpoint} only.
 	 */
-	/* package */ static void changeIdImpl(final String user_id, final String newId, final DSLContext ctx) {
+	public static void changeIdImpl(final String user_id, final String newId, final DSLContext ctx) {
 		Transactions.with(ctx, transactionCtx -> {
 			if (transactionCtx.fetchExists(USERS, USERS.USER_ID.ne(user_id).and(USERS.USER_ID.eq(newId)))) {
 				throw new IllegalArgumentException(String.format("The ID '%s' is already attributed to another user and thus is not available.", newId));

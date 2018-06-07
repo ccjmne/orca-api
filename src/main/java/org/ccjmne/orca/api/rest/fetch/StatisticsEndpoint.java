@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.rest;
+package org.ccjmne.orca.api.rest.fetch;
 
 import static org.ccjmne.orca.api.utils.Constants.STATUS_DANGER;
 import static org.ccjmne.orca.api.utils.Constants.STATUS_SUCCESS;

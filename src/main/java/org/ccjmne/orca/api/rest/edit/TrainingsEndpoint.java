@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.rest;
+package org.ccjmne.orca.api.rest.edit;
 
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
@@ -19,6 +19,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
 import org.ccjmne.orca.api.modules.Restrictions;
+import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.jooq.classes.Sequences;
