@@ -1,8 +1,11 @@
 package org.ccjmne.orca.api.rest.admin;
 
+import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
+import static org.ccjmne.orca.jooq.classes.Tables.USERS;
 
 import java.util.List;
 import java.util.Map;
@@ -20,11 +23,15 @@ import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.Transactions;
+import org.ccjmne.orca.jooq.classes.tables.records.EmployeesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.SitesRecord;
+import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record1;
+import org.jooq.Record2;
 import org.jooq.Record3;
+import org.jooq.Row2;
 import org.jooq.Row3;
 import org.jooq.Select;
 import org.jooq.Table;
@@ -47,7 +54,60 @@ public class BulkImportsEndpoint {
 		this.ctx = ctx;
 	}
 
+	@POST
+	@Path("employees")
 	@SuppressWarnings("unchecked")
+	public void bulkImportEmployees(final List<Map<String, String>> employees) {
+		Transactions.with(this.ctx, transactionCtx -> {
+			// 1. 'UPSERT' employees
+			final Map<Boolean, List<@NonNull EmployeesRecord>> records = employees.stream().map(BulkImportsEndpoint.as(EmployeesRecord.class))
+					.peek(BulkImportsEndpoint.setIfExists(	EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_EXTERNAL_ID,
+															transactionCtx.select(EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_PK).from(EMPLOYEES)
+																	.where(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT))
+																	.fetchMap(EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_PK)))
+					.collect(Collectors.partitioningBy(r -> r.changed(EMPLOYEES.EMPL_PK)));
+			transactionCtx.batchUpdate(records.get(Boolean.TRUE)).execute();
+			transactionCtx.batchInsert(records.get(Boolean.FALSE)).execute();
+
+			// 2. INSERT newer update -- no more than ONE per day
+			transactionCtx.delete(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.currentDate())).execute();
+			final Integer update = transactionCtx.insertInto(UPDATES).set(UPDATES.UPDT_DATE, DSL.currentDate()).returning(UPDATES.UPDT_PK).fetchOne()
+					.getValue(UPDATES.UPDT_PK);
+
+			// 3. INSERT sites-employees for newer update
+			final Table<Record2<String, String>> allocations = DSL
+					.values(employees.stream().<Row2<String, String>> map(e -> DSL
+							.<String, String> row(e.get(EMPLOYEES.EMPL_EXTERNAL_ID.getName()), e.get(SITES.SITE_EXTERNAL_ID.getName())))
+							.toArray(Row2[]::new))
+					.asTable("unused", "employee", "site");
+			transactionCtx.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_UPDT_FK)
+					.select(DSL.select(EMPLOYEES.EMPL_PK, SITES.SITE_PK, DSL.value(update))
+							.from(allocations
+									.join(EMPLOYEES).on(EMPLOYEES.EMPL_EXTERNAL_ID.eq(allocations.field("employee", String.class)))
+									.join(SITES).on(SITES.SITE_EXTERNAL_ID.eq(allocations.field("site", String.class)))))
+					.execute();
+
+			// 4. Explicitly set missing employees' site to DECOMMISSIONED_SITE
+			try (final Select<Record1<Integer>> active = DSL.selectDistinct(EMPLOYEES.EMPL_PK).from(EMPLOYEES)
+					.join(SITES_EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK))
+					.where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(update)).and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.DECOMMISSIONED_SITE))) {
+				transactionCtx.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_UPDT_FK)
+						.select(DSL.select(EMPLOYEES.EMPL_PK, DSL.val(Constants.DECOMMISSIONED_SITE), DSL.val(update))
+								.from(EMPLOYEES)
+								.where(EMPLOYEES.EMPL_PK.notIn(active)))
+						.execute();
+
+				// 5. DELETE corresponding users
+				transactionCtx
+						.deleteFrom(USERS)
+						.where(USERS.USER_TYPE.eq(Constants.USERTYPE_EMPLOYEE))
+						.and(USERS.USER_EMPL_FK.notIn(active))
+						.and(USERS.USER_ID.ne(Constants.USER_ROOT))
+						.execute();
+			}
+		});
+	}
+
 	@POST
 	@Path("sites")
 	@SuppressWarnings("unchecked")
