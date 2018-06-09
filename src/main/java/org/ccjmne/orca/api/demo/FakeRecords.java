@@ -13,6 +13,8 @@ import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.jooq.classes.tables.Employees;
+import org.ccjmne.orca.jooq.classes.tables.Sites;
 import org.ccjmne.orca.jooq.classes.tables.records.EmployeesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.SitesRecord;
 import org.jooq.Condition;
@@ -20,6 +22,7 @@ import org.jooq.Field;
 import org.jooq.Record4;
 import org.jooq.Row4;
 import org.jooq.Table;
+import org.jooq.TableRecord;
 import org.jooq.impl.DSL;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -70,11 +73,36 @@ public class FakeRecords {
 		this.scheduledTraining = Range.closed(LocalDate.now(), LocalDate.now().plusMonths(6));
 	}
 
+	/**
+	 * Generates a random {@link SitesRecord} with no defined
+	 * {@link Sites#SITE_PK}.<br />
+	 * You'll have to either set or {@link TableRecord#reset(Field)} it before
+	 * persisting to the database.
+	 *
+	 * @param uniqueId
+	 *            A unique integer value to be used for populating this
+	 *            {@link SitesRecord}'s {@link Sites#SITE_EXTERNAL_ID} field.
+	 * @return a {@link SitesRecord} with <strong>NO</strong>
+	 *         {@link Sites#SITE_PK} defined.
+	 */
 	public SitesRecord site(final Integer uniqueId) {
 		final String cityName = FakeRecords.anyFrom(FakeRecords.CITIES);
 		return new SitesRecord(null, cityName, "", FakeRecords.asEmail(cityName), String.format("S%04d", uniqueId));
 	}
 
+	/**
+	 * Generates a random {@link EmployeesRecord} with no defined
+	 * {@link Employees#EMPL_PK}.<br />
+	 * You'll have to either set or {@link TableRecord#reset(Field)} it before
+	 * persisting to the database.
+	 *
+	 * @param uniqueId
+	 *            A unique integer value to be used for populating this
+	 *            {@link EmployeesRecord}'s {@link Employees#EMPL_EXTERNAL_ID}
+	 *            field.
+	 * @return an {@link EmployeesRecord} with <strong>NO</strong>
+	 *         {@link Employees#EMPL_PK} defined.
+	 */
 	public EmployeesRecord employee(final Integer uniqueId) {
 		final boolean isMale = RANDOM.nextBoolean();
 		final String firstName = FakeRecords.anyFrom(FakeRecords.FIRST_NAMES.get(isMale ? "male" : "female"));
