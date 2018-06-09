@@ -34,8 +34,9 @@ public class DemoBareWorkingState {
 	public static void restore(final DSLContext ctx, final AmazonS3Client client) {
 		// Clear all data
 		ctx.meta().getTables().forEach(table -> ctx.truncate(table).restartIdentity().cascade().execute());
-		// Reset all sequences
-		ctx.meta().getSequences().forEach(sequence -> ctx.alterSequence(sequence).restart().execute());
+		// Reset all sequences. It *has* to go through a concrete class, unlike
+		// truncating Tables, which can be done through ctx.meta()
+		CLIENT.getSchema().getSequences().forEach(sequence -> ctx.alterSequence(sequence).restart().execute());
 
 		// Delete S3 resources
 		final String objectKey = String.format("%s-welcome.json", ctx.selectFrom(CLIENT).fetchOne(CLIENT.CLNT_ID));
