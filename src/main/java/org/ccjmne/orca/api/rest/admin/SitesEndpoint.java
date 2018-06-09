@@ -90,8 +90,10 @@ public class SitesEndpoint {
 		// Database CASCADEs the deletion of linked users, if any
 		// Database CASCADEs the deletion of its tags
 		return Transactions.with(this.ctx, transactionCtx -> {
-			// Set deleted entity employees' site to UNASSIGNED
-			final boolean exists = transactionCtx.selectFrom(SITES).where(SITES.SITE_PK.equal(site_pk)).fetch().isNotEmpty();
+			// Set deleted entity's employees' site to DECOMMISSIONED_SITE
+			final boolean exists = transactionCtx.fetchExists(SITES, SITES.SITE_PK
+					.ne(Constants.DECOMMISSIONED_SITE)
+					.and(SITES.SITE_PK.eq(site_pk)));
 			if (exists) {
 				transactionCtx.update(SITES_EMPLOYEES)
 						.set(SITES_EMPLOYEES.SIEM_SITE_FK, Constants.DECOMMISSIONED_SITE)
