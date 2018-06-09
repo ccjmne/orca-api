@@ -50,6 +50,7 @@ public class BulkImportsEndpoint {
 	@SuppressWarnings("unchecked")
 	@POST
 	@Path("sites")
+	@SuppressWarnings("unchecked")
 	public void bulkImportSites(final List<Map<String, String>> sites) {
 		Transactions.with(this.ctx, transactionCtx -> {
 			// 1. 'UPSERT' sites
@@ -57,7 +58,7 @@ public class BulkImportsEndpoint {
 					.peek(BulkImportsEndpoint.setIfExists(	SITES.SITE_PK, SITES.SITE_EXTERNAL_ID,
 															transactionCtx.select(SITES.SITE_EXTERNAL_ID, SITES.SITE_PK).from(SITES)
 																	.where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE))
-																	.orderBy(SITES.SITE_EXTERNAL_ID).fetchMap(SITES.SITE_EXTERNAL_ID, SITES.SITE_PK)))
+																	.fetchMap(SITES.SITE_EXTERNAL_ID, SITES.SITE_PK)))
 					.collect(Collectors.partitioningBy(r -> r.changed(SITES.SITE_PK)));
 			transactionCtx.batchUpdate(records.get(Boolean.TRUE)).execute();
 			transactionCtx.batchInsert(records.get(Boolean.FALSE)).execute();
@@ -76,6 +77,12 @@ public class BulkImportsEndpoint {
 			transactionCtx.truncate(SITES_TAGS).restartIdentity().execute();
 			final Table<Record3<String, Integer, String>> tags = DSL.<String, Integer, String> values(sites.stream().flatMap(s -> s.entrySet().stream()
 					.filter(e -> ResourcesHelper.IS_TAG_KEY.test(e.getKey()))
+					.peek(e -> {
+						if (Constants.TAGS_VALUE_NONE.equals(e.getValue()) || Constants.TAGS_VALUE_UNIVERSAL.equals(e.getValue())) {
+							throw new IllegalArgumentException(String
+									.format("Invalid tag value: '%s' for site: %s", e.getValue(), s.get(SITES.SITE_EXTERNAL_ID.getName())));
+						}
+					})
 					.reduce(ImmutableList.<Row3<String, Integer, String>> builder(),
 							(l, e) -> l.add(DSL.row(s.get(SITES.SITE_EXTERNAL_ID.getName()), Integer.valueOf(e.getKey()), e.getValue())),
 							(l, l2) -> l.addAll(l2.build()))
