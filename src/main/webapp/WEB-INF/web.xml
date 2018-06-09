@@ -150,6 +150,7 @@
 		<web-resource-collection>
 			<web-resource-name>General Management API</web-resource-name>
 
+			<url-pattern>/bulk-import/*</url-pattern>
 			<url-pattern>/certificates/*</url-pattern>
 			<url-pattern>/client/*</url-pattern>
 			<url-pattern>/employees-notes/*</url-pattern>

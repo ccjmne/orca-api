@@ -41,7 +41,7 @@ public class ResourcesHelper {
 	 * unsigned Base10 integer values.<br />
 	 * Pattern: <code>^\d+$</code>
 	 */
-	private static final Predicate<String> IS_TAG_KEY = Pattern.compile("^\\d+$").asPredicate();
+	public static final Predicate<String> IS_TAG_KEY = Pattern.compile("^\\d+$").asPredicate();
 
 	/**
 	 * Coerces the given <code>value</code> to a either a {@link Boolean} or a
