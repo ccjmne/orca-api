@@ -145,6 +145,8 @@ public class BulkImportsEndpoint {
 			final Table<Record3<String, Integer, String>> tags = DSL.<String, Integer, String> values(sites.stream().flatMap(s -> s.entrySet().stream()
 					.filter(e -> ResourcesHelper.IS_TAG_KEY.test(e.getKey()))
 					.peek(e -> {
+						// TODO: Prevent insertion of non-boolean values for
+						// 'b'-type tags
 						if (Constants.TAGS_VALUE_NONE.equals(e.getValue()) || Constants.TAGS_VALUE_UNIVERSAL.equals(e.getValue())) {
 							throw new IllegalArgumentException(String
 									.format("Invalid tag value: '%s' for site: %s", e.getValue(), s.get(SITES.SITE_EXTERNAL_ID.getName())));

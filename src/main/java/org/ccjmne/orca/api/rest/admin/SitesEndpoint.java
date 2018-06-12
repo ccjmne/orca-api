@@ -70,6 +70,8 @@ public class SitesEndpoint {
 			transactionCtx.deleteFrom(SITES_TAGS).where(SITES_TAGS.SITA_SITE_FK.eq(site_pk)).execute();
 			transactionCtx.batchInsert(tags.entrySet().stream()
 					.map(tag -> {
+						// TODO: Prevent insertion of non-boolean values for
+						// 'b'-type tags
 						if (Constants.TAGS_VALUE_NONE.equals(tag.getValue()) || Constants.TAGS_VALUE_UNIVERSAL.equals(tag.getValue())) {
 							throw new IllegalArgumentException(String.format("Invalid tag value: '%s'", tag.getValue()));
 						}
