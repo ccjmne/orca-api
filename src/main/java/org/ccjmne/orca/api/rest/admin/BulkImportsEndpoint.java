@@ -104,6 +104,13 @@ public class BulkImportsEndpoint {
 						.and(USERS.USER_EMPL_FK.notIn(active))
 						.and(USERS.USER_ID.ne(Constants.USER_ROOT))
 						.execute();
+
+				transactionCtx
+						.deleteFrom(USERS)
+						.where(USERS.USER_TYPE.eq(Constants.USERTYPE_SITE))
+						.and(USERS.USER_SITE_FK.notIn(DSL
+								.selectDistinct(SITES_EMPLOYEES.SIEM_SITE_FK).from(SITES_EMPLOYEES).where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(update))))
+						.execute();
 			}
 		});
 	}
