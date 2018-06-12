@@ -31,7 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Path("configs")
 public class ConfigurationsEndpoint {
 
-	private static final List<String> AVAILABLE_TYPES = Arrays.asList("import-employees", "pdf-site");
+	private static final List<String> AVAILABLE_TYPES = Arrays.asList("import-employees", "import-sites", "pdf-site");
 
 	private final DSLContext ctx;
 	private final ObjectMapper mapper;
