@@ -10,8 +10,6 @@ import static org.ccjmne.orca.jooq.classes.Tables.USERS_CERTIFICATES;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.DSLContext;
@@ -42,19 +40,37 @@ public class DemoCommonResources {
 
 	private static final String TRAINERPROFILE_ALTERNATE = "Non-SST";
 
-	public static void generate(final DSLContext ctx, final ObjectMapper mapper) throws JsonProcessingException {
-
-		ctx.insertInto(CONFIGS, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME, CONFIGS.CONF_DATA)
-				.values("pdf-site", "Tableau de Bord", mapper.writeValueAsString(ImmutableMap.<String, Object> builder()
-						.put("lines", Collections.singletonList(Collections.emptyList()))
-						.put("fileName", "{{site}} - {{config}}")
-						.put("dimensions", "A4")
-						.put("orientation", "Portrait")
-						.put("title", "Site de {{site}}")
-						.put("subtitle", "au {{date}}")
-						.put("bookmark", "Infos Sécurité")
-						.build()))
-				.execute();
+	public static void generate(final DSLContext ctx, final ObjectMapper mapper) {
+		try {
+			ctx.insertInto(CONFIGS, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME, CONFIGS.CONF_DATA)
+					.values("pdf-site", "Tableau de Bord", mapper.writeValueAsString(ImmutableMap.<String, Object> builder()
+							.put("fileName", "{{site}} - {{config}}")
+							.put("size", "a4")
+							.put("orientation", "landscape")
+							.put("pages", Collections.singletonList(ImmutableMap.<String, Object> builder()
+									.put("title", "Site de {{site}}")
+									.put("subtitle", "au {{date}}")
+									.put("bookmark", "Infos Sécurité")
+									.put("lines", Arrays.asList(
+																Collections.singletonList(ImmutableMap.<String, Object> builder()
+																		.put("type", "dashboard")
+																		.put("certificates", Arrays.asList(CERT_SST, CERT_FSST)).build()),
+																Arrays.asList(
+																				ImmutableMap.<String, Object> builder()
+																						.put("type", "cert")
+																						.put("cert", CERT_SST)
+																						.put("columns", Integer.valueOf(2)).build(),
+																				ImmutableMap.<String, Object> builder()
+																						.put("type", "cert")
+																						.put("cert", CERT_FSST)
+																						.put("columns", Integer.valueOf(1)).build())))
+									.build()))
+							.build()))
+					.execute();
+		} catch (final JsonProcessingException e) {
+			// Can not happen
+			throw new RuntimeException(e);
+		}
 
 		ctx.insertInto(
 						CERTIFICATES,
@@ -94,27 +110,24 @@ public class DemoCommonResources {
 						TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK,
 						TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
 						TRAININGTYPES_CERTIFICATES.TTCE_DURATION)
-				.values(asFields(getTrainingType(TRTY_SSTI), getCertificate(CERT_SST), Integer.valueOf(12)))
-				.values(asFields(getTrainingType(TRTY_SSTI), getCertificate(CERT_DAE), Integer.valueOf(48)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_SSTI), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(12)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_SSTI), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(48)))
 
-				.values(asFields(getTrainingType(TRTY_SSTR), getCertificate(CERT_SST), Integer.valueOf(24)))
-				.values(asFields(getTrainingType(TRTY_SSTR), getCertificate(CERT_DAE), Integer.valueOf(48)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_SSTR), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(24)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_SSTR), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(48)))
 
-				.values(asFields(getTrainingType(TRTY_EPI), getCertificate(CERT_EPI), Integer.valueOf(36)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_EPI), DemoCommonResources.getCertificate(CERT_EPI), Integer.valueOf(36)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_DAE), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(24)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_H0B0), DemoCommonResources.getCertificate(CERT_H0B0), Integer.valueOf(24)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_EVAC), DemoCommonResources.getCertificate(CERT_EVAC), Integer.valueOf(12)))
 
-				.values(asFields(getTrainingType(TRTY_DAE), getCertificate(CERT_DAE), Integer.valueOf(24)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTI), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(12)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTI), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(48)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTI), DemoCommonResources.getCertificate(CERT_FSST), Integer.valueOf(12)))
 
-				.values(asFields(getTrainingType(TRTY_H0B0), getCertificate(CERT_H0B0), Integer.valueOf(24)))
-
-				.values(asFields(getTrainingType(TRTY_EVAC), getCertificate(CERT_EVAC), Integer.valueOf(12)))
-
-				.values(asFields(getTrainingType(TRTY_FSSTI), getCertificate(CERT_SST), Integer.valueOf(12)))
-				.values(asFields(getTrainingType(TRTY_FSSTI), getCertificate(CERT_DAE), Integer.valueOf(48)))
-				.values(asFields(getTrainingType(TRTY_FSSTI), getCertificate(CERT_FSST), Integer.valueOf(12)))
-
-				.values(asFields(getTrainingType(TRTY_FSSTR), getCertificate(CERT_SST), Integer.valueOf(24)))
-				.values(asFields(getTrainingType(TRTY_FSSTR), getCertificate(CERT_DAE), Integer.valueOf(0)))
-				.values(asFields(getTrainingType(TRTY_FSSTR), getCertificate(CERT_FSST), Integer.valueOf(24)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(24)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(0)))
+				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_FSST), Integer.valueOf(24)))
 				.execute();
 
 		ctx.insertInto(TRAINERPROFILES, TRAINERPROFILES.TRPR_ID)
@@ -122,23 +135,23 @@ public class DemoCommonResources {
 				.execute();
 
 		ctx.insertInto(TRAINERPROFILES_TRAININGTYPES, TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK, TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK)
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), getTrainingType(TRTY_SSTI))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), getTrainingType(TRTY_SSTR))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), getTrainingType(TRTY_EPI))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), getTrainingType(TRTY_DAE))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), getTrainingType(TRTY_H0B0))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), getTrainingType(TRTY_EVAC))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), getTrainingType(TRTY_FSSTI))
-				.values(DSL.val(Constants.UNASSIGNED_TRAINERPROFILE), getTrainingType(TRTY_FSSTR))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_SSTI))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_SSTR))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_EPI))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_DAE))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_H0B0))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_EVAC))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_FSSTI))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_FSSTR))
 
-				.values(getTrainerProfile(TRAINERPROFILE_ALTERNATE), getTrainingType(TRTY_EPI))
-				.values(getTrainerProfile(TRAINERPROFILE_ALTERNATE), getTrainingType(TRTY_DAE))
-				.values(getTrainerProfile(TRAINERPROFILE_ALTERNATE), getTrainingType(TRTY_H0B0))
-				.values(getTrainerProfile(TRAINERPROFILE_ALTERNATE), getTrainingType(TRTY_EVAC))
+				.values(DemoCommonResources.getTrainerProfile(TRAINERPROFILE_ALTERNATE), DemoCommonResources.getType(TRTY_EPI))
+				.values(DemoCommonResources.getTrainerProfile(TRAINERPROFILE_ALTERNATE), DemoCommonResources.getType(TRTY_DAE))
+				.values(DemoCommonResources.getTrainerProfile(TRAINERPROFILE_ALTERNATE), DemoCommonResources.getType(TRTY_H0B0))
+				.values(DemoCommonResources.getTrainerProfile(TRAINERPROFILE_ALTERNATE), DemoCommonResources.getType(TRTY_EVAC))
 				.execute();
 	}
 
-	private static Field<Integer> getTrainingType(final Integer order) {
+	private static Field<Integer> getType(final Integer order) {
 		return DSL.select(TRAININGTYPES.TRTY_PK).from(TRAININGTYPES).where(TRAININGTYPES.TRTY_ORDER.eq(order)).asField();
 	}
 
@@ -148,9 +161,5 @@ public class DemoCommonResources {
 
 	private static Field<Integer> getTrainerProfile(final String id) {
 		return DSL.select(TRAINERPROFILES.TRPR_PK).from(TRAINERPROFILES).where(TRAINERPROFILES.TRPR_ID.eq(id)).asField();
-	}
-
-	private static List<? extends Field<?>> asFields(final Object... values) {
-		return Arrays.asList(values).stream().map(v -> v instanceof Field<?> ? (Field<?>) v : DSL.val(v)).collect(Collectors.toList());
 	}
 }

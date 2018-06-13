@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.rest;
+package org.ccjmne.orca.api.rest.utils;
 
 import static org.ccjmne.orca.jooq.classes.Tables.CONFIGS;
 
@@ -31,7 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Path("configs")
 public class ConfigurationsEndpoint {
 
-	private static final List<String> AVAILABLE_TYPES = Arrays.asList("pdf-site");
+	private static final List<String> AVAILABLE_TYPES = Arrays.asList("import-employees", "import-sites", "pdf-site");
 
 	private final DSLContext ctx;
 	private final ObjectMapper mapper;
@@ -70,7 +70,7 @@ public class ConfigurationsEndpoint {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Integer createConfig(@QueryParam("type") final String type, @QueryParam("name") final String name, final String requestBody) {
 		final Integer key = new Integer(this.ctx.nextval(Sequences.CONFIGS_CONF_PK_SEQ).intValue());
-		updateConfig(key, type, name, requestBody);
+		this.updateConfig(key, type, name, requestBody);
 		return key;
 	}
 

@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.rest;
+package org.ccjmne.orca.api.rest.pub;
 
 import static org.ccjmne.orca.jooq.classes.Tables.USERS;
 
@@ -11,6 +11,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.codec.Charsets;
+import org.ccjmne.orca.api.rest.admin.UsersEndpoint;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 

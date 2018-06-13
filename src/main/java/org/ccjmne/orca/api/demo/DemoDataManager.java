@@ -5,8 +5,8 @@ import java.util.Date;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import org.ccjmne.orca.api.utils.Transactions;
 import org.jooq.DSLContext;
-import org.jooq.impl.DSL;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.Job;
 import org.quartz.JobBuilder;
@@ -36,6 +36,7 @@ public class DemoDataManager {
 	private static final TriggerKey TRIGGER_KEY = new TriggerKey("trigger");
 	private static final JobKey JOB_KEY = new JobKey("reset");
 
+	// TODO: replace the entire scheduling thing w/ an *actual* cron job
 	private final Scheduler scheduler;
 
 	private final DSLContext ctx;
@@ -65,7 +66,7 @@ public class DemoDataManager {
 	}
 
 	public void trigger() throws SchedulerException {
-		if (!isDemoEnabled()) {
+		if (!this.isDemoEnabled()) {
 			return;
 		}
 
@@ -73,7 +74,7 @@ public class DemoDataManager {
 	}
 
 	public void start() throws SchedulerException {
-		if (!isDemoEnabled() || this.scheduler.isStarted()) {
+		if (!this.isDemoEnabled() || this.scheduler.isStarted()) {
 			return;
 		}
 
@@ -111,23 +112,19 @@ public class DemoDataManager {
 		public void execute(final JobExecutionContext context) throws JobExecutionException {
 			final AmazonS3Client client = (AmazonS3Client) context.getMergedJobDataMap().get(AmazonS3Client.class.getName());
 			final ObjectMapper mapper = (ObjectMapper) context.getMergedJobDataMap().get(ObjectMapper.class.getName());
-			try (final DSLContext ctx = (DSLContext) context.getMergedJobDataMap().get(DSLContext.class.getName())) {
+			try {
 				LOGGER.info("Restoring demo data...");
-				ctx.transaction(config -> {
-					try (final DSLContext transactionCtx = DSL.using(config)) {
-						DemoBareWorkingState.restore(transactionCtx, client);
-						DemoCommonResources.generate(transactionCtx, mapper);
-						DemoDataSitesEmployees.generate(transactionCtx);
-						DemoDataTrainings.generate(transactionCtx);
-						DemoDataUsers.generate(transactionCtx);
-					} catch (final Exception e) {
-						LOGGER.error("An error occured during demo data restoration.", e);
-					}
+				Transactions.with((DSLContext) context.getMergedJobDataMap().get(DSLContext.class.getName()), transactionCtx -> {
+					DemoBareWorkingState.restore(transactionCtx, client);
+					DemoCommonResources.generate(transactionCtx, mapper);
+					DemoDataSitesEmployees.generate(transactionCtx);
+					DemoDataTrainings.generate(transactionCtx);
+					DemoDataUsers.generate(transactionCtx);
+					LOGGER.info("Demo data restoration successfully completed.");
 				});
-
-				LOGGER.info("Demo data restoration successfully completed.");
 			} catch (final Exception e) {
 				LOGGER.error("An error occured during demo data restoration.", e);
+				e.printStackTrace();
 			}
 		}
 	}

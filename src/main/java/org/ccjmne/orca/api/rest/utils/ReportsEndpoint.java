@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.rest;
+package org.ccjmne.orca.api.rest.utils;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
