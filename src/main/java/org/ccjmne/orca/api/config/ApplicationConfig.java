@@ -9,6 +9,7 @@ import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.CustomObjectMapper;
 import org.ccjmne.orca.api.utils.PostgresDSLContext;
+import org.ccjmne.orca.api.utils.RestrictedResourcesAccess;
 import org.ccjmne.orca.api.utils.S3Client;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
@@ -31,8 +32,9 @@ public class ApplicationConfig extends ResourceConfig {
 				bind(CustomObjectMapper.class).to(ObjectMapper.class).in(Singleton.class);
 				bind(DemoDataManager.class).to(DemoDataManager.class).in(Singleton.class);
 				bind(PostgresDSLContext.class).to(DSLContext.class).in(Singleton.class);
-				bind(Restrictions.class).to(Restrictions.class).in(RequestScoped.class);
 				bind(ResourcesUnrestricted.class).to(ResourcesUnrestricted.class).in(Singleton.class);
+				bind(RestrictedResourcesAccess.class).to(RestrictedResourcesAccess.class).in(RequestScoped.class);
+				bind(Restrictions.class).to(Restrictions.class).in(RequestScoped.class);
 				bind(S3Client.class).to(AmazonS3Client.class).in(Singleton.class);
 			}
 		});

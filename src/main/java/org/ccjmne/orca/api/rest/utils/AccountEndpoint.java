@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.rest;
+package org.ccjmne.orca.api.rest.utils;
 
 import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
@@ -6,13 +6,13 @@ import static org.ccjmne.orca.jooq.classes.Tables.USERS;
 import static org.ccjmne.orca.jooq.classes.Tables.USERS_CERTIFICATES;
 import static org.ccjmne.orca.jooq.classes.Tables.USERS_ROLES;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -20,20 +20,24 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.ccjmne.orca.api.modules.Restrictions;
+import org.ccjmne.orca.api.rest.admin.UsersEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Transactions;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Row1;
-import org.jooq.Row2;
 import org.jooq.impl.DSL;
 
 @Path("account")
 public class AccountEndpoint {
 
 	private final DSLContext ctx;
+	private final Restrictions restrictions;
 
 	@Inject
-	public AccountEndpoint(final DSLContext ctx) {
+	public AccountEndpoint(final DSLContext ctx, final Restrictions restrictions) {
+		this.restrictions = restrictions;
 		this.ctx = ctx;
 	}
 
@@ -58,6 +62,10 @@ public class AccountEndpoint {
 	@Path("password")
 	@Consumes(MediaType.APPLICATION_JSON)
 	public void updatePassword(@Context final HttpServletRequest request, final Map<String, String> passwords) {
+		if (!this.restrictions.canManageOwnAccount()) {
+			throw new ForbiddenException("This account cannot update its own password");
+		}
+
 		final String currentPassword = passwords.get("pwd_current");
 		final String newPassword = passwords.get("pwd_new");
 		if ((currentPassword == null) || currentPassword.isEmpty() || (newPassword == null) || newPassword.isEmpty()) {
@@ -73,11 +81,15 @@ public class AccountEndpoint {
 	@PUT
 	@Path("id/{new_id}")
 	public void changeId(@Context final HttpServletRequest request, @PathParam("new_id") final String newId) {
+		if (!this.restrictions.canManageOwnAccount()) {
+			throw new ForbiddenException("This account cannot change its own ID");
+		}
+
 		UsersEndpoint.changeIdImpl(request.getRemoteUser(), newId, this.ctx);
 	}
 
 	@GET
-	@Path("certificates")
+	@Path("observed-certificates")
 	public List<Integer> getRelevantCertificates(@Context final HttpServletRequest request) {
 		return this.ctx.selectFrom(USERS_CERTIFICATES)
 				.where(USERS_CERTIFICATES.USCE_USER_FK.eq(request.getRemoteUser()))
@@ -85,21 +97,15 @@ public class AccountEndpoint {
 	}
 
 	@PUT
-	@Path("certificates")
+	@Path("observed-certificates")
 	@SuppressWarnings("unchecked")
 	public void setRelevantCertificates(@Context final HttpServletRequest request, final List<Integer> certificates) {
-		this.ctx.transaction(config -> {
-			try (final DSLContext transactionCtx = DSL.using(config)) {
-				transactionCtx.delete(USERS_CERTIFICATES).where(USERS_CERTIFICATES.USCE_USER_FK.eq(request.getRemoteUser())).execute();
-				if (certificates.isEmpty()) {
-					return;
-				}
-
-				final List<Row1<Integer>> rows = new ArrayList<>(certificates.size());
-				certificates.forEach(cert -> rows.add(DSL.row(cert)));
+		Transactions.with(this.ctx, transactionCtx -> {
+			transactionCtx.delete(USERS_CERTIFICATES).where(USERS_CERTIFICATES.USCE_USER_FK.eq(request.getRemoteUser())).execute();
+			if (!certificates.isEmpty()) {
 				transactionCtx.insertInto(USERS_CERTIFICATES, USERS_CERTIFICATES.USCE_USER_FK, USERS_CERTIFICATES.USCE_CERT_FK)
-						.select(DSL.select(DSL.val(request.getRemoteUser()), DSL.field(USERS_CERTIFICATES.USCE_CERT_FK.getName(), Integer.class))
-								.from(DSL.values(rows.toArray(new Row2[0])).as("unused", USERS_CERTIFICATES.USCE_CERT_FK.getName())))
+						.select(DSL.select(DSL.val(request.getRemoteUser()), DSL.field("cert_id", Integer.class))
+								.from(DSL.values(certificates.stream().map(DSL::row).toArray(Row1[]::new)).as("unused", "cert_id")))
 						.execute();
 			}
 		});

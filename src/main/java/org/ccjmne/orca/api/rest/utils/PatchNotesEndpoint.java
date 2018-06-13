@@ -1,8 +1,10 @@
-package org.ccjmne.orca.api.rest;
+package org.ccjmne.orca.api.rest.utils;
 
 import static org.ccjmne.orca.jooq.classes.Tables.USERS;
 
-import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -54,9 +56,10 @@ public class PatchNotesEndpoint {
 			return this.unread;
 		}
 
-		void checkUnreadSince(final String lastCheckedVersion, final Timestamp lastCheckedTimestamp) {
-			this.unread = ((null == lastCheckedVersion) || Version.valueOf(lastCheckedVersion).lessThan(Version.valueOf(this.version)))
-					|| ((null == lastCheckedTimestamp) || (lastCheckedTimestamp.getTime() < this.timestamp));
+		void checkUnreadSince(final String lastCheckedVersion, final OffsetDateTime lastCheckedTimestamp) {
+			this.unread = (null == lastCheckedVersion) || (null == lastCheckedTimestamp)
+					|| Version.valueOf(lastCheckedVersion).lessThan(Version.valueOf(this.version))
+					|| lastCheckedTimestamp.isBefore(OffsetDateTime.ofInstant(Instant.ofEpochMilli(this.timestamp), ZoneOffset.UTC));
 		}
 	}
 
@@ -76,7 +79,7 @@ public class PatchNotesEndpoint {
 
 	@GET
 	public List<PatchNotes> listRelevantPatchNotes(@QueryParam("version") final String version, @Context final HttpServletRequest request) throws Exception {
-		final Record2<String, Timestamp> lastChecked = this.ctx.select(USERS.USER_NEWSPULL_VERSION, USERS.USER_NEWSPULL_TIMESTAMP)
+		final Record2<String, OffsetDateTime> lastChecked = this.ctx.select(USERS.USER_NEWSPULL_VERSION, USERS.USER_NEWSPULL_TIMESTAMP)
 				.from(USERS).where(USERS.USER_ID.eq(request.getRemoteUser())).fetchOne();
 
 		final List<PatchNotes> patches = this.client
@@ -116,7 +119,7 @@ public class PatchNotesEndpoint {
 
 		this.ctx.update(USERS)
 				.set(USERS.USER_NEWSPULL_VERSION, version)
-				.set(USERS.USER_NEWSPULL_TIMESTAMP, DSL.currentTimestamp())
+				.set(USERS.USER_NEWSPULL_TIMESTAMP, DSL.currentOffsetDateTime())
 				.where(USERS.USER_ID.eq(request.getRemoteUser())).execute();
 	}
 }

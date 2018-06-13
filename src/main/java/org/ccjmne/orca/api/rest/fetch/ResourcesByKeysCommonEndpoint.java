@@ -1,8 +1,8 @@
-package org.ccjmne.orca.api.rest;
+package org.ccjmne.orca.api.rest.fetch;
 
 import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
+import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
 import java.util.Map;
 
@@ -12,12 +12,17 @@ import javax.ws.rs.Path;
 
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesCertificatesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.TrainingtypesRecord;
-import org.jooq.Result;
 
-@Path("resources-by-keys-common")
-// TODO: resources-common-by-keys?
+import com.google.common.collect.Maps;
+
+/**
+ * Serves the resources whose access isn't restricted.<br />
+ * Unlike {@link ResourcesCommonEndpoint}, this API presents resources into
+ * {@link Map}s keyed by their unique identifier.
+ *
+ * @author ccjmne
+ */
+@Path("resources-common/keyed")
 // TODO: merge with ResourcesCommonEndpoint?
 public class ResourcesByKeysCommonEndpoint {
 
@@ -30,19 +35,19 @@ public class ResourcesByKeysCommonEndpoint {
 
 	@GET
 	@Path("trainingtypes")
-	public Map<Integer, TrainingtypesRecord> listTrainingTypes() {
-		return this.resources.listTrainingTypes().intoMap(TRAININGTYPES.TRTY_PK);
-	}
-
-	@GET
-	@Path("trainingtypes_certificates")
-	public Map<Integer, Result<TrainingtypesCertificatesRecord>> listTrainingtypesCertificates() {
-		return this.resources.listTrainingTypesCertificates().intoGroups(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK);
+	public Map<Integer, Map<String, Object>> listTrainingTypes() {
+		return Maps.uniqueIndex(this.resources.listTrainingTypes(), trty -> (Integer) trty.get(TRAININGTYPES.TRTY_PK.getName()));
 	}
 
 	@GET
 	@Path("certificates")
 	public Map<Integer, CertificatesRecord> listCertificates() {
 		return this.resources.listCertificates().intoMap(CERTIFICATES.CERT_PK);
+	}
+
+	@GET
+	@Path("tags")
+	public Map<Integer, Map<String, Object>> listTags() {
+		return Maps.uniqueIndex(this.resources.listTags(), x -> (Integer) x.get(TAGS.TAGS_PK.getName()));
 	}
 }
