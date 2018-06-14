@@ -212,6 +212,9 @@
 	</security-constraint>
 
 	<security-role>
+		<role-name>*</role-name>
+	</security-role>
+	<security-role>
 		<role-name>user</role-name>
 	</security-role>
 	<security-role>
