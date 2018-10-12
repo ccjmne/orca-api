@@ -1,7 +1,6 @@
 package org.ccjmne.orca.api.modules;
 
 import java.util.List;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -13,9 +12,14 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.http.client.utils.URLEncodedUtils;
+import org.jooq.Condition;
+import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.SelectQuery;
+import org.jooq.SortField;
 import org.jooq.impl.DSL;
+
+import com.google.common.base.MoreObjects;
 
 /**
  * Provides filtering, sorting and pagination methods to be applied to any
@@ -27,42 +31,45 @@ import org.jooq.impl.DSL;
  */
 public class RecordsCollator {
 
-	private static final String PARAMETER_NAME_LIMIT = "page-size";
-	private static final String PARAMETER_NAME_OFFSET = "page-offset";
-	private static final Pattern SORTING_ENTRY = Pattern.compile("^sorting\\[(?<key>[^]]+)\\]=(?<value>.*)$");
-	private static final Pattern FILTER_ENTRY = Pattern.compile("^filter\\[(?<key>[^]]+)\\]=(?<value>.*)$");
+	private static final String PARAMETER_NAME_PAGE_SIZE = "page-size";
+	private static final String PARAMETER_NAME_PAGE_OFFSET = "page-offset";
+	private static final Pattern SORTING_ENTRY = Pattern.compile("^sorting\\[(?<field>[^]]+)\\]=(?<order>.*)$");
+	private static final Pattern FILTER_ENTRY = Pattern.compile("^filter\\[(?<field>[^]]+)\\]=(?<value>.*)$");
 
-	private final UriInfo uriInfo;
-	private final Predicate<Matcher> fieldsFilter;
-
-	@Inject
-	public RecordsCollator(@Context final UriInfo uriInfo) {
-		this.uriInfo = uriInfo;
-		this.fieldsFilter = x -> true;
-	}
-
-	private RecordsCollator(final UriInfo uriInfo, final String fieldsPrefix) {
-		this.uriInfo = uriInfo;
-		this.fieldsFilter = x -> x.group("key").startsWith(fieldsPrefix);
-	}
+	private final List<? extends FieldOrdering> orderBy;
+	private final List<? extends FieldCondition> filterWhere;
+	private final int limit;
+	private final int offset;
 
 	/**
-	 * Creates a new {@link RecordsCollator} that can only even attempt to
-	 * filter and sort onto fields whose names start with the specified prefix.
-	 *
-	 * @param fieldsPrefix
-	 *            The prefix discriminating the fields this
-	 *            {@link RecordsCollator} can work with
-	 * @return A copy of <code>this</code> {@link RecordsCollator} that
-	 *         disregards fields that do not match the prefix provided
+	 * RAII constructor that parses the context's query parameters and creates
+	 * the corresponding JOOQ {@link Condition}s and {@link SortField}s.<br />
+	 * <br />
+	 * The order in which the sorting query parameters appear is preserved using
+	 * {@link URLEncodedUtils#parse(java.net.URI, String)}.
 	 */
-	public RecordsCollator restrictTo(final String fieldsPrefix) {
-		return new RecordsCollator(this.uriInfo, fieldsPrefix);
+	@Inject
+	public RecordsCollator(@Context final UriInfo uriInfo) {
+		final String pSize = uriInfo.getQueryParameters().getFirst(PARAMETER_NAME_PAGE_SIZE);
+		this.limit = pSize != null ? Integer.valueOf(pSize).intValue() : 0;
+		this.offset = this.limit * Integer.valueOf(MoreObjects.firstNonNull(uriInfo.getQueryParameters().getFirst(PARAMETER_NAME_PAGE_OFFSET), "0")).intValue();
+		this.orderBy = URLEncodedUtils.parse(uriInfo.getRequestUri(), "UTF-8").stream().map(p -> String.format("%s=%s", p.getName(), p.getValue()))
+				.map(SORTING_ENTRY::matcher)
+				.filter(Matcher::matches)
+				.map(m -> new FieldOrdering(m.group("field"), m.group("order")))
+				.collect(Collectors.toList());
+		this.filterWhere = uriInfo.getQueryParameters().entrySet().stream()
+				.map(e -> String.format("%s=%s", e.getKey(), e.getValue().get(0)))
+				.map(FILTER_ENTRY::matcher)
+				.filter(Matcher::matches)
+				.map(m -> new FieldCondition(m.group("field"), m.group("value")))
+				.collect(Collectors.toList());
 	}
 
-	// TODO: Handle non-varchar data w/ something other than ILIKE
 	public <T extends Record> SelectQuery<T> applyFiltering(final SelectQuery<T> query) {
-		query.addConditions(this.transform(FILTER_ENTRY::matcher, m -> DSL.field(m.group("key")).containsIgnoreCase(m.group("value"))));
+		query.addConditions(this.filterWhere.stream()
+				.filter(FieldCondition.belongsTo(RecordsCollator.getAvailableFields(query))).map(FieldCondition::getCondition)
+				.collect(Collectors.toList()));
 		return query;
 	}
 
@@ -76,9 +83,9 @@ public class RecordsCollator {
 	 * @return The original query, for method chaining purposes
 	 */
 	public <T extends Record> SelectQuery<T> applySorting(final SelectQuery<T> query) {
-		query.addOrderBy(this.transformInOrder(	SORTING_ENTRY::matcher,
-												m -> m.group("value").equalsIgnoreCase("desc")	? DSL.field(m.group("key")).desc()
-																								: DSL.field(m.group("key")).asc()));
+		query.addOrderBy(this.orderBy.stream()
+				.filter(FieldOrdering.belongsTo(RecordsCollator.getAvailableFields(query))).map(FieldOrdering::getSortField)
+				.collect(Collectors.toList()));
 		return query;
 	}
 
@@ -93,8 +100,10 @@ public class RecordsCollator {
 	 * @return The original query, for method chaining purposes
 	 */
 	public <T extends Record> SelectQuery<T> applyPagination(final SelectQuery<T> query) {
-		query.addLimit(	DSL.val(this.uriInfo.getQueryParameters().getFirst(PARAMETER_NAME_OFFSET), Integer.class),
-						DSL.val(this.uriInfo.getQueryParameters().getFirst(PARAMETER_NAME_LIMIT), Integer.class));
+		if (this.limit > 0) {
+			query.addLimit(this.offset, this.limit);
+		}
+
 		return query;
 	}
 
@@ -113,9 +122,7 @@ public class RecordsCollator {
 	 * @return The original query, for method chaining purposes
 	 */
 	public <T extends Record> SelectQuery<T> applyFAndS(final SelectQuery<T> query) {
-		this.applyFiltering(query);
-		this.applySorting(query);
-		return query;
+		return this.applySorting(this.applyFiltering(query));
 	}
 
 	/**
@@ -129,37 +136,49 @@ public class RecordsCollator {
 	 * @return The original query, for method chaining purposes
 	 */
 	public <T extends Record> SelectQuery<T> applyAll(final SelectQuery<T> query) {
-		this.applyFiltering(query);
-		this.applySorting(query);
-		this.applyPagination(query);
-		return query;
+		return this.applyPagination(this.applyFAndS(query));
 	}
 
-	private <T> List<T> transform(final Function<? super String, ? extends Matcher> matcher, final Function<Matcher, ? extends T> mapper) {
-		return this.uriInfo.getQueryParameters().entrySet().stream()
-				.map(e -> String.format("%s=%s", e.getKey(), e.getValue().get(0)))
-				.map(matcher)
-				.filter(Matcher::matches)
-				.filter(this.fieldsFilter)
-				.map(mapper)
-				.collect(Collectors.toList());
+	private static <T extends Record> List<String> getAvailableFields(final SelectQuery<T> query) {
+		return query.fieldStream().map(Field::getName).collect(Collectors.toList());
 	}
 
-	/**
-	 * Preserves the order in which the query parameters appear. Used for the
-	 * sorting options, where their sequence order is crucial.
-	 *
-	 * @param matcher
-	 * @param mapper
-	 * @return
-	 */
-	private <T> List<T> transformInOrder(final Function<? super String, ? extends Matcher> matcher, final Function<Matcher, ? extends T> mapper) {
-		return URLEncodedUtils.parse(this.uriInfo.getRequestUri(), "UTF-8").stream()
-				.map(p -> String.format("%s=%s", p.getName(), p.getValue()))
-				.map(matcher)
-				.filter(Matcher::matches)
-				.filter(this.fieldsFilter)
-				.map(mapper)
-				.collect(Collectors.toList());
+	private static class FieldCondition {
+
+		private final Condition condition;
+		private final String field;
+
+		// TODO: Handle non-varchar data w/ something other than ILIKE
+		protected FieldCondition(final String field, final String value) {
+			this.condition = DSL.field(field).containsIgnoreCase(value);
+			this.field = field;
+		}
+
+		public final Condition getCondition() {
+			return this.condition;
+		}
+
+		public static Predicate<? super FieldCondition> belongsTo(final List<String> availableFields) {
+			return f -> availableFields.contains(f.field);
+		}
+	}
+
+	private static class FieldOrdering {
+
+		private final SortField<?> order;
+		private final String field;
+
+		protected FieldOrdering(final String field, final String order) {
+			this.order = "desc".equalsIgnoreCase(order) ? DSL.field(field).desc() : DSL.field(field).asc();
+			this.field = field;
+		}
+
+		public final SortField<?> getSortField() {
+			return this.order;
+		}
+
+		public static Predicate<? super FieldOrdering> belongsTo(final List<String> availableFields) {
+			return f -> availableFields.contains(f.field);
+		}
 	}
 }

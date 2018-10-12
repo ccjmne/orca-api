@@ -385,7 +385,7 @@ public class ResourcesEndpoint {
 									SITES_TAGS.SITA_SITE_FK.eq(sites.field(SITES.SITE_PK)));
 				withTags.addGroupBy(sites.fields());
 
-				return this.ctx.fetch(this.recordsCollator.restrictTo("site").applyAll(withTags)).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
+				return this.ctx.fetch(this.recordsCollator.applyAll(withTags)).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
 						.getZipSelectMapper((slicer, value) -> ResourcesHelper.coerceTagValue(value, slicer.get(ResourcesHelper.arrayAgg(TAGS.TAGS_TYPE))),
 											ResourcesHelper.arrayAgg(SITES_TAGS.SITA_TAGS_FK),
 											ResourcesHelper.arrayAgg(SITES_TAGS.SITA_VALUE),
@@ -433,7 +433,7 @@ public class ResourcesEndpoint {
 
 				groupedSites.addJoin(TAGS, JoinType.LEFT_OUTER_JOIN, TAGS.TAGS_PK.eq(SITES_TAGS.SITA_TAGS_FK));
 				groupedSites.addGroupBy(SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE);
-				return this.ctx.fetch(this.recordsCollator.applyPagination(groupedSites))
+				return this.ctx.fetch(this.recordsCollator.applyAll(groupedSites))
 						.map(ResourcesHelper.getCoercerMapper(ResourcesHelper.TAG_VALUE_COERCER));
 			}
 		}

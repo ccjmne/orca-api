@@ -92,7 +92,7 @@ public class RestrictedResourcesAccess {
 				query.addConditions(EMPLOYEES.EMPL_PK.eq(empl_pk));
 			}
 
-			return this.recordsCollator.restrictTo("empl").applyFAndS(query);
+			return this.recordsCollator.applyFAndS(query);
 		}
 	}
 
@@ -155,7 +155,7 @@ public class RestrictedResourcesAccess {
 				query.addConditions(SITES.SITE_PK.eq(site_pk));
 			}
 
-			return this.recordsCollator.restrictTo("site").applyFAndS(query);
+			return this.recordsCollator.applyFAndS(query);
 		}
 	}
 }
