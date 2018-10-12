@@ -13,6 +13,7 @@ import java.util.function.Function;
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
 
+import org.ccjmne.orca.api.modules.RecordsCollator;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.jooq.Condition;
 import org.jooq.JoinType;
@@ -26,15 +27,16 @@ import org.jooq.impl.DSL;
  * class!</strong><br />
  *
  * @author ccjmne
- *
  */
 public class RestrictedResourcesAccess {
 
 	private final Restrictions restrictions;
+	private final RecordsCollator recordsCollator;
 
 	@Inject
-	public RestrictedResourcesAccess(final Restrictions restrictions) {
+	public RestrictedResourcesAccess(final Restrictions restrictions, final RecordsCollator recordsCollator) {
 		this.restrictions = restrictions;
+		this.recordsCollator = recordsCollator;
 	}
 
 	/**
@@ -68,29 +70,30 @@ public class RestrictedResourcesAccess {
 												final Integer trng_pk,
 												final String dateStr,
 												final Map<Integer, List<String>> tagFilters) {
-		final SelectQuery<Record> query = DSL.select().getQuery();
-		query.addFrom(EMPLOYEES);
-		query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT));
-		query.addJoin(
-						SITES_EMPLOYEES,
-						this.accessUnassignedEmployees(empl_pk, site_pk, trng_pk, tagFilters) ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
-						SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-						SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)),
-						SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.selectSites(site_pk, tagFilters))));
+		try (final SelectQuery<Record> query = DSL.select().getQuery()) {
+			query.addFrom(EMPLOYEES);
+			query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT));
+			query.addJoin(
+							SITES_EMPLOYEES,
+							this.accessUnassignedEmployees(empl_pk, site_pk, trng_pk, tagFilters) ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
+							SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
+							SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr)),
+							SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.selectSites(site_pk, tagFilters))));
 
-		if (trng_pk != null) {
-			if (!this.restrictions.canAccessTrainings()) {
-				throw new ForbiddenException();
+			if (trng_pk != null) {
+				if (!this.restrictions.canAccessTrainings()) {
+					throw new ForbiddenException();
+				}
+
+				query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK), TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(trng_pk));
 			}
 
-			query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK), TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(trng_pk));
-		}
+			if (empl_pk != null) {
+				query.addConditions(EMPLOYEES.EMPL_PK.eq(empl_pk));
+			}
 
-		if (empl_pk != null) {
-			query.addConditions(EMPLOYEES.EMPL_PK.eq(empl_pk));
+			return this.recordsCollator.restrictTo("empl").applyFAndS(query);
 		}
-
-		return query;
 	}
 
 	/**
@@ -114,44 +117,45 @@ public class RestrictedResourcesAccess {
 	 *            to be selected
 	 */
 	public SelectQuery<Record> selectSites(final Integer site_pk, final Map<Integer, List<String>> filters) {
-		final SelectQuery<Record> query = DSL.select().getQuery();
-		query.addFrom(SITES);
-		query.addConditions(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE));
-		if ((site_pk == null) && !this.restrictions.canAccessAllSites()) {
-			if (this.restrictions.getAccessibleSites().isEmpty()) {
-				throw new ForbiddenException();
+		try (final SelectQuery<Record> query = DSL.select().getQuery()) {
+			query.addFrom(SITES);
+			query.addConditions(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE));
+			if ((site_pk == null) && !this.restrictions.canAccessAllSites()) {
+				if (this.restrictions.getAccessibleSites().isEmpty()) {
+					throw new ForbiddenException();
+				}
+
+				query.addConditions(SITES.SITE_PK.in(this.restrictions.getAccessibleSites()));
 			}
 
-			query.addConditions(SITES.SITE_PK.in(this.restrictions.getAccessibleSites()));
-		}
+			if (!filters.isEmpty()) {
+				if (!this.restrictions.canAccessSitesWith(filters)) {
+					throw new ForbiddenException();
+				}
 
-		if (!filters.isEmpty()) {
-			if (!this.restrictions.canAccessSitesWith(filters)) {
-				throw new ForbiddenException();
+				// this Optional can safely be get() since !filters.isEmpty()
+				query.addConditions(DSL.and(filters.entrySet().stream()
+						.map(tag -> ((Function<Condition, Condition>) hasCorrectValue -> tag
+								.getValue().contains(Constants.TAGS_VALUE_NONE)
+																					? hasCorrectValue.or(DSL.notExists(DSL.selectZero().from(SITES_TAGS)
+																						.where(SITES_TAGS.SITA_SITE_FK.eq(SITES.SITE_PK))
+																						.and(SITES_TAGS.SITA_TAGS_FK.eq(tag.getKey()))))
+																				: hasCorrectValue).apply(DSL.exists(DSL.selectZero().from(SITES_TAGS)
+																						.where(SITES_TAGS.SITA_SITE_FK.eq(SITES.SITE_PK))
+																						.and(SITES_TAGS.SITA_TAGS_FK.eq(tag.getKey()))
+																						.and(SITES_TAGS.SITA_VALUE.in(tag.getValue())))))
+						.reduce(Condition::and).get()));
 			}
 
-			// this Optional can safely be get() since !filters.isEmpty()
-			query.addConditions(DSL.and(filters.entrySet().stream()
-					.map(tag -> ((Function<Condition, Condition>) hasCorrectValue -> tag
-							.getValue().contains(Constants.TAGS_VALUE_NONE)
-																				? hasCorrectValue.or(DSL.notExists(DSL.selectZero().from(SITES_TAGS)
-																					.where(SITES_TAGS.SITA_SITE_FK.eq(SITES.SITE_PK))
-																					.and(SITES_TAGS.SITA_TAGS_FK.eq(tag.getKey()))))
-																			: hasCorrectValue).apply(DSL.exists(DSL.selectZero().from(SITES_TAGS)
-																					.where(SITES_TAGS.SITA_SITE_FK.eq(SITES.SITE_PK))
-																					.and(SITES_TAGS.SITA_TAGS_FK.eq(tag.getKey()))
-																					.and(SITES_TAGS.SITA_VALUE.in(tag.getValue())))))
-					.reduce(Condition::and).get()));
-		}
+			if (site_pk != null) {
+				if (!this.restrictions.canAccessSite(site_pk)) {
+					throw new ForbiddenException();
+				}
 
-		if (site_pk != null) {
-			if (!this.restrictions.canAccessSite(site_pk)) {
-				throw new ForbiddenException();
+				query.addConditions(SITES.SITE_PK.eq(site_pk));
 			}
 
-			query.addConditions(SITES.SITE_PK.eq(site_pk));
+			return this.recordsCollator.restrictTo("site").applyFAndS(query);
 		}
-
-		return query;
 	}
 }

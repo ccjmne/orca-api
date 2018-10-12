@@ -29,6 +29,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
+import org.ccjmne.orca.api.modules.RecordsCollator;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
@@ -57,16 +58,22 @@ public class ResourcesEndpoint {
 
 	private final DSLContext ctx;
 	private final RestrictedResourcesAccess restrictedResourcesAccess;
+	private final RecordsCollator recordsCollator;
 
 	// TODO: Should not have any use for this and should delegate restricted
 	// data access mechanics to RestrictedResourcesHelper
 	private final Restrictions restrictions;
 
 	@Inject
-	public ResourcesEndpoint(final DSLContext ctx, final Restrictions restrictions, final RestrictedResourcesAccess restrictedResourcesAccess) {
+	public ResourcesEndpoint(
+								final DSLContext ctx,
+								final Restrictions restrictions,
+								final RestrictedResourcesAccess restrictedResourcesAccess,
+								final RecordsCollator recordsCollator) {
 		this.ctx = ctx;
 		this.restrictions = restrictions;
 		this.restrictedResourcesAccess = restrictedResourcesAccess;
+		this.recordsCollator = recordsCollator;
 	}
 
 	@GET
@@ -272,7 +279,7 @@ public class ResourcesEndpoint {
 			}
 
 			query.addOrderBy(TRAININGS.TRNG_DATE);
-			return query.fetch();
+			return this.recordsCollator.applyAll(query).fetch();
 		}
 	}
 
@@ -320,8 +327,7 @@ public class ResourcesEndpoint {
 														final String dateStr,
 														final String fields,
 														final Map<Integer, List<String>> tagFilters) {
-		try (final SelectQuery<? extends Record> query = this.restrictedResourcesAccess
-				.selectEmployees(empl_pk, site_pk, trng_pk, dateStr, tagFilters)) {
+		try (final SelectQuery<? extends Record> query = this.restrictedResourcesAccess.selectEmployees(empl_pk, site_pk, trng_pk, dateStr, tagFilters)) {
 			if (Constants.FIELDS_ALL.equals(fields)) {
 				query.addSelect(EMPLOYEES.fields());
 				query.addSelect(SITES_EMPLOYEES.fields());
@@ -347,7 +353,7 @@ public class ResourcesEndpoint {
 			query.addJoin(EMPLOYEES_VOIDINGS, JoinType.LEFT_OUTER_JOIN, EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(EMPLOYEES.EMPL_PK));
 			query.addGroupBy(selected);
 
-			return this.ctx.fetch(query).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
+			return this.ctx.fetch(this.recordsCollator.applyPagination(query)).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
 					.getZipMapper(EMPLOYEES_VOIDINGS.EMVO_CERT_FK, EMPLOYEES_VOIDINGS.EMVO_DATE, EMPLOYEES_VOIDINGS.EMVO_REASON), "voidings"));
 		}
 	}
@@ -379,7 +385,7 @@ public class ResourcesEndpoint {
 									SITES_TAGS.SITA_SITE_FK.eq(sites.field(SITES.SITE_PK)));
 				withTags.addGroupBy(sites.fields());
 
-				return this.ctx.fetch(withTags).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
+				return this.ctx.fetch(this.recordsCollator.restrictTo("site").applyAll(withTags)).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
 						.getZipSelectMapper((slicer, value) -> ResourcesHelper.coerceTagValue(value, slicer.get(ResourcesHelper.arrayAgg(TAGS.TAGS_TYPE))),
 											ResourcesHelper.arrayAgg(SITES_TAGS.SITA_TAGS_FK),
 											ResourcesHelper.arrayAgg(SITES_TAGS.SITA_VALUE),
@@ -426,9 +432,9 @@ public class ResourcesEndpoint {
 				}
 
 				groupedSites.addJoin(TAGS, JoinType.LEFT_OUTER_JOIN, TAGS.TAGS_PK.eq(SITES_TAGS.SITA_TAGS_FK));
-
 				groupedSites.addGroupBy(SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE);
-				return this.ctx.fetch(groupedSites).map(ResourcesHelper.getCoercerMapper(ResourcesHelper.TAG_VALUE_COERCER));
+				return this.ctx.fetch(this.recordsCollator.applyPagination(groupedSites))
+						.map(ResourcesHelper.getCoercerMapper(ResourcesHelper.TAG_VALUE_COERCER));
 			}
 		}
 	}
