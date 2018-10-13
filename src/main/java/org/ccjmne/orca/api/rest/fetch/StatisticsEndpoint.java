@@ -34,6 +34,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
+import org.ccjmne.orca.api.modules.RecordsCollator;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
@@ -59,10 +60,12 @@ public class StatisticsEndpoint {
 
 	private final DSLContext ctx;
 	private final ResourcesByKeysCommonEndpoint commonResources;
+	// TODO: Rename, once resources and restrictions are gone
 	private final RestrictedResourcesAccess restrictedResourcesAccess;
+	private final RecordsCollator collator;
 
 	// TODO: Should not have any use for these two and should delegate
-	// restricted data access mechanics to RestrictedResourcesHelper
+	// restricted data access mechanics to RestrictedResourcesAccess
 	private final ResourcesEndpoint resources;
 	private final Restrictions restrictions;
 
@@ -72,12 +75,14 @@ public class StatisticsEndpoint {
 								final ResourcesEndpoint resources,
 								final ResourcesByKeysCommonEndpoint commonResources,
 								final RestrictedResourcesAccess restrictedResourcesAccess,
-								final Restrictions restrictions) {
+								final Restrictions restrictions,
+								final RecordsCollator collator) {
 		this.ctx = ctx;
 		this.resources = resources;
 		this.commonResources = commonResources;
 		this.restrictedResourcesAccess = restrictedResourcesAccess;
 		this.restrictions = restrictions;
+		this.collator = collator;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -213,7 +218,9 @@ public class StatisticsEndpoint {
 										tags_pk)
 				.asTable();
 
-		return this.ctx.select(
+		return this.collator
+				.applyAll(this.ctx
+						.select(
 								sitesGroupsStats.field(SITES_TAGS.SITA_VALUE),
 								ResourcesHelper.arrayAgg(sitesGroupsStats.field(CERTIFICATES.CERT_PK)).as("cert_pk"),
 								ResourcesHelper.arrayAgg(sitesGroupsStats.field("count")),
@@ -225,8 +232,8 @@ public class StatisticsEndpoint {
 								ResourcesHelper.arrayAgg(sitesGroupsStats.field("sites_" + STATUS_DANGER)),
 								ResourcesHelper.arrayAgg(sitesGroupsStats.field("score")),
 								ResourcesHelper.arrayAgg(sitesGroupsStats.field("validity")))
-				.from(sitesGroupsStats)
-				.groupBy(sitesGroupsStats.field(SITES_TAGS.SITA_VALUE))
+						.from(sitesGroupsStats)
+						.groupBy(sitesGroupsStats.field(SITES_TAGS.SITA_VALUE)))
 				.fetchMap(
 							sitesGroupsStats.field(SITES_TAGS.SITA_VALUE),
 							ResourcesHelper.getZipMapper(	"cert_pk", "count", STATUS_SUCCESS, STATUS_WARNING, STATUS_DANGER, "sites_" + STATUS_SUCCESS,
@@ -300,7 +307,8 @@ public class StatisticsEndpoint {
 																	this.restrictedResourcesAccess.selectEmployees(null, site_pk, null, dateStr, tagFilters))),
 									SITES_EMPLOYEES.SIEM_SITE_FK
 											.in(Constants.select(	SITES.SITE_PK,
-																	this.restrictedResourcesAccess.selectSites(site_pk, tagFilters))))
+																	this.collator
+																			.applyPagination(this.restrictedResourcesAccess.selectSites(site_pk, tagFilters)))))
 				.asTable();
 
 		return this.ctx.select(
@@ -339,15 +347,11 @@ public class StatisticsEndpoint {
 																@QueryParam("training") final Integer trng_pk,
 																@QueryParam("date") final String dateStr,
 																@Context final UriInfo uriInfo) {
-
 		final Table<? extends Record> employeesStats = StatisticsHelper
-				.selectEmployeesStats(
-										dateStr,
-										TRAININGS_EMPLOYEES.TREM_EMPL_FK
-												.in(Constants.select(	EMPLOYEES.EMPL_PK,
-																		this.restrictedResourcesAccess
-																				.selectEmployees(	empl_pk, site_pk, trng_pk, dateStr,
-																									ResourcesHelper.getTagsFromUri(uriInfo)))))
+				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK
+						.in(Constants.select(	EMPLOYEES.EMPL_PK,
+												this.collator.applyPagination(this.restrictedResourcesAccess
+														.selectEmployees(empl_pk, site_pk, trng_pk, dateStr, ResourcesHelper.getTagsFromUri(uriInfo))))))
 				.asTable();
 
 		return this.ctx

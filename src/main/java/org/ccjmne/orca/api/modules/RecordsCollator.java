@@ -15,6 +15,8 @@ import org.apache.http.client.utils.URLEncodedUtils;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Record;
+import org.jooq.Select;
+import org.jooq.SelectFinalStep;
 import org.jooq.SelectQuery;
 import org.jooq.SortField;
 import org.jooq.impl.DSL;
@@ -74,6 +76,17 @@ public class RecordsCollator {
 	}
 
 	/**
+	 * Overload of {@link #applyFiltering(SelectQuery)}.
+	 *
+	 * @param select
+	 *            The {@link Select} whose underlying query to collate
+	 * @return The underlying query, for method chaining purposes
+	 */
+	public <T extends Record> SelectQuery<T> applyFiltering(final SelectFinalStep<T> select) {
+		return this.applyFiltering(select.getQuery());
+	}
+
+	/**
 	 * Ideally <strong>only applied onto the outermost query</strong> that
 	 * actually gets returned to the client.<br />
 	 * Sorting the results of a sub-query used internally serves no purpose.
@@ -87,6 +100,17 @@ public class RecordsCollator {
 				.filter(FieldOrdering.belongsTo(RecordsCollator.getAvailableFields(query))).map(FieldOrdering::getSortField)
 				.collect(Collectors.toList()));
 		return query;
+	}
+
+	/**
+	 * Overload of {@link #applySorting(SelectQuery)}.
+	 *
+	 * @param select
+	 *            The {@link Select} whose underlying query to collate
+	 * @return The underlying query, for method chaining purposes
+	 */
+	public <T extends Record> SelectQuery<T> applySorting(final SelectFinalStep<T> select) {
+		return this.applySorting(select.getQuery());
 	}
 
 	/**
@@ -108,6 +132,17 @@ public class RecordsCollator {
 	}
 
 	/**
+	 * Overload of {@link #applyPagination(SelectQuery)}.
+	 *
+	 * @param select
+	 *            The {@link Select} whose underlying query to collate
+	 * @return The underlying query, for method chaining purposes
+	 */
+	public <T extends Record> SelectQuery<T> applyPagination(final SelectFinalStep<T> select) {
+		return this.applyPagination(select.getQuery());
+	}
+
+	/**
 	 * Stands for <em>"apply filtering and sorting"</em>.<br />
 	 * <br />
 	 *
@@ -126,17 +161,40 @@ public class RecordsCollator {
 	}
 
 	/**
+	 * Overload of {@link #applyFAndS(SelectQuery)}.
+	 *
+	 * @param select
+	 *            The {@link Select} whose underlying query to collate
+	 * @return The underlying query, for method chaining purposes
+	 */
+	public <T extends Record> SelectQuery<T> applyFAndS(final SelectFinalStep<T> select) {
+		return this.applyFAndS(select.getQuery());
+	}
+
+	/**
 	 * Should <strong>only ever be applied onto the outermost query</strong>
 	 * that actually gets returned to the client.<br />
 	 * Should <strong>never be used on a sub-query </strong>used internally to
 	 * refine the results (see {@link #applyPagination(SelectQuery)}).
 	 *
 	 * @param query
-	 *            The {@link SelectQuery} to which pagination should be applied
+	 *            The {@link SelectQuery} to which filtering, sorting and
+	 *            pagination should be applied
 	 * @return The original query, for method chaining purposes
 	 */
 	public <T extends Record> SelectQuery<T> applyAll(final SelectQuery<T> query) {
 		return this.applyPagination(this.applyFAndS(query));
+	}
+
+	/**
+	 * Overload of {@link #applyAll(SelectQuery)}.
+	 *
+	 * @param select
+	 *            The {@link Select} whose underlying query to collate
+	 * @return The underlying query, for method chaining purposes
+	 */
+	public <T extends Record> SelectQuery<T> applyAll(final SelectFinalStep<T> select) {
+		return this.applyAll(select.getQuery());
 	}
 
 	private static <T extends Record> List<String> getAvailableFields(final SelectQuery<T> query) {

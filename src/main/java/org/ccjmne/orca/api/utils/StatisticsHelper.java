@@ -19,7 +19,7 @@ import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.JoinType;
 import org.jooq.Record;
-import org.jooq.Select;
+import org.jooq.SelectFinalStep;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
@@ -59,9 +59,9 @@ public class StatisticsHelper {
 	 * The <code>Condition</code> should be on
 	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.
 	 */
-	public static Select<? extends Record> selectEmployeesStats(
-																final String dateStr,
-																final Condition employeesSelection) {
+	public static SelectFinalStep<? extends Record> selectEmployeesStats(
+																			final String dateStr,
+																			final Condition employeesSelection) {
 		return DSL
 				.select(
 						SITES_EMPLOYEES.SIEM_SITE_FK,
@@ -97,10 +97,10 @@ public class StatisticsHelper {
 	 * <code>SITES_EMPLOYEES.SIEM_SITE_FK</code>.
 	 */
 	@SuppressWarnings("null")
-	public static Select<? extends Record> selectSitesStats(
-															final String dateStr,
-															final Condition employeesSelection,
-															final Condition sitesSelection) {
+	public static SelectFinalStep<? extends Record> selectSitesStats(
+																		final String dateStr,
+																		final Condition employeesSelection,
+																		final Condition sitesSelection) {
 		final Table<? extends Record> employeesStats = StatisticsHelper
 				.selectEmployeesStats(dateStr, employeesSelection)
 				.asTable();
@@ -171,11 +171,11 @@ public class StatisticsHelper {
 	 * SITES_TAGS.SITA_TAGS_FK</code>
 	 */
 	@SuppressWarnings("null")
-	public static Select<? extends Record> selectSitesGroupsStats(
-																	final String dateStr,
-																	final Condition employeesSelection,
-																	final Condition sitesSelection,
-																	final Integer tags_pk) {
+	public static SelectQuery<? extends Record> selectSitesGroupsStats(
+																		final String dateStr,
+																		final Condition employeesSelection,
+																		final Condition sitesSelection,
+																		final Integer tags_pk) {
 		final Table<? extends Record> sitesStats = StatisticsHelper
 				.selectSitesStats(dateStr, employeesSelection, sitesSelection)
 				.asTable();

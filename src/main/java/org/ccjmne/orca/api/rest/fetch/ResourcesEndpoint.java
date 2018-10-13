@@ -58,7 +58,7 @@ public class ResourcesEndpoint {
 
 	private final DSLContext ctx;
 	private final RestrictedResourcesAccess restrictedResourcesAccess;
-	private final RecordsCollator recordsCollator;
+	private final RecordsCollator collator;
 
 	// TODO: Should not have any use for this and should delegate restricted
 	// data access mechanics to RestrictedResourcesHelper
@@ -69,11 +69,11 @@ public class ResourcesEndpoint {
 								final DSLContext ctx,
 								final Restrictions restrictions,
 								final RestrictedResourcesAccess restrictedResourcesAccess,
-								final RecordsCollator recordsCollator) {
+								final RecordsCollator collator) {
 		this.ctx = ctx;
 		this.restrictions = restrictions;
 		this.restrictedResourcesAccess = restrictedResourcesAccess;
-		this.recordsCollator = recordsCollator;
+		this.collator = collator;
 	}
 
 	@GET
@@ -279,7 +279,7 @@ public class ResourcesEndpoint {
 			}
 
 			query.addOrderBy(TRAININGS.TRNG_DATE);
-			return this.recordsCollator.applyAll(query).fetch();
+			return this.collator.applyAll(query).fetch();
 		}
 	}
 
@@ -353,7 +353,7 @@ public class ResourcesEndpoint {
 			query.addJoin(EMPLOYEES_VOIDINGS, JoinType.LEFT_OUTER_JOIN, EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(EMPLOYEES.EMPL_PK));
 			query.addGroupBy(selected);
 
-			return this.ctx.fetch(this.recordsCollator.applyPagination(query)).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
+			return this.ctx.fetch(this.collator.applyPagination(query)).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
 					.getZipMapper(EMPLOYEES_VOIDINGS.EMVO_CERT_FK, EMPLOYEES_VOIDINGS.EMVO_DATE, EMPLOYEES_VOIDINGS.EMVO_REASON), "voidings"));
 		}
 	}
@@ -385,7 +385,7 @@ public class ResourcesEndpoint {
 									SITES_TAGS.SITA_SITE_FK.eq(sites.field(SITES.SITE_PK)));
 				withTags.addGroupBy(sites.fields());
 
-				return this.ctx.fetch(this.recordsCollator.applyAll(withTags)).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
+				return this.ctx.fetch(this.collator.applyAll(withTags)).map(ResourcesHelper.getMapperWithZip(ResourcesHelper
 						.getZipSelectMapper((slicer, value) -> ResourcesHelper.coerceTagValue(value, slicer.get(ResourcesHelper.arrayAgg(TAGS.TAGS_TYPE))),
 											ResourcesHelper.arrayAgg(SITES_TAGS.SITA_TAGS_FK),
 											ResourcesHelper.arrayAgg(SITES_TAGS.SITA_VALUE),
@@ -433,7 +433,7 @@ public class ResourcesEndpoint {
 
 				groupedSites.addJoin(TAGS, JoinType.LEFT_OUTER_JOIN, TAGS.TAGS_PK.eq(SITES_TAGS.SITA_TAGS_FK));
 				groupedSites.addGroupBy(SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE);
-				return this.ctx.fetch(this.recordsCollator.applyAll(groupedSites))
+				return this.ctx.fetch(this.collator.applyAll(groupedSites))
 						.map(ResourcesHelper.getCoercerMapper(ResourcesHelper.TAG_VALUE_COERCER));
 			}
 		}
