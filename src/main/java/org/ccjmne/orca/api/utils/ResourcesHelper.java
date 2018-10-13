@@ -77,6 +77,10 @@ public class ResourcesHelper {
 		return DSL.arrayAgg(field).as(field);
 	}
 
+	public static Field<String> unaccent(final Field<String> field) {
+		return DSL.function("unaccent", String.class, field);
+	}
+
 	/**
 	 * Delegates to {@link DSL#coalesce(Field, Object)} and gives the resulting
 	 * coalition the specified {@link Field}'s name.

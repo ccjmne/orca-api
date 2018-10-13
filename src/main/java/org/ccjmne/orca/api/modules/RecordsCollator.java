@@ -12,6 +12,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.http.client.utils.URLEncodedUtils;
+import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Record;
@@ -208,7 +209,7 @@ public class RecordsCollator {
 
 		// TODO: Handle non-varchar data w/ something other than ILIKE
 		protected FieldCondition(final String field, final String value) {
-			this.condition = DSL.field(field).containsIgnoreCase(value);
+			this.condition = ResourcesHelper.unaccent(DSL.field(field, String.class)).containsIgnoreCase(ResourcesHelper.unaccent(DSL.val(value)));
 			this.field = field;
 		}
 
@@ -227,7 +228,8 @@ public class RecordsCollator {
 		private final String field;
 
 		protected FieldOrdering(final String field, final String order) {
-			this.order = "desc".equalsIgnoreCase(order) ? DSL.field(field).desc() : DSL.field(field).asc();
+			final Field<String> unaccented = ResourcesHelper.unaccent(DSL.field(field, String.class));
+			this.order = "desc".equalsIgnoreCase(order) ? unaccented.desc() : unaccented.asc();
 			this.field = field;
 		}
 
