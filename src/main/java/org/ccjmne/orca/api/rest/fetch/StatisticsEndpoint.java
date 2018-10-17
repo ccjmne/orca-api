@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -47,9 +48,7 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Table;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 
@@ -182,10 +181,9 @@ public class StatisticsEndpoint {
 															@QueryParam("interval") final Integer interval,
 															@Context final UriInfo uriInfo)
 			throws ParseException {
-		return StatisticsEndpoint.computeDates(from, to, interval).stream()
-				.map(date -> Collections.singletonMap(date, this.getSitesGroupsStats(null, date.toString(), uriInfo)
-						.getOrDefault(Constants.TAGS_VALUE_UNIVERSAL, Collections.emptyMap())))
-				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
+		return StatisticsEndpoint.computeDates(from, to, interval).stream().collect(Collectors
+				.toMap(	Function.identity(),
+						date -> this.getSitesGroupsStats(null, date.toString(), uriInfo).getOrDefault(Constants.TAGS_VALUE_UNIVERSAL, Collections.emptyMap())));
 	}
 
 	/**
@@ -202,8 +200,7 @@ public class StatisticsEndpoint {
 															@QueryParam("interval") final Integer interval)
 			throws ParseException {
 		return StatisticsEndpoint.computeDates(from, to, interval).stream()
-				.map(date -> Collections.singletonMap(date, this.getSitesGroupStats(tags_pk, sita_value, date.toString())))
-				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
+				.collect(Collectors.toMap(Function.identity(), date -> this.getSitesGroupStats(tags_pk, sita_value, date.toString())));
 	}
 
 	private Map<String, Map<Object, Object>> getSitesGroupsStatsImpl(final Integer tags_pk, final String dateStr, final Map<Integer, List<String>> tagFilters) {
@@ -288,8 +285,7 @@ public class StatisticsEndpoint {
 													@QueryParam("interval") final Integer interval)
 			throws ParseException {
 		return StatisticsEndpoint.computeDates(from, to, interval).stream()
-				.map(date -> Collections.singletonMap(date, this.getSiteStats(site_pk, date.toString())))
-				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
+				.collect(Collectors.toMap(Function.identity(), date -> this.getSiteStats(site_pk, date.toString())));
 	}
 
 	@GET

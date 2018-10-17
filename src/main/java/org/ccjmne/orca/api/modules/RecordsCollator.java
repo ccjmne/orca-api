@@ -61,8 +61,7 @@ public class RecordsCollator {
 				.filter(Matcher::matches)
 				.map(m -> new FieldOrdering(m.group("field"), m.group("order")))
 				.collect(Collectors.toList());
-		this.filterWhere = uriInfo.getQueryParameters().entrySet().stream()
-				.map(e -> String.format("%s=%s", e.getKey(), e.getValue().get(0)))
+		this.filterWhere = uriInfo.getQueryParameters().entrySet().stream().map(e -> String.format("%s=%s", e.getKey(), e.getValue().get(0)))
 				.map(FILTER_ENTRY::matcher)
 				.filter(Matcher::matches)
 				.map(m -> new FieldCondition(m.group("field"), m.group("value")))
@@ -213,7 +212,7 @@ public class RecordsCollator {
 			this.field = field;
 		}
 
-		public final Condition getCondition() {
+		public Condition getCondition() {
 			return this.condition;
 		}
 
@@ -227,13 +226,14 @@ public class RecordsCollator {
 		private final SortField<?> order;
 		private final String field;
 
+		// TODO: Handle non-varchar data w/ something other than ILIKE
 		protected FieldOrdering(final String field, final String order) {
 			final Field<String> unaccented = ResourcesHelper.unaccent(DSL.field(field, String.class));
 			this.order = "desc".equalsIgnoreCase(order) ? unaccented.desc() : unaccented.asc();
 			this.field = field;
 		}
 
-		public final SortField<?> getSortField() {
+		public SortField<?> getSortField() {
 			return this.order;
 		}
 

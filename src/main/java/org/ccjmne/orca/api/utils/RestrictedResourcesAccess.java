@@ -8,7 +8,7 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
@@ -101,11 +101,19 @@ public class RestrictedResourcesAccess {
 	 * <ul>
 	 * <li><code>site_pk</code> (if specified) uniquely identifies it,
 	 * <em>and</em></li>
-	 * <li><em>for each</em> filter <code>{ k: [v1, v2, ..., vN] }</code>, the
-	 * site has a tag <code>{ type, value }</code> where:
+	 * <li><strong>for each</strong> filter
+	 * <code>{ k: [v1, v2, ..., vN] }</code>:
 	 * <ul>
-	 * <li></code>type == k</code>, <em>and</em></li>
+	 * <li>the site has a tag <code>{ type, value }</code> where:
+	 * <ul>
+	 * <li><code>type == k</code>, and</li>
 	 * <li><code>[v1, v2, ..., vN].contains(value)</code></li>
+	 * </ul>
+	 * </li>
+	 * <li>or, <strong>iff
+	 * <code>[v1, v2, ..., vN].contains({@link Constants.TAGS_VALUE_NONE})</code></strong>:<br/>
+	 * the site has <strong>no</strong> tag <code>{ type, value }</code> where
+	 * <code>type == k</code></li>
 	 * </ul>
 	 * </li>
 	 * </ul>
@@ -133,18 +141,21 @@ public class RestrictedResourcesAccess {
 					throw new ForbiddenException();
 				}
 
-				// this Optional can safely be get() since !filters.isEmpty()
-				query.addConditions(DSL.and(filters.entrySet().stream()
-						.map(tag -> ((Function<Condition, Condition>) hasCorrectValue -> tag
-								.getValue().contains(Constants.TAGS_VALUE_NONE)
-																					? hasCorrectValue.or(DSL.notExists(DSL.selectZero().from(SITES_TAGS)
-																						.where(SITES_TAGS.SITA_SITE_FK.eq(SITES.SITE_PK))
-																						.and(SITES_TAGS.SITA_TAGS_FK.eq(tag.getKey()))))
-																				: hasCorrectValue).apply(DSL.exists(DSL.selectZero().from(SITES_TAGS)
-																						.where(SITES_TAGS.SITA_SITE_FK.eq(SITES.SITE_PK))
-																						.and(SITES_TAGS.SITA_TAGS_FK.eq(tag.getKey()))
-																						.and(SITES_TAGS.SITA_VALUE.in(tag.getValue())))))
-						.reduce(Condition::and).get()));
+				query.addConditions(filters.entrySet().stream()
+						.map(tag -> {
+							final Condition hasCorrectValue = DSL.exists(DSL.selectZero().from(SITES_TAGS)
+									.where(SITES_TAGS.SITA_SITE_FK.eq(SITES.SITE_PK))
+									.and(SITES_TAGS.SITA_TAGS_FK.eq(tag.getKey()))
+									.and(SITES_TAGS.SITA_VALUE.in(tag.getValue())));
+
+							if (tag.getValue().contains(Constants.TAGS_VALUE_NONE)) {
+								return hasCorrectValue.or(DSL.notExists(DSL.selectZero().from(SITES_TAGS)
+										.where(SITES_TAGS.SITA_SITE_FK.eq(SITES.SITE_PK))
+										.and(SITES_TAGS.SITA_TAGS_FK.eq(tag.getKey()))));
+							}
+
+							return hasCorrectValue;
+						}).collect(Collectors.toList()));
 			}
 
 			if (site_pk != null) {
