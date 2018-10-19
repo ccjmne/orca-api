@@ -58,8 +58,8 @@ public class RecordsCollator {
 	@Inject
 	public RecordsCollator(@Context final UriInfo uriInfo) {
 		final String pSize = uriInfo.getQueryParameters().getFirst(PARAMETER_NAME_PAGE_SIZE);
-		this.limit = pSize != null ? Integer.valueOf(pSize).intValue() : 0;
-		this.offset = this.limit * Integer.valueOf(MoreObjects.firstNonNull(uriInfo.getQueryParameters().getFirst(PARAMETER_NAME_PAGE_OFFSET), "0")).intValue();
+		this.limit = pSize == null ? 0 : Integer.parseInt(pSize);
+		this.offset = this.limit * Integer.parseInt(MoreObjects.firstNonNull(uriInfo.getQueryParameters().getFirst(PARAMETER_NAME_PAGE_OFFSET), "0"));
 		this.orderBy = URLEncodedUtils.parse(uriInfo.getRequestUri(), "UTF-8").stream().map(p -> String.format("%s=%s", p.getName(), p.getValue()))
 				.map(SORTING_ENTRY::matcher)
 				.filter(Matcher::matches)
@@ -74,7 +74,7 @@ public class RecordsCollator {
 
 	public <T extends Record> SelectQuery<T> applyFiltering(final SelectQuery<T> query) {
 		query.addConditions(this.filterWhere.stream()
-				.map(Filter.getCondition(Arrays.asList(query.fields())))
+				.map(Filter.toCondition(Arrays.asList(query.fields())))
 				.filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList()));
 		return query;
 	}
@@ -216,7 +216,6 @@ public class RecordsCollator {
 		}
 
 		/**
-		 *
 		 * Computes a mapping {@link Function}.<br />
 		 * Use in combination with
 		 * <code>.filter(Optional::isPresent).map(Optional::get)</code>.
@@ -227,7 +226,7 @@ public class RecordsCollator {
 		 * @return A {@link Function} to be used with
 		 *         {@link Stream#map(Function)}
 		 */
-		public static Function<? super Filter, Optional<? extends Condition>> getCondition(final List<Field<?>> availableFields) {
+		public static Function<? super Filter, Optional<? extends Condition>> toCondition(final List<Field<?>> availableFields) {
 			return self -> {
 				final Optional<Field<?>> found = availableFields.stream().filter(f -> f.getName().equals(self.field)).findFirst();
 				if (!found.isPresent()) {
