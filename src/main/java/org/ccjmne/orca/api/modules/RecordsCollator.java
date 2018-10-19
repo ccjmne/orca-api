@@ -1,10 +1,14 @@
 package org.ccjmne.orca.api.modules;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
@@ -40,7 +44,7 @@ public class RecordsCollator {
 	private static final Pattern FILTER_ENTRY = Pattern.compile("^filter\\[(?<field>[^]]+)\\]=(?<value>.*)$");
 
 	private final List<? extends FieldOrdering> orderBy;
-	private final List<? extends FieldCondition> filterWhere;
+	private final List<? extends Filter> filterWhere;
 	private final int limit;
 	private final int offset;
 
@@ -61,17 +65,17 @@ public class RecordsCollator {
 				.filter(Matcher::matches)
 				.map(m -> new FieldOrdering(m.group("field"), m.group("order")))
 				.collect(Collectors.toList());
-		this.filterWhere = uriInfo.getQueryParameters().entrySet().stream().map(e -> String.format("%s=%s", e.getKey(), e.getValue().get(0)))
+		this.filterWhere = uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
 				.map(FILTER_ENTRY::matcher)
 				.filter(Matcher::matches)
-				.map(m -> new FieldCondition(m.group("field"), m.group("value")))
+				.map(m -> new Filter(m.group("field"), m.group("value")))
 				.collect(Collectors.toList());
 	}
 
 	public <T extends Record> SelectQuery<T> applyFiltering(final SelectQuery<T> query) {
 		query.addConditions(this.filterWhere.stream()
-				.filter(FieldCondition.belongsTo(RecordsCollator.getAvailableFields(query))).map(FieldCondition::getCondition)
-				.collect(Collectors.toList()));
+				.map(Filter.getCondition(Arrays.asList(query.fields())))
+				.filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList()));
 		return query;
 	}
 
@@ -201,23 +205,65 @@ public class RecordsCollator {
 		return query.fieldStream().map(Field::getName).collect(Collectors.toList());
 	}
 
-	private static class FieldCondition {
+	private static class Filter {
 
-		private final Condition condition;
 		private final String field;
+		private final String value;
 
-		// TODO: Handle non-varchar data w/ something other than ILIKE
-		protected FieldCondition(final String field, final String value) {
-			this.condition = ResourcesHelper.unaccent(DSL.field(field, String.class)).containsIgnoreCase(ResourcesHelper.unaccent(DSL.val(value)));
+		protected Filter(final String field, final String value) {
 			this.field = field;
+			this.value = value;
 		}
 
-		public Condition getCondition() {
-			return this.condition;
+		/**
+		 *
+		 * Computes a mapping {@link Function}.<br />
+		 * Use in combination with
+		 * <code>.filter(Optional::isPresent).map(Optional::get)</code>.
+		 *
+		 * @param availableFields
+		 *            The {@link Field}s that are available to the current
+		 *            {@link SelectQuery}
+		 * @return A {@link Function} to be used with
+		 *         {@link Stream#map(Function)}
+		 */
+		public static Function<? super Filter, Optional<? extends Condition>> getCondition(final List<Field<?>> availableFields) {
+			return self -> {
+				final Optional<Field<?>> found = availableFields.stream().filter(f -> f.getName().equals(self.field)).findFirst();
+				if (!found.isPresent()) {
+					return Optional.empty();
+				}
+
+				if (Boolean.class.equals(found.get().getType())) {
+					return Optional.of(DSL.field(self.field, Boolean.class).eq(DSL.field(self.value, Boolean.class)));
+
+				}
+
+				if (Number.class.isAssignableFrom(found.get().getType())) {
+					return Optional.of(Filter.getNumberCondition(DSL.field(self.field, Double.class), self.value.substring(0, 2))
+							.apply(DSL.field(self.value.substring(2), Double.class)));
+				}
+
+				return Optional.of(ResourcesHelper.unaccent(DSL.field(self.field, String.class))
+						.containsIgnoreCase(ResourcesHelper.unaccent(DSL.val(self.value))));
+			};
 		}
 
-		public static Predicate<? super FieldCondition> belongsTo(final List<String> availableFields) {
-			return f -> availableFields.contains(f.field);
+		private static <T> Function<? super Field<T>, ? extends Condition> getNumberCondition(final Field<T> field, final String comparator) {
+			switch (comparator) {
+				case "lt":
+					return field::lt;
+				case "le":
+					return field::le;
+				case "eq":
+					return field::eq;
+				case "ge":
+					return field::ge;
+				case "gt":
+					return field::gt;
+				default:
+					throw new IllegalArgumentException("Filter value for numeric fields must match /(lt|le|eq|ge|gt)(\\d*\\.)?\\d+/");
+			}
 		}
 	}
 
@@ -238,7 +284,7 @@ public class RecordsCollator {
 		}
 
 		public static Predicate<? super FieldOrdering> belongsTo(final List<String> availableFields) {
-			return f -> availableFields.contains(f.field);
+			return self -> availableFields.contains(self.field);
 		}
 	}
 }
