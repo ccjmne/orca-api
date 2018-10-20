@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -43,7 +42,7 @@ public class RecordsCollator {
 	private static final Pattern SORTING_ENTRY = Pattern.compile("^sorting\\[(?<field>[^]]+)\\]=(?<order>.*)$");
 	private static final Pattern FILTER_ENTRY = Pattern.compile("^filter\\[(?<field>[^]]+)\\]=(?<value>.*)$");
 
-	private final List<? extends FieldOrdering> orderBy;
+	private final List<? extends Sort> orderBy;
 	private final List<? extends Filter> filterWhere;
 	private final int limit;
 	private final int offset;
@@ -63,7 +62,7 @@ public class RecordsCollator {
 		this.orderBy = URLEncodedUtils.parse(uriInfo.getRequestUri(), "UTF-8").stream().map(p -> String.format("%s=%s", p.getName(), p.getValue()))
 				.map(SORTING_ENTRY::matcher)
 				.filter(Matcher::matches)
-				.map(m -> new FieldOrdering(m.group("field"), m.group("order")))
+				.map(m -> new Sort(m.group("field"), m.group("order")))
 				.collect(Collectors.toList());
 		this.filterWhere = uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
 				.map(FILTER_ENTRY::matcher)
@@ -101,8 +100,8 @@ public class RecordsCollator {
 	 */
 	public <T extends Record> SelectQuery<T> applySorting(final SelectQuery<T> query) {
 		query.addOrderBy(this.orderBy.stream()
-				.filter(FieldOrdering.belongsTo(RecordsCollator.getAvailableFields(query))).map(FieldOrdering::getSortField)
-				.collect(Collectors.toList()));
+				.map(Sort.toSortField(Arrays.asList(query.fields())))
+				.filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList()));
 		return query;
 	}
 
@@ -201,10 +200,6 @@ public class RecordsCollator {
 		return this.applyAll(select.getQuery());
 	}
 
-	private static <T extends Record> List<String> getAvailableFields(final SelectQuery<T> query) {
-		return query.fieldStream().map(Field::getName).collect(Collectors.toList());
-	}
-
 	private static class Filter {
 
 		private final String field;
@@ -216,9 +211,36 @@ public class RecordsCollator {
 		}
 
 		/**
-		 * Computes a mapping {@link Function}.<br />
-		 * Use in combination with
-		 * <code>.filter(Optional::isPresent).map(Optional::get)</code>.
+		 * Computes a mapping {@link Function} that transforms {@link Filter}
+		 * instances into <code>{@link Optional}<{@link Condition}></code>s,
+		 * using a list of typed {@link Field}s references to generate
+		 * type-specific {@link Condition}s.<br />
+		 * <br />
+		 * For example:
+		 * <ul>
+		 * <li>the {@link Condition} on a
+		 * <code>{@link Field}<{@link String}></code> is set up to perform a
+		 * <em>case-insensitive</em> sort, which wouldn't be possible with a
+		 * {@link Condition} on a <code>{@link Field}<{@link Integer}></code>
+		 * </li>
+		 * <li>the {@link Condition} on a
+		 * <code>{@link Field}<{@link Integer}></code> is set up to accept
+		 * values like <code>/(lt|le|eq|ge|gt)(\d*\.)?\d+/</code> and actually
+		 * perform a <em>mathematical comparison</em>, which wouldn't be
+		 * possible with a {@link Condition} on a
+		 * <code>{@link Field}<{@link Integer}></code></li>
+		 * </ul>
+		 * <br />
+		 * <br />
+		 * This method is meant to be used with{@link Stream#map(Function)}, in
+		 * a stream chain as follows:
+		 *
+		 * <pre>
+		 * stream
+		 * 		.map({@link Filter#toCondition(List)})
+		 * 		.filter(Optional::isPresent)
+		 * 		.map(Optional::get);
+		 * </pre>
 		 *
 		 * @param availableFields
 		 *            The {@link Field}s that are available to the current
@@ -266,24 +288,57 @@ public class RecordsCollator {
 		}
 	}
 
-	private static class FieldOrdering {
+	private static class Sort {
 
-		private final SortField<?> order;
 		private final String field;
+		private final Function<? super Field<?>, ? extends SortField<?>> asSortField;
 
-		// TODO: Handle non-varchar data w/ something other than ILIKE
-		protected FieldOrdering(final String field, final String order) {
-			final Field<String> unaccented = ResourcesHelper.unaccent(DSL.field(field, String.class));
-			this.order = "desc".equalsIgnoreCase(order) ? unaccented.desc() : unaccented.asc();
+		protected Sort(final String field, final String order) {
 			this.field = field;
+			this.asSortField = "desc".equalsIgnoreCase(order) ? Field::desc : Field::asc;
 		}
 
-		public SortField<?> getSortField() {
-			return this.order;
-		}
+		/**
+		 * Computes a mapping {@link Function} that transforms {@link Sort}
+		 * instances into <code>{@link Optional}<{@link SortField}></code>s,
+		 * using a list of typed {@link Field}s references to generate
+		 * type-specific {@link SortField}s.<br />
+		 * <br />
+		 * For example, the <code>{@link SortField}<{@link String}></code> is
+		 * set up to perform a <em>case-insensitive</em> sort, which wouldn't be
+		 * possible with a <code>{@link SortField}<{@link Integer}></code>.
+		 * <br />
+		 * <br />
+		 * This method is meant to be used with{@link Stream#map(Function)}, in
+		 * a stream chain as follows:
+		 *
+		 * <pre>
+		 * stream
+		 * 		.map({@link Sort#toSortField(List)})
+		 * 		.filter(Optional::isPresent)
+		 * 		.map(Optional::get);
+		 * </pre>
+		 *
+		 * @param availableFields
+		 *            The {@link Field}s that are available to the current
+		 *            {@link SelectQuery}
+		 * @return A {@link Function} to be used with
+		 *         {@link Stream#map(Function)}
+		 */
+		@SuppressWarnings("null")
+		public static Function<? super Sort, ? extends Optional<SortField<?>>> toSortField(final List<Field<?>> availableFields) {
+			return self -> {
+				final Optional<Field<?>> found = availableFields.stream().filter(f -> f.getName().equals(self.field)).findFirst();
+				if (!found.isPresent()) {
+					return Optional.empty();
+				}
 
-		public static Predicate<? super FieldOrdering> belongsTo(final List<String> availableFields) {
-			return self -> availableFields.contains(self.field);
+				if (String.class.equals(found.get().getType())) {
+					return Optional.of(self.asSortField.apply(ResourcesHelper.unaccent(DSL.field(self.field, String.class))));
+				}
+
+				return Optional.of(self.asSortField.apply(DSL.field(self.field)));
+			};
 		}
 	}
 }
