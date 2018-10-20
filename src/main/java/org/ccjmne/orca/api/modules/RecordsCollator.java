@@ -24,6 +24,7 @@ import org.jooq.SelectFinalStep;
 import org.jooq.SelectQuery;
 import org.jooq.SortField;
 import org.jooq.impl.DSL;
+import org.jooq.tools.Convert;
 
 import com.google.common.base.MoreObjects;
 
@@ -39,7 +40,7 @@ public class RecordsCollator {
 
 	private static final String PARAMETER_NAME_PAGE_SIZE = "page-size";
 	private static final String PARAMETER_NAME_PAGE_OFFSET = "page-offset";
-	private static final Pattern SORTING_ENTRY = Pattern.compile("^sorting\\[(?<field>[^]]+)\\]=(?<order>.*)$");
+	private static final Pattern SORTING_ENTRY = Pattern.compile("^sorting\\[(?<field>[^]]+)\\]=(?<direction>.*)$");
 	private static final Pattern FILTER_ENTRY = Pattern.compile("^filter\\[(?<field>[^]]+)\\]=(?<value>.*)$");
 
 	private final List<? extends Sort> orderBy;
@@ -49,7 +50,7 @@ public class RecordsCollator {
 
 	/**
 	 * RAII constructor that parses the context's query parameters and creates
-	 * the corresponding JOOQ {@link Condition}s and {@link SortField}s.<br />
+	 * the corresponding jOOQ {@link Condition}s and {@link SortField}s.<br />
 	 * <br />
 	 * The order in which the sorting query parameters appear is preserved using
 	 * {@link URLEncodedUtils#parse(java.net.URI, String)}.
@@ -62,7 +63,7 @@ public class RecordsCollator {
 		this.orderBy = URLEncodedUtils.parse(uriInfo.getRequestUri(), "UTF-8").stream().map(p -> String.format("%s=%s", p.getName(), p.getValue()))
 				.map(SORTING_ENTRY::matcher)
 				.filter(Matcher::matches)
-				.map(m -> new Sort(m.group("field"), m.group("order")))
+				.map(m -> new Sort(m.group("field"), m.group("direction")))
 				.collect(Collectors.toList());
 		this.filterWhere = uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
 				.map(FILTER_ENTRY::matcher)
@@ -71,6 +72,13 @@ public class RecordsCollator {
 				.collect(Collectors.toList());
 	}
 
+	/**
+	 * Applicable at <strong>any depth of (sub-)query</strong>.<br />
+	 *
+	 * @param query
+	 *            The {@link SelectQuery} to which sorting should be applied
+	 * @return The original query, for method chaining purposes
+	 */
 	public <T extends Record> SelectQuery<T> applyFiltering(final SelectQuery<T> query) {
 		query.addConditions(this.filterWhere.stream()
 				.map(Filter.toCondition(Arrays.asList(query.fields())))
@@ -256,8 +264,7 @@ public class RecordsCollator {
 				}
 
 				if (Boolean.class.equals(found.get().getType())) {
-					return Optional.of(DSL.field(self.field, Boolean.class).eq(DSL.field(self.value, Boolean.class)));
-
+					return Optional.of(DSL.field(self.field, Boolean.class).eq(Convert.convert(self.value, Boolean.class)));
 				}
 
 				if (Number.class.isAssignableFrom(found.get().getType())) {
@@ -293,9 +300,9 @@ public class RecordsCollator {
 		private final String field;
 		private final Function<? super Field<?>, ? extends SortField<?>> asSortField;
 
-		protected Sort(final String field, final String order) {
+		protected Sort(final String field, final String direction) {
 			this.field = field;
-			this.asSortField = "desc".equalsIgnoreCase(order) ? Field::desc : Field::asc;
+			this.asSortField = "desc".equalsIgnoreCase(direction) ? Field::desc : Field::asc;
 		}
 
 		/**
