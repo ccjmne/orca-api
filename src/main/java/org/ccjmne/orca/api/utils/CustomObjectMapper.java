@@ -21,11 +21,11 @@ import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 public class CustomObjectMapper extends ObjectMapper {
 
 	public CustomObjectMapper() {
-		disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		setDateFormat(SafeDateFormat.getDateFormat());
-		registerModule(new AllKindsOfDatesSerialiserModule());
-		registerModule(new JOOQResultsSerialiserModule());
-		registerModule(new AfterburnerModule());
+		super.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+		super.setDateFormat(SafeDateFormat.getDateFormat());
+		super.registerModule(new AllKindsOfDatesSerialiserModule());
+		super.registerModule(new JOOQResultsSerialiserModule());
+		super.registerModule(new AfterburnerModule());
 	}
 
 	private class AllKindsOfDatesSerialiserModule extends SimpleModule {
