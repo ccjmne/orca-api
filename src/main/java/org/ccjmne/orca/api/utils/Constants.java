@@ -46,6 +46,9 @@ public class Constants {
 
 	public static final String TAGS_VALUE_UNIVERSAL = "*";
 	public static final String TAGS_VALUE_NONE = "null";
+
+	public static final String SORT_DIRECTION_DESC = "desc"; // case-insensitive
+	public static final String FILTER_VALUE_NULL = "null";
 	// ----
 
 	// ---- DATABASE CONSTANTS

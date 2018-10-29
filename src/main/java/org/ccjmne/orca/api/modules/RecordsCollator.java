@@ -15,6 +15,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.http.client.utils.URLEncodedUtils;
+import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.jooq.Condition;
 import org.jooq.Field;
@@ -26,6 +27,7 @@ import org.jooq.SortField;
 import org.jooq.impl.DSL;
 import org.jooq.tools.Convert;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.MoreObjects;
 
 /**
@@ -40,8 +42,9 @@ public class RecordsCollator {
 
 	private static final String PARAMETER_NAME_PAGE_SIZE = "page-size";
 	private static final String PARAMETER_NAME_PAGE_OFFSET = "page-offset";
-	private static final Pattern SORTING_ENTRY = Pattern.compile("^sorting\\[(?<field>[^]]+)\\]=(?<direction>.*)$");
-	private static final Pattern FILTER_ENTRY = Pattern.compile("^filter\\[(?<field>[^]]+)\\]=(?<value>.*)$");
+	private static final Pattern SORT_ENTRY = Pattern.compile("^sort\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?<direction>.*)$");
+	private static final Pattern FILTER_ENTRY = Pattern
+			.compile("^filter\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?:(?<comparator>lt|le|eq|ge|gt|ne):)?(?<value>.*)$");
 
 	private final List<? extends Sort> orderBy;
 	private final List<? extends Filter> filterWhere;
@@ -61,14 +64,14 @@ public class RecordsCollator {
 		this.limit = pSize == null ? 0 : Integer.parseInt(pSize);
 		this.offset = this.limit * Integer.parseInt(MoreObjects.firstNonNull(uriInfo.getQueryParameters().getFirst(PARAMETER_NAME_PAGE_OFFSET), "0"));
 		this.orderBy = URLEncodedUtils.parse(uriInfo.getRequestUri(), "UTF-8").stream().map(p -> String.format("%s=%s", p.getName(), p.getValue()))
-				.map(SORTING_ENTRY::matcher)
+				.map(SORT_ENTRY::matcher)
 				.filter(Matcher::matches)
-				.map(m -> new Sort(m.group("field"), m.group("direction")))
+				.map(m -> new Sort(m.group("field"), m.group("path"), m.group("direction")))
 				.collect(Collectors.toList());
 		this.filterWhere = uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
 				.map(FILTER_ENTRY::matcher)
 				.filter(Matcher::matches)
-				.map(m -> new Filter(m.group("field"), m.group("value")))
+				.map(m -> new Filter(m.group("field"), m.group("path"), m.group("comparator"), m.group("value")))
 				.collect(Collectors.toList());
 	}
 
@@ -212,9 +215,13 @@ public class RecordsCollator {
 
 		private final String field;
 		private final String value;
+		private final String comparator;
+		private final String[] path;
 
-		protected Filter(final String field, final String value) {
+		protected Filter(final String field, final String path, final String comparator, final String value) {
 			this.field = field;
+			this.path = path.isEmpty() ? new String[0] : path.substring(1).split("\\.");
+			this.comparator = MoreObjects.firstNonNull(comparator, "");
 			this.value = value;
 		}
 
@@ -268,8 +275,15 @@ public class RecordsCollator {
 				}
 
 				if (Number.class.isAssignableFrom(found.get().getType())) {
-					return Optional.of(Filter.getNumberCondition(DSL.field(self.field, Double.class), self.value.substring(0, 2))
-							.apply(DSL.field(self.value.substring(2), Double.class)));
+					return Optional.of(Filter.comparisonCondition(DSL.field(self.field, Double.class), self.comparator)
+							.apply(DSL.field(self.value, Double.class)));
+				}
+
+				if (JsonNode.class.equals(found.get().getType())) {
+					final Field<Object> f = DSL.field("{0}#>>{1}", Object.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path));
+					return Constants.FILTER_VALUE_NULL.equals(self.value)	? Optional.of(self.comparator.equals("eq") ? f.isNull() : f.isNotNull())
+																			: Optional.of(Filter.comparisonCondition(f, self.comparator)
+																					.apply(DSL.val(self.value, Object.class)));
 				}
 
 				return Optional.of(ResourcesHelper.unaccent(DSL.field(self.field, String.class))
@@ -277,20 +291,21 @@ public class RecordsCollator {
 			};
 		}
 
-		private static <T> Function<? super Field<T>, ? extends Condition> getNumberCondition(final Field<T> field, final String comparator) {
+		private static <T> Function<? super Field<T>, ? extends Condition> comparisonCondition(final Field<T> field, final String comparator) {
 			switch (comparator) {
+				case "ne":
+					return field::ne;
 				case "lt":
 					return field::lt;
 				case "le":
 					return field::le;
-				case "eq":
-					return field::eq;
 				case "ge":
 					return field::ge;
 				case "gt":
 					return field::gt;
+				case "eq":
 				default:
-					throw new IllegalArgumentException("Filter value for numeric fields must match /(lt|le|eq|ge|gt)(\\d*\\.)?\\d+/");
+					return field::eq;
 			}
 		}
 	}
@@ -298,11 +313,13 @@ public class RecordsCollator {
 	private static class Sort {
 
 		private final String field;
+		private final String[] path;
 		private final Function<? super Field<?>, ? extends SortField<?>> asSortField;
 
-		protected Sort(final String field, final String direction) {
+		protected Sort(final String field, final String path, final String direction) {
 			this.field = field;
-			this.asSortField = "desc".equalsIgnoreCase(direction) ? Field::desc : Field::asc;
+			this.path = path.isEmpty() ? new String[0] : path.substring(1).split("\\.");
+			this.asSortField = f -> (Constants.SORT_DIRECTION_DESC.equalsIgnoreCase(direction) ? f.desc() : f.asc()).nullsLast();
 		}
 
 		/**
@@ -342,6 +359,11 @@ public class RecordsCollator {
 
 				if (String.class.equals(found.get().getType())) {
 					return Optional.of(self.asSortField.apply(ResourcesHelper.unaccent(DSL.field(self.field, String.class))));
+				}
+
+				if (JsonNode.class.equals(found.get().getType())) {
+					return Optional
+							.of(self.asSortField.apply(DSL.field("{0}#>{1}", JsonNode.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path))));
 				}
 
 				return Optional.of(self.asSortField.apply(DSL.field(self.field)));
