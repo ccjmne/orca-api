@@ -51,7 +51,7 @@ public class StatisticsHelper {
 				.otherwise(Constants.STATUS_DANGER);
 	}
 
-	private static Field<Date> fieldOptedOut(final String dateStr) {
+	private static Field<Date> fieldOptedOut() {
 		return DSL.field(EMPLOYEES_VOIDINGS.EMVO_DATE);
 	}
 
@@ -68,7 +68,7 @@ public class StatisticsHelper {
 						TRAININGS_EMPLOYEES.TREM_EMPL_FK,
 						TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
 						StatisticsHelper.EXPIRY.as("expiry"),
-						StatisticsHelper.fieldOptedOut(dateStr).as("opted_out"),
+						StatisticsHelper.fieldOptedOut().as("opted_out"),
 						StatisticsHelper.fieldValidity(dateStr).as("validity"))
 				.from(TRAININGTYPES_CERTIFICATES)
 				.join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK))

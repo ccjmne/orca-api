@@ -7,7 +7,6 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
 import static org.ccjmne.orca.jooq.classes.Tables.USERS;
 import static org.ccjmne.orca.jooq.classes.Tables.USERS_ROLES;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -32,7 +31,6 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Row1;
-import org.jooq.Row2;
 import org.jooq.impl.DSL;
 
 import com.google.common.collect.ObjectArrays;
@@ -290,11 +288,10 @@ public class UsersEndpoint {
 
 		transactionCtx.delete(TRAINERPROFILES_TRAININGTYPES).where(TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK.eq(trpr_pk)).execute();
 		if (!types.isEmpty()) {
-			final List<Row1<Integer>> rows = new ArrayList<>(types.size());
-			types.forEach(type -> rows.add(DSL.row(type)));
 			transactionCtx.insertInto(TRAINERPROFILES_TRAININGTYPES, TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK, TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK)
 					.select(DSL.select(DSL.val(trpr_pk), DSL.field(TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK.getName(), Integer.class))
-							.from(DSL.values(rows.toArray(new Row2[0])).as("unused", TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK.getName())))
+							.from(DSL.values(types.stream().map(DSL::row).toArray(Row1[]::new))
+									.as("unused", TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK.getName())))
 					.execute();
 		}
 	}
