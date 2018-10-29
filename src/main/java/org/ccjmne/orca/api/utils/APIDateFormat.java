@@ -4,15 +4,15 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
-public class SafeDateFormat {
+public class APIDateFormat {
 
-	private static final String FORMAT = "yyyy-MM-dd";
+	public static final String FORMAT = "yyyy-MM-dd";
 	private static final ThreadLocal<DateFormat> DELEGATE = new ThreadLocal<DateFormat>() {
 
 		@Override
 		@SuppressWarnings("serial")
 		protected DateFormat initialValue() {
-			return new SimpleDateFormat(SafeDateFormat.FORMAT) {
+			return new SimpleDateFormat(APIDateFormat.FORMAT) {
 
 				@Override
 				public StringBuffer format(final java.util.Date date, final StringBuffer toAppendTo, final java.text.FieldPosition pos) {
@@ -27,10 +27,10 @@ public class SafeDateFormat {
 	};
 
 	public static java.sql.Date parseAsSql(final String source) throws ParseException {
-		return new java.sql.Date(SafeDateFormat.DELEGATE.get().parse(source).getTime());
+		return new java.sql.Date(APIDateFormat.DELEGATE.get().parse(source).getTime());
 	}
 
 	public static DateFormat getDateFormat() {
-		return SafeDateFormat.DELEGATE.get();
+		return APIDateFormat.DELEGATE.get();
 	}
 }

@@ -42,7 +42,7 @@ import org.ccjmne.orca.api.rest.resources.TrainingsStatistics.TrainingsStatistic
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.RestrictedResourcesAccess;
-import org.ccjmne.orca.api.utils.SafeDateFormat;
+import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
 import org.jooq.DSLContext;
 import org.jooq.Record;
@@ -388,13 +388,13 @@ public class StatisticsEndpoint {
 
 	public static List<Date> computeDates(final String fromStr, final String toStr, final Integer intervalRaw)
 			throws ParseException {
-		final Date utmost = (toStr == null) ? new Date(new java.util.Date().getTime()) : SafeDateFormat.parseAsSql(toStr);
+		final Date utmost = (toStr == null) ? new Date(new java.util.Date().getTime()) : APIDateFormat.parseAsSql(toStr);
 		if (fromStr == null) {
 			return Collections.singletonList(utmost);
 		}
 
 		final int interval = (intervalRaw != null ? intervalRaw : DEFAULT_INTERVAL).intValue();
-		LocalDate cur = SafeDateFormat.parseAsSql(fromStr).toLocalDate();
+		LocalDate cur = APIDateFormat.parseAsSql(fromStr).toLocalDate();
 		if (interval == 0) {
 			return ImmutableList.<Date> of(Date.valueOf(cur), utmost);
 		}

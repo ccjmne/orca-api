@@ -22,7 +22,7 @@ public class CustomObjectMapper extends ObjectMapper {
 
 	public CustomObjectMapper() {
 		super.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		super.setDateFormat(SafeDateFormat.getDateFormat());
+		super.setDateFormat(APIDateFormat.getDateFormat());
 		super.registerModule(new AllKindsOfDatesSerialiserModule());
 		super.registerModule(new JOOQResultsSerialiserModule());
 		super.registerModule(new AfterburnerModule());

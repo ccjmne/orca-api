@@ -34,7 +34,7 @@ import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.RestrictedResourcesAccess;
-import org.ccjmne.orca.api.utils.SafeDateFormat;
+import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingsEmployeesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
@@ -232,9 +232,9 @@ public class ResourcesEndpoint {
 			throw new ForbiddenException();
 		}
 
-		final Date date = dateStr == null ? null : SafeDateFormat.parseAsSql(dateStr);
-		final Date from = fromStr == null ? null : SafeDateFormat.parseAsSql(fromStr);
-		final Date to = toStr == null ? null : SafeDateFormat.parseAsSql(toStr);
+		final Date date = dateStr == null ? null : APIDateFormat.parseAsSql(dateStr);
+		final Date from = fromStr == null ? null : APIDateFormat.parseAsSql(fromStr);
+		final Date to = toStr == null ? null : APIDateFormat.parseAsSql(toStr);
 
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
 			query.addSelect(TRAININGS.fields());

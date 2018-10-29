@@ -22,7 +22,7 @@ import javax.ws.rs.core.MediaType;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.api.utils.SafeDateFormat;
+import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.ccjmne.orca.jooq.classes.tables.records.SitesEmployeesRecord;
@@ -110,7 +110,7 @@ public class UpdateEndpoint {
 		final Map<TableField<?, ?>, Object> record = new HashMap<>();
 		record.put(EMPLOYEES.EMPL_FIRSTNAME, UpdateEndpoint.titleCase((String) employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName())));
 		record.put(EMPLOYEES.EMPL_SURNAME, ((String) employee.get(EMPLOYEES.EMPL_SURNAME.getName())).toUpperCase());
-		record.put(EMPLOYEES.EMPL_DOB, SafeDateFormat.parseAsSql((String) employee.get(EMPLOYEES.EMPL_DOB.getName())));
+		record.put(EMPLOYEES.EMPL_DOB, APIDateFormat.parseAsSql((String) employee.get(EMPLOYEES.EMPL_DOB.getName())));
 		record.put(EMPLOYEES.EMPL_PERMANENT, Boolean.valueOf("CDI".equalsIgnoreCase((String) employee.get(EMPLOYEES.EMPL_PERMANENT.getName()))));
 		record.put(EMPLOYEES.EMPL_GENDER, Boolean.valueOf(GENDER_REGEX.matcher((String) employee.get(EMPLOYEES.EMPL_GENDER.getName())).find(0)));
 		record.put(EMPLOYEES.EMPL_ADDRESS, employee.get(EMPLOYEES.EMPL_ADDRESS.getName()));

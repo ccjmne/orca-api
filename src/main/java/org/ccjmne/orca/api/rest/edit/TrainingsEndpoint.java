@@ -21,7 +21,7 @@ import javax.ws.rs.PathParam;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.api.utils.SafeDateFormat;
+import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingsRecord;
 import org.jooq.DSLContext;
@@ -117,8 +117,8 @@ public class TrainingsEndpoint {
 				.values(
 						trng_pk,
 						(Integer) map.get(TRAININGS.TRNG_TRTY_FK.getName()),
-						map.get(TRAININGS.TRNG_START.getName()) != null ? SafeDateFormat.parseAsSql(map.get(TRAININGS.TRNG_START.getName()).toString()) : null,
-						SafeDateFormat.parseAsSql(map.get(TRAININGS.TRNG_DATE.getName()).toString()),
+						map.get(TRAININGS.TRNG_START.getName()) != null ? APIDateFormat.parseAsSql(map.get(TRAININGS.TRNG_START.getName()).toString()) : null,
+						APIDateFormat.parseAsSql(map.get(TRAININGS.TRNG_DATE.getName()).toString()),
 						(String) map.get(TRAININGS.TRNG_OUTCOME.getName()),
 						(String) map.get(TRAININGS.TRNG_COMMENT.getName()))
 				.execute();

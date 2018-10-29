@@ -67,6 +67,21 @@ public class ResourcesHelper {
 			.getBiFieldCoercer(SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE, (value, type) -> ResourcesHelper.coerceTagValue((String) value, (String) type));
 
 	/**
+	 * Formats a date-type {@link Field} as a {@link String}. Handles the case
+	 * where the date is "never" (for certificate expiration, for instance).
+	 *
+	 * @param field
+	 *            The {@code Field<java.sql.Date>} to be formatted
+	 * @return A new {@code VARCHAR}-type {@code Field}, formatted as our API
+	 *         formats {@link Date}s.
+	 */
+	public static Field<String> formatDate(final Field<java.sql.Date> field) {
+		return DSL
+				.when(field.eq(DSL.inline(Constants.DATE_INFINITY)), Constants.DATE_INFINITY_LITERAL)
+				.otherwise(DSL.field("to_char({0}, {1})", String.class, field, APIDateFormat.FORMAT));
+	}
+
+	/**
 	 * Delegates to {@link DSL#arrayAgg(Field)} and gives the resulting
 	 * aggregation the specified {@link Field}'s name.
 	 *
@@ -93,6 +108,11 @@ public class ResourcesHelper {
 	}
 
 	/**
+	 * TODO: Delete and have the computed Tags list directly injected into
+	 * anything that requires it, the same way it's done with
+	 * {@link Restrictions} and {@link RecordsCollator}.<br />
+	 * <br />
+	 *
 	 * Extracts a multi-valued {@link Map} of tags from the query parameters for
 	 * a specific API call.<br />
 	 * The {@link Predicate} used to determine which parameters are to be
@@ -101,10 +121,11 @@ public class ResourcesHelper {
 	 * @param uriInfo
 	 *            The {@link UriInfo} representing the request
 	 */
-	public static Map<Integer, List<String>> getTagsFromUri(final UriInfo uriInfo) {
+	@SuppressWarnings("null") // is never null
+	public static @NonNull Map<Integer, List<String>> getTagsFromUri(final UriInfo uriInfo) {
 		return uriInfo.getQueryParameters().entrySet().stream()
 				.filter(x -> IS_TAG_KEY.test(x.getKey()))
-				.collect(Collectors.<Entry<String, List<String>>, Integer, List<String>> toMap(x -> Integer.valueOf(x.getKey()), Entry::getValue));
+				.collect(Collectors.toMap(x -> Integer.valueOf(x.getKey()), Entry::getValue));
 	}
 
 	/**
@@ -351,11 +372,11 @@ public class ResourcesHelper {
 		private final Map<String, Object> record;
 		private final int idx;
 
-		/* package */ RecordSlicer(final Record record, final int idx) {
+		protected RecordSlicer(final Record record, final int idx) {
 			this(record.intoMap(), idx);
 		}
 
-		/* package */ RecordSlicer(final Map<String, Object> map, final int idx) {
+		protected RecordSlicer(final Map<String, Object> map, final int idx) {
 			this.record = map;
 			this.idx = idx;
 		}
@@ -387,7 +408,7 @@ public class ResourcesHelper {
 
 		private final Collection<String> zippedFields;
 
-		/* package */ ZipRecordMapper(final Collection<String> zippedFields) {
+		protected ZipRecordMapper(final Collection<String> zippedFields) {
 			this.zippedFields = zippedFields;
 		}
 
