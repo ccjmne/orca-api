@@ -107,6 +107,33 @@ public class Constants {
 		return DSL.select(table.field(field)).from(table);
 	}
 
+	/**
+	 * Clone the supplied {@code fields} stripped from their {@code Table}
+	 * qualification, for referencing within sub-queries.<br />
+	 * Alternatively, use {@link TableLike#fields(Field...)}.
+	 *
+	 * @param fields
+	 *            The array of {@code Field}s to be cloned
+	 * @return The un-qualified {@code fields}
+	 */
+	@SafeVarargs
+	public static <T> Field<? extends T>[] unqualify(final Field<? extends T>... fields) {
+		return Arrays.stream(fields).map(Field::getName).map(DSL::field).toArray(Field[]::new);
+	}
+
+	/**
+	 * Clone the supplied {@code field} stripped from its {@code Table}
+	 * qualification, for referencing within sub-queries.<br />
+	 * Alternatively, use {@link TableLike#field(Field)}.
+	 * 
+	 * @param field
+	 *            The {@code Field}s to be cloned
+	 * @return The un-qualified {@code field}
+	 */
+	public static <T> Field<T> unqualify(final Field<T> field) {
+		return DSL.field(field.getName(), field.getType());
+	}
+
 	public static Field<Date> fieldDate(final String dateStr) {
 		return dateStr != null ? DSL.date(dateStr) : DSL.currentDate();
 	}
