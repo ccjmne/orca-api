@@ -1,6 +1,9 @@
 package org.ccjmne.orca.api.utils;
 
 import org.jooq.SQLDialect;
+import org.jooq.conf.ParamType;
+import org.jooq.conf.RenderKeywordStyle;
+import org.jooq.conf.RenderNameStyle;
 import org.jooq.conf.Settings;
 import org.jooq.impl.DefaultDSLContext;
 import org.slf4j.Logger;
@@ -54,7 +57,13 @@ public class PostgresDSLContext extends DefaultDSLContext {
 	private static class CustomHikariSettings extends Settings {
 
 		public CustomHikariSettings() {
-			setExecuteLogging(DEBUG);
+			super.setExecuteLogging(DEBUG);
+			super.setRenderKeywordStyle(RenderKeywordStyle.UPPER);
+			super.setRenderNameStyle(RenderNameStyle.AS_IS);
+			super.setRenderCatalog(Boolean.FALSE);
+			super.setRenderSchema(Boolean.FALSE);
+			super.setParamType(DEBUG.booleanValue() ? ParamType.INLINED : ParamType.INDEXED);
+			super.setRenderFormatted(DEBUG);
 		}
 	}
 }
