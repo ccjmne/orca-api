@@ -3,6 +3,7 @@ package org.ccjmne.orca.api.utils;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,19 +23,32 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.lang3.ObjectUtils;
+import org.ccjmne.orca.api.modules.RecordsCollator;
+import org.ccjmne.orca.api.modules.Restrictions;
+import org.eclipse.jdt.annotation.NonNull;
+import org.jooq.Converter;
+import org.jooq.DataType;
 import org.jooq.Field;
 import org.jooq.Query;
 import org.jooq.Record;
 import org.jooq.Record2;
 import org.jooq.RecordMapper;
 import org.jooq.Table;
+import org.jooq.TableLike;
 import org.jooq.Transaction;
 import org.jooq.impl.DSL;
+import org.jooq.impl.SQLDataType;
 import org.jooq.util.postgres.PostgresDSL;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableList;
 
+// TODO: Rename to SubQueries or something
 public class ResourcesHelper {
+
+	private static final DataType<JsonNode> JSON_TYPE = SQLDataType.VARCHAR.asConvertedDataType(new PostgresJSONJacksonJsonNodeConverter());
 
 	/**
 	 * Used to determine which parameters are to be considered as tags. Matches
@@ -79,6 +93,66 @@ public class ResourcesHelper {
 		return DSL
 				.when(field.eq(DSL.inline(Constants.DATE_INFINITY)), Constants.DATE_INFINITY_LITERAL)
 				.otherwise(DSL.field("to_char({0}, {1})", String.class, field, APIDateFormat.FORMAT));
+	}
+
+	/**
+	 * Builds a {@link JsonNode} for each {@link Record} from the {@code fields}
+	 * argument, and <strong>aggregates</strong> these into a single
+	 * {@link JsonNode}, keyed by the {@code key} argument.<br />
+	 * <br />
+	 * This method <strong>coalesces</strong> the result into an <strong>empty
+	 * {@link JsonNode}</strong> when the @c{@code key} field is {@code null}
+	 * for an aggregation window.
+	 *
+	 * @param key
+	 *            The field by which the resulting {@code JsonNode} is to be
+	 *            keyed
+	 * @param fields
+	 *            The fields to be included in the resulting {@code JsonNode}
+	 *            for each {@code Record}
+	 * @return A {@code Field<JsonNode>} built from aggregating the
+	 *         {@code fields} argument with
+	 *         {@link ResourcesHelper#rowToJson(Field...)}
+	 */
+	public static Field<JsonNode> jsonbObjectAggNullSafe(final Field<?> key, final Field<?>... fields) {
+		return DSL.field(	"COALESCE(jsonb_object_agg({0}, ({1})) FILTER (WHERE {0} IS NOT NULL), '{}')::jsonb", JSON_TYPE, key,
+							ResourcesHelper.rowToJson(fields));
+	}
+
+	/**
+	 * Builds a {@link JsonNode} for each {@link Record} from the {@code fields}
+	 * argument, and <strong>aggregates</strong> these into a single
+	 * {@link JsonNode}, keyed by the {@code key} argument.<br />
+	 * <br />
+	 * This method requires {@code key} to not be {@code null} in any
+	 * aggregation window. If you want a null-safe version of this (for
+	 * aggregating <code>OUTER JOIN</code>s for example), use
+	 * {@link ResourcesHelper#jsonbObjectAggNullSafe(Field, Field...)} instead.
+	 *
+	 * @param key
+	 *            The field by which the resulting {@code JsonNode} is to be
+	 *            keyed
+	 * @param fields
+	 *            The fields to be included in the resulting {@code JsonNode}
+	 *            for each {@code Record}
+	 * @return A {@code Field<JsonNode>} built from aggregating the
+	 *         {@code fields} argument with
+	 *         {@link ResourcesHelper#rowToJson(Field...)}
+	 */
+	public static Field<JsonNode> jsonbObjectAgg(final Field<?> key, final Field<?>... fields) {
+		return DSL.field("jsonb_object_agg({0}, ({1}))::jsonb", JSON_TYPE, key, ResourcesHelper.rowToJson(fields));
+	}
+
+	/**
+	 * Builds a {@link JsonNode} from the {@code fields} argument.
+	 *
+	 * @param fields
+	 *            The fields to include in the resulting JSON
+	 * @return A {@code Field<JsonNode>} built from the specified {@code fields}
+	 */
+	public static Field<JsonNode> rowToJson(final Field<?>... fields) {
+		final TableLike<?> inner = DSL.select(fields).asTable();
+		return DSL.select(DSL.field("row_to_json({0})::jsonb", JSON_TYPE, inner)).from(inner).asField();
 	}
 
 	/**
@@ -414,6 +488,42 @@ public class ResourcesHelper {
 
 		public Collection<String> getZippedFields() {
 			return this.zippedFields;
+		}
+	}
+
+	@SuppressWarnings("serial")
+	private static class PostgresJSONJacksonJsonNodeConverter implements Converter<Object, JsonNode> {
+
+		protected PostgresJSONJacksonJsonNodeConverter() {
+			// Let ResourcesHelper instantiate this
+		}
+
+		@Override
+		public JsonNode from(final Object t) {
+			try {
+				return t == null ? NullNode.instance : new ObjectMapper().readTree(t + "");
+			} catch (final IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public Object to(final JsonNode u) {
+			try {
+				return (u == null) || u.equals(NullNode.instance) ? null : new ObjectMapper().writeValueAsString(u);
+			} catch (final IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public Class<Object> fromType() {
+			return Object.class;
+		}
+
+		@Override
+		public Class<JsonNode> toType() {
+			return JsonNode.class;
 		}
 	}
 }
