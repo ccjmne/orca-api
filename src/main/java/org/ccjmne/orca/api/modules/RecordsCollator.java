@@ -83,10 +83,7 @@ public class RecordsCollator {
 	 * @return The original query, for method chaining purposes
 	 */
 	public <T extends Record> SelectQuery<T> applyFiltering(final SelectQuery<T> query) {
-		query.addConditions(this.filterWhere.stream()
-				.map(Filter.toCondition(Arrays.asList(query.fields())))
-				.filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList()));
-		return query;
+		return this.applyFiltering(DSL.selectFrom(query.asTable()));
 	}
 
 	/**
@@ -97,7 +94,7 @@ public class RecordsCollator {
 	 * @return The underlying query, for method chaining purposes
 	 */
 	public <T extends Record> SelectQuery<T> applyFiltering(final SelectFinalStep<T> select) {
-		return this.applyFiltering(select.getQuery());
+		return this.applyFilteringImpl(select.getQuery());
 	}
 
 	/**
@@ -110,10 +107,7 @@ public class RecordsCollator {
 	 * @return The original query, for method chaining purposes
 	 */
 	public <T extends Record> SelectQuery<T> applySorting(final SelectQuery<T> query) {
-		query.addOrderBy(this.orderBy.stream()
-				.map(Sort.toSortField(Arrays.asList(query.fields())))
-				.filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList()));
-		return query;
+		return this.applySortingImpl(DSL.selectFrom(query.asTable()).getQuery());
 	}
 
 	/**
@@ -159,6 +153,22 @@ public class RecordsCollator {
 	/**
 	 * Stands for <em>"apply filtering and sorting"</em>.<br />
 	 * <br />
+	 * Creates a <strong>new</strong> query like:
+	 *
+	 * <pre>
+	 * SELECT * FROM (
+	 *     [{@code query}]
+	 * ) AS aliased
+	 * WHERE aliased.[filters...]
+	 * ORDER BY aliased.[sort...]
+	 * </pre>
+	 *
+	 * Doing so is necessary, in order to be able to filter and sort on dynamic
+	 * columns (typically {@code jsonb} aggregations). Referencing the
+	 * {@code SELECT}ed fields from the original {@code query} argument should
+	 * be done through either {@link SelectQuery#fields(Field...)} or
+	 * {@link Constants#unqualify(Field...)}.<br />
+	 * <br />
 	 *
 	 * Ideally <strong>only applied onto the outermost query</strong> that
 	 * actually gets returned to the client.<br />
@@ -168,10 +178,10 @@ public class RecordsCollator {
 	 * @param query
 	 *            The {@link SelectQuery} to which filtering and sorting should
 	 *            be applied
-	 * @return The original query, for method chaining purposes
+	 * @return A new, filtered and sorted {@code SelectQuery}
 	 */
 	public <T extends Record> SelectQuery<T> applyFAndS(final SelectQuery<T> query) {
-		return this.applySorting(this.applyFiltering(query));
+		return this.applySortingImpl(this.applyFilteringImpl(DSL.selectFrom(query.asTable()).getQuery()));
 	}
 
 	/**
@@ -179,7 +189,7 @@ public class RecordsCollator {
 	 *
 	 * @param select
 	 *            The {@link Select} whose underlying query to collate
-	 * @return The underlying query, for method chaining purposes
+	 * @return A new, filtered and sorted {@code SelectQuery}
 	 */
 	public <T extends Record> SelectQuery<T> applyFAndS(final SelectFinalStep<T> select) {
 		return this.applyFAndS(select.getQuery());
@@ -189,12 +199,24 @@ public class RecordsCollator {
 	 * Should <strong>only ever be applied onto the outermost query</strong>
 	 * that actually gets returned to the client.<br />
 	 * Should <strong>never be used on a sub-query </strong>used internally to
-	 * refine the results (see {@link #applyPagination(SelectQuery)}).
+	 * refine the results (see {@link #applyPagination(SelectQuery)}). <br />
+	 * <br />
+	 * Creates a <strong>new</strong> query (doing so is necessary, see
+	 * {@link #applyFAndS(SelectQuery)}), like:
+	 *
+	 * <pre>
+	 * SELECT * FROM (
+	 *     [{@code query}]
+	 * ) AS aliased
+	 * WHERE aliased.[filters...]
+	 * ORDER BY aliased.[sort...]
+	 * LIMIT [page-size] OFFSET [page-offset]
+	 * </pre>
 	 *
 	 * @param query
 	 *            The {@link SelectQuery} to which filtering, sorting and
 	 *            pagination should be applied
-	 * @return The original query, for method chaining purposes
+	 * @return A new, filtered, sorted and paginated {@code SelectQuery}
 	 */
 	public <T extends Record> SelectQuery<T> applyAll(final SelectQuery<T> query) {
 		return this.applyPagination(this.applyFAndS(query));
@@ -205,10 +227,32 @@ public class RecordsCollator {
 	 *
 	 * @param select
 	 *            The {@link Select} whose underlying query to collate
-	 * @return The underlying query, for method chaining purposes
+	 * @return A new, filtered, sorted and paginated {@code SelectQuery}
 	 */
 	public <T extends Record> SelectQuery<T> applyAll(final SelectFinalStep<T> select) {
 		return this.applyAll(select.getQuery());
+	}
+
+	/**
+	 * For internal use. Attempts to {@code FILTER} directly on the
+	 * <strong>supplied</strong> query.
+	 */
+	private <T extends Record> SelectQuery<T> applyFilteringImpl(final SelectQuery<T> query) {
+		query.addConditions(this.filterWhere.stream()
+				.map(Filter.toCondition(Arrays.asList(query.fields())))
+				.filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList()));
+		return query;
+	}
+
+	/**
+	 * For internal use. Attempts to {@code ORDER BY} directly on the
+	 * <strong>supplied</strong> query.
+	 */
+	private <T extends Record> SelectQuery<T> applySortingImpl(final SelectQuery<T> query) {
+		query.addOrderBy(this.orderBy.stream()
+				.map(Sort.toSortField(Arrays.asList(query.fields())))
+				.filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList()));
+		return query;
 	}
 
 	private static class Filter {
