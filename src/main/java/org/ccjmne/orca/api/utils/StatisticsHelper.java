@@ -90,6 +90,34 @@ public class StatisticsHelper {
 							EMPLOYEES_VOIDINGS.EMVO_DATE);
 	}
 
+	public static SelectFinalStep<? extends Record> selectEmployeesStats(final String dateStr) {
+		return DSL
+				.select(
+						SITES_EMPLOYEES.SIEM_SITE_FK,
+						TRAININGS_EMPLOYEES.TREM_EMPL_FK,
+						TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
+						ResourcesHelper.formatDate(StatisticsHelper.EXPIRY).as("expiry"),
+						StatisticsHelper.fieldOptedOut().as("opted_out"),
+						StatisticsHelper.fieldValidity(dateStr).as("validity"))
+				.from(TRAININGTYPES_CERTIFICATES)
+				.join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK))
+				.join(TRAININGS).on(TRAININGS.TRNG_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
+				.join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
+				.leftJoin(EMPLOYEES_VOIDINGS)
+				.on(EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(TRAININGS_EMPLOYEES.TREM_EMPL_FK)
+						.and(EMPLOYEES_VOIDINGS.EMVO_CERT_FK.eq(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)))
+				.join(SITES_EMPLOYEES)
+				.on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(TRAININGS_EMPLOYEES.TREM_EMPL_FK)
+						.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))))
+				.where(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_VALIDATED))
+				.and(TRAININGS.TRNG_DATE.le(Constants.fieldDate(dateStr)))
+				.groupBy(
+							SITES_EMPLOYEES.SIEM_SITE_FK,
+							TRAININGS_EMPLOYEES.TREM_EMPL_FK,
+							TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
+							EMPLOYEES_VOIDINGS.EMVO_DATE);
+	}
+
 	/**
 	 * The <code>employeesSelection</code> condition should be on
 	 * <code>TRAININGS_EMPLOYEES.TREM_EMPL_FK</code>.<br />

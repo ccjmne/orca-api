@@ -31,10 +31,10 @@ import javax.ws.rs.core.UriInfo;
 
 import org.ccjmne.orca.api.modules.RecordsCollator;
 import org.ccjmne.orca.api.modules.Restrictions;
+import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.RestrictedResourcesAccess;
-import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingsEmployeesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
@@ -74,6 +74,46 @@ public class ResourcesEndpoint {
 		this.restrictions = restrictions;
 		this.restrictedResourcesAccess = restrictedResourcesAccess;
 		this.collator = collator;
+	}
+
+	@GET
+	@Path("employees+stats")
+	public Result<? extends Record> listEmployeesPoC(
+														@QueryParam("employee") final Integer empl_pk,
+														@QueryParam("site") final Integer site_pk,
+														@QueryParam("training") final Integer trng_pk,
+														@QueryParam("date") final String dateStr,
+														@QueryParam("fields") final String fields,
+														@Context final UriInfo uriInfo) {
+		try (final SelectQuery<? extends Record> employees = this.restrictedResourcesAccess.selectEmployees(empl_pk, site_pk, trng_pk, dateStr,
+																											ResourcesHelper.getTagsFromUri(uriInfo))) {
+			final Table<? extends Record> stats = StatisticsHelper.selectEmployeesStats(dateStr).asTable();
+			return this.ctx.fetch(this.collator.applyAll(DSL
+					.select(employees.fields())
+					.select(ResourcesHelper
+							.jsonbObjectAggNullSafe(stats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK), stats.fields("expiry", "opted_out", "validity"))
+							.as("stats"))
+					.from(employees)
+					.leftOuterJoin(stats).on(stats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK).eq(employees.field(EMPLOYEES.EMPL_PK)))
+					.groupBy(employees.fields()).getQuery()));
+		}
+	}
+
+	@GET
+	@Path("employees+stats/{employee}")
+	public Record lookupEmployeePoC(@PathParam("employee") final Integer empl_pk, @QueryParam("date") final String dateStr) {
+		try (final SelectQuery<? extends Record> employees = this.restrictedResourcesAccess.selectEmployees(empl_pk, null, null, null,
+																											Collections.emptyMap())) {
+			final Table<? extends Record> stats = StatisticsHelper.selectEmployeesStats(dateStr).asTable();
+			return this.ctx.fetchOne(this.collator.applyAll(DSL
+					.select(employees.fields())
+					.select(ResourcesHelper
+							.jsonbObjectAggNullSafe(stats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK), stats.fields("expiry", "opted_out", "validity"))
+							.as("stats"))
+					.from(employees)
+					.leftOuterJoin(stats).on(stats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK).eq(employees.field(EMPLOYEES.EMPL_PK)))
+					.groupBy(employees.fields()).getQuery()));
+		}
 	}
 
 	@GET
