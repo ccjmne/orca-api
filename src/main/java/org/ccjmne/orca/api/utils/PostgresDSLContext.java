@@ -5,6 +5,7 @@ import org.jooq.conf.ParamType;
 import org.jooq.conf.RenderKeywordStyle;
 import org.jooq.conf.RenderNameStyle;
 import org.jooq.conf.Settings;
+import org.jooq.conf.StatementType;
 import org.jooq.impl.DefaultDSLContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +65,7 @@ public class PostgresDSLContext extends DefaultDSLContext {
 			super.setRenderSchema(Boolean.FALSE);
 			super.setParamType(DEBUG.booleanValue() ? ParamType.INLINED : ParamType.INDEXED);
 			super.setRenderFormatted(DEBUG);
+			super.setStatementType(DEBUG.booleanValue() ? StatementType.STATIC_STATEMENT : StatementType.PREPARED_STATEMENT);
 		}
 	}
 }
