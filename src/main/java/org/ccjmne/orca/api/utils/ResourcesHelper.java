@@ -42,6 +42,7 @@ import org.jooq.util.postgres.PostgresDSL;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableList;
 
@@ -79,6 +80,14 @@ public class ResourcesHelper {
 
 	public static final FieldsCoercer TAG_VALUE_COERCER = ResourcesHelper
 			.getBiFieldCoercer(SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE, (value, type) -> ResourcesHelper.coerceTagValue((String) value, (String) type));
+
+	/**
+	 * The {@link SITES_TAGS#SITA_VALUE} field coerced to either a boolean or a
+	 * string JSON element.
+	 */
+	public static final Field<JsonNode> TAG_VALUE_COERCED = DSL
+			.when(TAGS.TAGS_TYPE.eq(Constants.TAGS_TYPE_BOOLEAN), ResourcesHelper.toJsonb(DSL.cast(SITES_TAGS.SITA_VALUE, Boolean.class)))
+			.otherwise(ResourcesHelper.toJsonb(SITES_TAGS.SITA_VALUE));
 
 	/**
 	 * Formats a date-type {@link Field} as a {@link String}. Handles the case
@@ -143,6 +152,11 @@ public class ResourcesHelper {
 		return DSL.field("jsonb_object_agg({0}, ({1}))::jsonb", JSON_TYPE, key, ResourcesHelper.rowToJson(fields));
 	}
 
+	// TODO: Document
+	public static Field<JsonNode> jsonbObjectAggNullSafe(final Field<?> key, final Field<?> value) {
+		return DSL.coalesce(DSL.field("jsonb_object_agg({0}, {1})", JSON_TYPE, key, value), JsonNodeFactory.instance.objectNode());
+	}
+
 	/**
 	 * Builds a {@link JsonNode} from the {@code fields} argument.
 	 *
@@ -153,6 +167,13 @@ public class ResourcesHelper {
 	public static Field<JsonNode> rowToJson(final Field<?>... fields) {
 		final TableLike<?> inner = DSL.select(fields).asTable();
 		return DSL.select(DSL.field("row_to_json({0})::jsonb", JSON_TYPE, inner)).from(inner).asField();
+	}
+
+	/**
+	 * Parses a {@link Field} as JSON.
+	 */
+	private static final Field<JsonNode> toJsonb(final Field<?> field) {
+		return DSL.field("to_jsonb({0})", JSON_TYPE, field);
 	}
 
 	/**
