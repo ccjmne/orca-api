@@ -90,6 +90,7 @@ public class StatisticsHelper {
 							EMPLOYEES_VOIDINGS.EMVO_DATE);
 	}
 
+	// TODO: Return a {@link Table}
 	public static SelectFinalStep<? extends Record> selectEmployeesStats(final String dateStr) {
 		return DSL
 				.select(

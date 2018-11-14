@@ -45,7 +45,9 @@ public class Constants {
 	public static final String STATUS_DANGER = "danger";
 
 	public static final String TAGS_VALUE_UNIVERSAL = "*";
-	public static final String TAGS_VALUE_NONE = "null";
+	// Actually, it's not true anymore, it's just an actual JSON "null" leaf
+	// TODO: Maybe delete this property
+	public static final String TAGS_VALUE_NONE = String.valueOf((Object) null);
 
 	public static final String SORT_DIRECTION_DESC = "desc"; // case-insensitive
 	public static final String FILTER_VALUE_NULL = "null";
@@ -121,20 +123,20 @@ public class Constants {
 	 */
 	@SafeVarargs
 	public static <T> Field<? extends T>[] unqualify(final Field<? extends T>... fields) {
-		return Arrays.stream(fields).map(Field::getName).map(DSL::field).toArray(Field[]::new);
+		return Arrays.stream(fields).map(Field::getUnqualifiedName).map(DSL::field).toArray(Field[]::new);
 	}
 
 	/**
 	 * Clone the supplied {@code field} stripped from its {@code Table}
 	 * qualification, for referencing within sub-queries.<br />
 	 * Alternatively, use {@link TableLike#field(Field)}.
-	 * 
+	 *
 	 * @param field
 	 *            The {@code Field}s to be cloned
 	 * @return The un-qualified {@code field}
 	 */
 	public static <T> Field<T> unqualify(final Field<T> field) {
-		return DSL.field(field.getName(), field.getType());
+		return DSL.field(field.getUnqualifiedName(), field.getType());
 	}
 
 	public static Field<Date> fieldDate(final String dateStr) {

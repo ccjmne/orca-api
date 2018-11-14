@@ -85,7 +85,7 @@ public class Restrictions {
 		if (user.getUserType().equals(Constants.USERTYPE_EMPLOYEE)) {
 			site = this.ctx.selectFrom(SITES_EMPLOYEES)
 					.where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(user.getUserEmplFk())
-							.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.CURRENT_UPDATE))
+							.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LASTEST_UPDATE))
 							.and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.DECOMMISSIONED_SITE)))
 					.fetchOne(SITES_EMPLOYEES.SIEM_SITE_FK);
 		} else {
@@ -114,6 +114,9 @@ public class Restrictions {
 	 * <li>a single site (theirs)</li>
 	 * <li>all sites</li>
 	 * </ul>
+	 *
+	 * @param tags_pk
+	 *            The tag whose sites the user is attempting to query for
 	 */
 	public boolean canAccessSitesWith(final Integer tags_pk) {
 		return this.canAccessAllSites();

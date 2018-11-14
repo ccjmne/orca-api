@@ -15,6 +15,8 @@ import javax.ws.rs.ForbiddenException;
 
 import org.ccjmne.orca.api.modules.RecordsCollator;
 import org.ccjmne.orca.api.modules.Restrictions;
+import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.Nullable;
 import org.jooq.Condition;
 import org.jooq.JoinType;
 import org.jooq.Record;
@@ -65,11 +67,11 @@ public class RestrictedResourcesAccess {
 	}
 
 	public SelectQuery<Record> selectEmployees(
-												final Integer empl_pk,
-												final Integer site_pk,
-												final Integer trng_pk,
-												final String dateStr,
-												final Map<Integer, List<String>> tagFilters) {
+												@Nullable final Integer empl_pk,
+												@Nullable final Integer site_pk,
+												@Nullable final Integer trng_pk,
+												@Nullable final String dateStr,
+												@NonNull final Map<Integer, List<String>> tagFilters) {
 		try (final SelectQuery<Record> query = DSL.select().getQuery()) {
 			query.addFrom(EMPLOYEES);
 			query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT));

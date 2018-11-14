@@ -290,7 +290,6 @@ public class RecordsCollator {
 		 * <code>{@link Field}<{@link Integer}></code></li>
 		 * </ul>
 		 * <br />
-		 * <br />
 		 * This method is meant to be used with{@link Stream#map(Function)}, in
 		 * a stream chain as follows:
 		 *
@@ -307,6 +306,7 @@ public class RecordsCollator {
 		 * @return A {@link Function} to be used with
 		 *         {@link Stream#map(Function)}
 		 */
+		// TODO: Multiple filters for the same property shall be joined w/ Condition#or
 		public static Function<? super Filter, Optional<? extends Condition>> toCondition(final List<Field<?>> availableFields) {
 			return self -> {
 				final Optional<Field<?>> found = availableFields.stream().filter(f -> f.getName().equals(self.field)).findFirst();
@@ -324,7 +324,7 @@ public class RecordsCollator {
 				}
 
 				if (JsonNode.class.equals(found.get().getType())) {
-					final Field<Object> f = DSL.field("{0}#>>{1}", Object.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path));
+					final Field<Object> f = DSL.field("{0} #>> {1}", Object.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path));
 					return Constants.FILTER_VALUE_NULL.equals(self.value)	? Optional.of(self.comparator.equals("eq") ? f.isNull() : f.isNotNull())
 																			: Optional.of(Filter.comparisonCondition(f, self.comparator)
 																					.apply(DSL.val(self.value, Object.class)));

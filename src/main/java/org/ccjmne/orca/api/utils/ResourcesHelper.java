@@ -48,7 +48,7 @@ import com.google.common.collect.ImmutableList;
 // TODO: Rename to SubQueries or something
 public class ResourcesHelper {
 
-	private static final DataType<JsonNode> JSON_TYPE = SQLDataType.VARCHAR.asConvertedDataType(new PostgresJSONJacksonJsonNodeConverter());
+	public static final DataType<JsonNode> JSON_TYPE = SQLDataType.VARCHAR.asConvertedDataType(new PostgresJSONJacksonJsonNodeConverter());
 
 	/**
 	 * Used to determine which parameters are to be considered as tags. Matches
@@ -494,14 +494,16 @@ public class ResourcesHelper {
 	@SuppressWarnings("serial")
 	private static class PostgresJSONJacksonJsonNodeConverter implements Converter<Object, JsonNode> {
 
+		private final ObjectMapper mapper;
+
 		protected PostgresJSONJacksonJsonNodeConverter() {
-			// Let ResourcesHelper instantiate this
+			this.mapper = new ObjectMapper(); // TODO: Use CustomObjectMapper?
 		}
 
 		@Override
 		public JsonNode from(final Object t) {
 			try {
-				return t == null ? NullNode.instance : new ObjectMapper().readTree(t + "");
+				return t == null ? NullNode.instance : this.mapper.readTree(t.toString());
 			} catch (final IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -510,7 +512,7 @@ public class ResourcesHelper {
 		@Override
 		public Object to(final JsonNode u) {
 			try {
-				return (u == null) || u.equals(NullNode.instance) ? null : new ObjectMapper().writeValueAsString(u);
+				return (u == null) || u.equals(NullNode.instance) ? null : this.mapper.writeValueAsString(u);
 			} catch (final IOException e) {
 				throw new RuntimeException(e);
 			}
