@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics.TrainingsCertificateStatistics.TrainingsStatisticsData;
-import org.ccjmne.orca.api.utils.StatisticsHelper;
+import org.ccjmne.orca.api.utils.StatisticsSelection;
 import org.jooq.Record;
 
 import com.google.common.collect.BoundType;
@@ -34,15 +34,15 @@ public class TrainingsStatistics {
 						.getOrDefault(certPk, new TrainingsCertificateStatistics());
 				this.certificates.putIfAbsent(certPk, certStats);
 				certStats.statistics.trainings += 1;
-				certStats.statistics.employeesRegistered += training.getValue(StatisticsHelper.TRAINING_REGISTERED).intValue();
-				certStats.statistics.employeesTrained += training.getValue(StatisticsHelper.TRAINING_VALIDATED).intValue();
+				certStats.statistics.employeesRegistered += training.getValue(StatisticsSelection.TRAINING_REGISTERED).intValue();
+				certStats.statistics.employeesTrained += training.getValue(StatisticsSelection.TRAINING_VALIDATED).intValue();
 
 				final TrainingsStatisticsData typeStats = certStats.trainingTypesStatistics
 						.getOrDefault(training.getValue(TRAININGS.TRNG_TRTY_FK), new TrainingsStatisticsData());
 				certStats.trainingTypesStatistics.putIfAbsent(training.getValue(TRAININGS.TRNG_TRTY_FK), typeStats);
 				typeStats.trainings += 1;
-				typeStats.employeesRegistered += training.getValue(StatisticsHelper.TRAINING_REGISTERED).intValue();
-				typeStats.employeesTrained += training.getValue(StatisticsHelper.TRAINING_VALIDATED).intValue();
+				typeStats.employeesRegistered += training.getValue(StatisticsSelection.TRAINING_REGISTERED).intValue();
+				typeStats.employeesTrained += training.getValue(StatisticsSelection.TRAINING_VALIDATED).intValue();
 			}
 		}
 
@@ -52,13 +52,13 @@ public class TrainingsStatistics {
 						.getOrDefault(certPk, new TrainingsCertificateStatistics());
 				this.certificates.putIfAbsent(certPk, certStats);
 				certStats.statistics.trainingsExpired += 1;
-				certStats.statistics.employeesExpired += training.getValue(StatisticsHelper.TRAINING_VALIDATED).intValue();
+				certStats.statistics.employeesExpired += training.getValue(StatisticsSelection.TRAINING_VALIDATED).intValue();
 
 				final TrainingsStatisticsData typeStats = certStats.trainingTypesStatistics
 						.getOrDefault(training.getValue(TRAININGS.TRNG_TRTY_FK), new TrainingsStatisticsData());
 				certStats.trainingTypesStatistics.putIfAbsent(training.getValue(TRAININGS.TRNG_TRTY_FK), typeStats);
 				typeStats.trainingsExpired += 1;
-				typeStats.employeesExpired += training.getValue(StatisticsHelper.TRAINING_VALIDATED).intValue();
+				typeStats.employeesExpired += training.getValue(StatisticsSelection.TRAINING_VALIDATED).intValue();
 			}
 		}
 

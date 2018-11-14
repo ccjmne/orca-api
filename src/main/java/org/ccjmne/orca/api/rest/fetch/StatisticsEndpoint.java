@@ -41,9 +41,9 @@ import org.ccjmne.orca.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
-import org.ccjmne.orca.api.utils.RestrictedResourcesAccess;
+import org.ccjmne.orca.api.utils.ResourcesSelection;
 import org.ccjmne.orca.api.utils.APIDateFormat;
-import org.ccjmne.orca.api.utils.StatisticsHelper;
+import org.ccjmne.orca.api.utils.StatisticsSelection;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Table;
@@ -60,7 +60,7 @@ public class StatisticsEndpoint {
 	private final DSLContext ctx;
 	private final ResourcesByKeysCommonEndpoint commonResources;
 	// TODO: Rename, once resources and restrictions are gone
-	private final RestrictedResourcesAccess restrictedResourcesAccess;
+	private final ResourcesSelection restrictedResourcesAccess;
 	private final RecordsCollator collator;
 
 	// TODO: Should not have any use for these two and should delegate
@@ -73,7 +73,7 @@ public class StatisticsEndpoint {
 								final DSLContext ctx,
 								final ResourcesEndpoint resources,
 								final ResourcesByKeysCommonEndpoint commonResources,
-								final RestrictedResourcesAccess restrictedResourcesAccess,
+								final ResourcesSelection restrictedResourcesAccess,
 								final Restrictions restrictions,
 								final RecordsCollator collator) {
 		this.ctx = ctx;
@@ -204,7 +204,7 @@ public class StatisticsEndpoint {
 	}
 
 	private Map<String, Map<Object, Object>> getSitesGroupsStatsImpl(final Integer tags_pk, final String dateStr, final Map<Integer, List<String>> tagFilters) {
-		final Table<? extends Record> sitesGroupsStats = StatisticsHelper
+		final Table<? extends Record> sitesGroupsStats = StatisticsSelection
 				.selectSitesGroupsStats(
 										dateStr,
 										TRAININGS_EMPLOYEES.TREM_EMPL_FK
@@ -247,7 +247,7 @@ public class StatisticsEndpoint {
 	public Map<Integer, ? extends Record> getSiteStats(
 														@PathParam("site_pk") final Integer site_pk,
 														@QueryParam("date") final String dateStr) {
-		return this.ctx.selectQuery(StatisticsHelper
+		return this.ctx.selectQuery(StatisticsSelection
 				.selectSitesStats(
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
@@ -295,7 +295,7 @@ public class StatisticsEndpoint {
 															@QueryParam("date") final String dateStr,
 															@Context final UriInfo uriInfo) {
 		final Map<Integer, List<String>> tagFilters = ResourcesHelper.getTagsFromUri(uriInfo);
-		final Table<? extends Record> sitesStats = StatisticsHelper
+		final Table<? extends Record> sitesStats = StatisticsSelection
 				.selectSitesStats(
 									dateStr,
 									TRAININGS_EMPLOYEES.TREM_EMPL_FK
@@ -328,7 +328,7 @@ public class StatisticsEndpoint {
 	public Map<Integer, ? extends Record> getEmployeeStats(
 															@PathParam("empl_pk") final Integer empl_pk,
 															@QueryParam("date") final String dateStr) {
-		return this.ctx.selectQuery(StatisticsHelper
+		return this.ctx.selectQuery(StatisticsSelection
 				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK
 						.in(Constants.select(	EMPLOYEES.EMPL_PK,
 												this.restrictedResourcesAccess.selectEmployees(empl_pk, null, null, dateStr, Collections.emptyMap())))))
@@ -343,7 +343,7 @@ public class StatisticsEndpoint {
 																@QueryParam("training") final Integer trng_pk,
 																@QueryParam("date") final String dateStr,
 																@Context final UriInfo uriInfo) {
-		final Table<? extends Record> employeesStats = StatisticsHelper
+		final Table<? extends Record> employeesStats = StatisticsSelection
 				.selectEmployeesStats(dateStr, TRAININGS_EMPLOYEES.TREM_EMPL_FK
 						.in(Constants.select(	EMPLOYEES.EMPL_PK,
 												this.collator.applyPagination(this.restrictedResourcesAccess

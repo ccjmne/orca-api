@@ -15,7 +15,7 @@ import javax.inject.Inject;
 
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
-import org.ccjmne.orca.api.utils.RestrictedResourcesAccess;
+import org.ccjmne.orca.api.utils.ResourcesSelection;
 import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -36,10 +36,10 @@ public class ResourcesUnrestricted {
 			.arrayAggDistinctOmitNull(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK).as("certificates");
 
 	private final DSLContext ctx;
-	private final RestrictedResourcesAccess restrictedResourcesAccess;
+	private final ResourcesSelection restrictedResourcesAccess;
 
 	@Inject
-	public ResourcesUnrestricted(final DSLContext ctx, final RestrictedResourcesAccess restrictedResourcesAccess) {
+	public ResourcesUnrestricted(final DSLContext ctx, final ResourcesSelection restrictedResourcesAccess) {
 		this.ctx = ctx;
 		this.restrictedResourcesAccess = restrictedResourcesAccess;
 	}
