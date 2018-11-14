@@ -122,13 +122,6 @@ public class Restrictions {
 		return this.canAccessAllSites();
 	}
 
-	/**
-	 * @see Restrictions#canAccessSitesWith(Integer)
-	 */
-	public boolean canAccessSitesWith(final Map<Integer, List<String>> tags) {
-		return this.canAccessAllSites();
-	}
-
 	public boolean canAccessSite(final Integer site_pk) {
 		return this.accessAllSites || (this.accessibleSites.contains(site_pk));
 	}

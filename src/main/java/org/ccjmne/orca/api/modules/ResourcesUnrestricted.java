@@ -7,7 +7,6 @@ import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -36,12 +35,12 @@ public class ResourcesUnrestricted {
 			.arrayAggDistinctOmitNull(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK).as("certificates");
 
 	private final DSLContext ctx;
-	private final ResourcesSelection restrictedResourcesAccess;
+	private final ResourcesSelection resources;
 
 	@Inject
-	public ResourcesUnrestricted(final DSLContext ctx, final ResourcesSelection restrictedResourcesAccess) {
+	public ResourcesUnrestricted(final DSLContext ctx, final ResourcesSelection resources) {
 		this.ctx = ctx;
-		this.restrictedResourcesAccess = restrictedResourcesAccess;
+		this.resources = resources;
 	}
 
 	public List<Map<String, Object>> listTrainingTypes() {
@@ -69,7 +68,7 @@ public class ResourcesUnrestricted {
 						.select(DSL.count(SITES_TAGS.SITA_VALUE).as("count"), SITES_TAGS.SITA_VALUE, SITES_TAGS.SITA_TAGS_FK)
 						.from(SITES_TAGS)
 						.where(SITES_TAGS.SITA_SITE_FK.in(Constants
-								.select(SITES.SITE_PK, this.restrictedResourcesAccess.selectSites(null, Collections.EMPTY_MAP))))
+								.select(SITES.SITE_PK, this.resources.selectSites())))
 						.groupBy(SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE);
 				final Select<?> tagsStats = DSL
 						.select(DSL.arrayAgg(valuesStats.field(SITES_TAGS.SITA_VALUE)).as("values"),

@@ -33,8 +33,6 @@ import org.jooq.Record;
 import org.jooq.Row1;
 import org.jooq.impl.DSL;
 
-import com.google.common.collect.ObjectArrays;
-
 @Path("users-admin")
 public class UsersEndpoint {
 
@@ -54,7 +52,6 @@ public class UsersEndpoint {
 
 	@GET
 	@Path("users")
-	@SuppressWarnings("null")
 	public List<Map<String, Object>> getUsers() {
 		return this.ctx.select(Constants.USERS_FIELDS).select(EMPLOYEES.fields()).select(SITES.fields())
 				.select(DSL.arrayAgg(USERS_ROLES.USRO_TYPE).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("type_array"),
@@ -66,7 +63,7 @@ public class UsersEndpoint {
 				.leftOuterJoin(SITES).on(SITES.SITE_PK.eq(USERS.USER_SITE_FK))
 				.leftOuterJoin(USERS_ROLES).on(USERS_ROLES.USER_ID.eq(USERS.USER_ID))
 				.where(USERS.USER_ID.ne(Constants.USER_ROOT))
-				.groupBy(ObjectArrays.concat(ObjectArrays.concat(Constants.USERS_FIELDS, EMPLOYEES.fields(), Field.class), SITES.fields(), Field.class))
+				.groupBy(Constants.fields(Constants.USERS_FIELDS, EMPLOYEES.fields(), SITES.fields()))
 				.fetch(ResourcesHelper.getMapperWithZip(ResourcesHelper
 						.getZipSelectMapper("type_array", "level_array", "trainer_array", "true_array"), "roles"));
 	}
@@ -82,7 +79,6 @@ public class UsersEndpoint {
 	 * Returns account information and corresponding {@link Restrictions} for a
 	 * given user ID.
 	 */
-	@SuppressWarnings("null")
 	public static Map<String, Object> getUserInfoImpl(final String user_id, final DSLContext ctx) {
 		final Map<String, Object> res = ctx.select(Constants.USERS_FIELDS).select(EMPLOYEES.fields()).select(SITES.fields())
 				.select(DSL.arrayAgg(USERS_ROLES.USRO_TYPE).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("type_array"),
@@ -94,7 +90,7 @@ public class UsersEndpoint {
 				.leftOuterJoin(SITES).on(SITES.SITE_PK.eq(USERS.USER_SITE_FK))
 				.leftOuterJoin(USERS_ROLES).on(USERS_ROLES.USER_ID.eq(USERS.USER_ID))
 				.where(USERS.USER_ID.eq(user_id))
-				.groupBy(ObjectArrays.concat(ObjectArrays.concat(Constants.USERS_FIELDS, EMPLOYEES.fields(), Field.class), SITES.fields(), Field.class))
+				.groupBy(Constants.fields(Constants.USERS_FIELDS, EMPLOYEES.fields(), SITES.fields()))
 				.fetchOne(ResourcesHelper.getMapperWithZip(ResourcesHelper
 						.getZipSelectMapper("type_array", "level_array", "trainer_array", "true_array"), "roles"));
 

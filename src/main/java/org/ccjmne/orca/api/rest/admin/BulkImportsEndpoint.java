@@ -19,7 +19,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 
 import org.ccjmne.orca.api.modules.Restrictions;
-import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.Transactions;
@@ -46,7 +45,7 @@ public class BulkImportsEndpoint {
 	private final DSLContext ctx;
 
 	@Inject
-	public BulkImportsEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final Restrictions restrictions) {
+	public BulkImportsEndpoint(final DSLContext ctx, final Restrictions restrictions) {
 		if (!restrictions.canManageSitesAndTags()) {
 			throw new ForbiddenException();
 		}

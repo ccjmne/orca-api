@@ -73,6 +73,10 @@ public class ClientEndpoint {
 				.execute();
 	}
 
+	/**
+	 * @param fileDetail
+	 *            Should be used to handle SVG files someday
+	 */
 	@POST
 	@Path("logo")
 	public void updateLogo(

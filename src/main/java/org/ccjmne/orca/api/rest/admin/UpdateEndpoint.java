@@ -20,9 +20,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.modules.Restrictions;
-import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
-import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.APIDateFormat;
+import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.ccjmne.orca.jooq.classes.tables.records.SitesEmployeesRecord;
@@ -40,7 +39,7 @@ public class UpdateEndpoint {
 	private final DSLContext ctx;
 
 	@Inject
-	public UpdateEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final Restrictions restrictions) {
+	public UpdateEndpoint(final DSLContext ctx, final Restrictions restrictions) {
 		if (!restrictions.canManageSitesAndTags()) {
 			throw new ForbiddenException();
 		}

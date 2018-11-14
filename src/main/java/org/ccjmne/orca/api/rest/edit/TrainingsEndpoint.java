@@ -19,9 +19,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
 import org.ccjmne.orca.api.modules.Restrictions;
-import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
-import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.APIDateFormat;
+import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingsRecord;
 import org.jooq.DSLContext;
@@ -34,7 +33,7 @@ public class TrainingsEndpoint {
 	private final Restrictions restrictions;
 
 	@Inject
-	public TrainingsEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final Restrictions restrictions) {
+	public TrainingsEndpoint(final DSLContext ctx, final Restrictions restrictions) {
 		this.ctx = ctx;
 		this.restrictions = restrictions;
 	}

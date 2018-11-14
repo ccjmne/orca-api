@@ -20,7 +20,6 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.ccjmne.orca.api.modules.Restrictions;
-import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.classes.Sequences;
@@ -33,7 +32,7 @@ public class SitesEndpoint {
 	private final DSLContext ctx;
 
 	@Inject
-	public SitesEndpoint(final DSLContext ctx, final ResourcesEndpoint resources, final Restrictions restrictions) {
+	public SitesEndpoint(final DSLContext ctx, final Restrictions restrictions) {
 		if (!restrictions.canManageSitesAndTags()) {
 			throw new ForbiddenException();
 		}
