@@ -9,9 +9,11 @@ import java.time.Month;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
 import org.jooq.Field;
+import org.jooq.Param;
 import org.jooq.Record;
 import org.jooq.Record1;
 import org.jooq.Select;
@@ -94,7 +96,7 @@ public class Constants {
 	// ---- SUBQUERIES AND FIELDS
 	// TODO: move to new static class?
 	public static Field<?>[] USERS_FIELDS = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK };
-	public static final Field<Integer> CURRENT_UPDATE = Constants.selectUpdate(null);
+	public static final Field<Integer> LASTEST_UPDATE = Constants.selectUpdate(Optional.empty());
 
 	/**
 	 * Returns a select sub-query that maps the results of the provided
@@ -166,6 +168,10 @@ public class Constants {
 		return dateStr != null ? DSL.date(dateStr) : DSL.currentDate();
 	}
 
+	public static Field<Date> fieldDate(final Optional<Param<Date>> date) {
+		return date.isPresent() ? date.get() : DSL.currentDate();
+	}
+
 	/**
 	 * Returns a sub-query selecting the <strong>primary key</strong> of the
 	 * {@link UpdatesRecord} that is or was relevant at a given date, or today
@@ -184,5 +190,10 @@ public class Constants {
 									.where(UPDATES.UPDT_DATE.le(Constants.fieldDate(dateStr)))))
 									.asField(),
 							NO_UPDATE);
+	}
+
+	public static Field<Integer> selectUpdate(final Optional<Param<Date>> date) {
+		return DSL.coalesce(DSL.select(UPDATES.UPDT_PK).from(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.select(DSL.max(UPDATES.UPDT_DATE)).from(UPDATES)
+				.where(UPDATES.UPDT_DATE.le(Constants.fieldDate(date))))).asField(), NO_UPDATE);
 	}
 }
