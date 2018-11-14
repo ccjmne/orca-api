@@ -19,6 +19,8 @@ import org.jooq.SelectQuery;
 import org.jooq.TableLike;
 import org.jooq.impl.DSL;
 
+import com.google.common.collect.Streams;
+
 public class Constants {
 
 	/**
@@ -124,6 +126,27 @@ public class Constants {
 	@SafeVarargs
 	public static <T> Field<? extends T>[] unqualify(final Field<? extends T>... fields) {
 		return Arrays.stream(fields).map(Field::getUnqualifiedName).map(DSL::field).toArray(Field[]::new);
+	}
+
+	/**
+	 * Concatenates {@code fields} argument and {@code moreFields} into a single
+	 * array.
+	 *
+	 * @return A collection of all the concatenated {@link Field}s
+	 */
+	@SafeVarargs
+	public static <T> Field<? extends T>[] fields(final Field<? extends T>[] fields, final Field<? extends T>... moreFields) {
+		return Streams.concat(Arrays.stream(fields), Arrays.stream(moreFields)).toArray(Field[]::new);
+	}
+
+	/**
+	 * Concatenates {@code fields} arguments into a single array.
+	 *
+	 * @return A collection of all the concatenated {@link Field}s
+	 */
+	@SafeVarargs
+	public static <T> Field<? extends T>[] fields(final Field<? extends T>[]... fields) {
+		return Arrays.stream(fields).flatMap(Arrays::stream).toArray(Field[]::new);
 	}
 
 	/**
