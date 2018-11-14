@@ -25,14 +25,14 @@ import org.jooq.impl.DSL;
  *
  * @author ccjmne
  */
-public class RestrictedResourcesAccess {
+public class ResourcesSelection {
 
 	private final QueryParameters parameters;
 	private final Restrictions restrictions;
 	private final RecordsCollator recordsCollator;
 
 	@Inject
-	public RestrictedResourcesAccess(final QueryParameters parameters, final Restrictions restrictions, final RecordsCollator recordsCollator) {
+	public ResourcesSelection(final QueryParameters parameters, final Restrictions restrictions, final RecordsCollator recordsCollator) {
 		this.parameters = parameters;
 		this.restrictions = restrictions;
 		this.recordsCollator = recordsCollator;

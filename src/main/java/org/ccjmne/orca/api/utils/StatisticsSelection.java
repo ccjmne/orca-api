@@ -27,22 +27,22 @@ import org.jooq.impl.DSL;
 import org.jooq.types.DayToSecond;
 import org.jooq.types.YearToMonth;
 
-public class StatisticsHelper {
+public class StatisticsSelection {
 
 	private static final Integer DURATION_INFINITE = Integer.valueOf(0);
 
 	public static final Field<Date> MAX_EXPIRY = DSL.max(DSL
-			.when(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.eq(StatisticsHelper.DURATION_INFINITE), DSL.date(Constants.DATE_INFINITY))
+			.when(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.eq(StatisticsSelection.DURATION_INFINITE), DSL.date(Constants.DATE_INFINITY))
 			.otherwise(TRAININGS.TRNG_DATE.plus(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.mul(new YearToMonth(0, 1)))));
 
 	private static final Field<Date> EXPIRY = DSL
-			.when(EMPLOYEES_VOIDINGS.EMVO_DATE.le(StatisticsHelper.MAX_EXPIRY), EMPLOYEES_VOIDINGS.EMVO_DATE.sub(new DayToSecond(1)))
-			.otherwise(StatisticsHelper.MAX_EXPIRY);
+			.when(EMPLOYEES_VOIDINGS.EMVO_DATE.le(StatisticsSelection.MAX_EXPIRY), EMPLOYEES_VOIDINGS.EMVO_DATE.sub(new DayToSecond(1)))
+			.otherwise(StatisticsSelection.MAX_EXPIRY);
 
 	private static Field<String> fieldValidity(final Optional<Param<Date>> date) {
 		return DSL
-				.when(StatisticsHelper.EXPIRY.ge(Constants.fieldDate(date).plus(new YearToMonth(0, 6))), Constants.STATUS_SUCCESS)
-				.when(StatisticsHelper.EXPIRY.ge(Constants.fieldDate(date)), Constants.STATUS_WARNING)
+				.when(StatisticsSelection.EXPIRY.ge(Constants.fieldDate(date).plus(new YearToMonth(0, 6))), Constants.STATUS_SUCCESS)
+				.when(StatisticsSelection.EXPIRY.ge(Constants.fieldDate(date)), Constants.STATUS_WARNING)
 				.otherwise(Constants.STATUS_DANGER);
 	}
 
@@ -53,7 +53,7 @@ public class StatisticsHelper {
 	private final Optional<Param<Date>> date;
 
 	@Inject
-	public StatisticsHelper(final QueryParameters parameters) {
+	public StatisticsSelection(final QueryParameters parameters) {
 		this.date = parameters.of(QueryParameters.DATE);
 	}
 
@@ -63,9 +63,9 @@ public class StatisticsHelper {
 						SITES_EMPLOYEES.SIEM_SITE_FK,
 						TRAININGS_EMPLOYEES.TREM_EMPL_FK,
 						TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
-						ResourcesHelper.formatDate(StatisticsHelper.EXPIRY).as("expiry"),
-						StatisticsHelper.fieldOptedOut().as("void_since"),
-						StatisticsHelper.fieldValidity(this.date).as("status"))
+						ResourcesHelper.formatDate(StatisticsSelection.EXPIRY).as("expiry"),
+						StatisticsSelection.fieldOptedOut().as("void_since"),
+						StatisticsSelection.fieldValidity(this.date).as("status"))
 				.from(TRAININGTYPES_CERTIFICATES)
 				.join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK))
 				.join(TRAININGS).on(TRAININGS.TRNG_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
