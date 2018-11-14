@@ -5,6 +5,7 @@ import javax.inject.Singleton;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.ccjmne.orca.api.demo.DemoDataManager;
+import org.ccjmne.orca.api.modules.QueryParameters;
 import org.ccjmne.orca.api.modules.RecordsCollator;
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.api.modules.Restrictions;
@@ -33,6 +34,7 @@ public class ApplicationConfig extends ResourceConfig {
 				super.bind(CustomObjectMapper.class).to(ObjectMapper.class).in(Singleton.class);
 				super.bind(DemoDataManager.class).to(DemoDataManager.class).in(Singleton.class);
 				super.bind(PostgresDSLContext.class).to(DSLContext.class).in(Singleton.class);
+				super.bind(QueryParameters.class).to(QueryParameters.class).in(RequestScoped.class);
 				super.bind(ResourcesUnrestricted.class).to(ResourcesUnrestricted.class).in(Singleton.class);
 				super.bind(RestrictedResourcesAccess.class).to(RestrictedResourcesAccess.class).in(RequestScoped.class);
 				super.bind(Restrictions.class).to(Restrictions.class).in(RequestScoped.class);
