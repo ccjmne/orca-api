@@ -11,7 +11,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,12 +19,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.core.UriInfo;
-
 import org.apache.commons.lang3.ObjectUtils;
-import org.ccjmne.orca.api.modules.RecordsCollator;
-import org.ccjmne.orca.api.modules.Restrictions;
-import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Converter;
 import org.jooq.DataType;
 import org.jooq.Field;
@@ -74,12 +68,10 @@ public class ResourcesHelper {
 	 * @return The coerced <code>value</code>, either into a {@link Boolean} or
 	 *         a {@link String}, depending on the supplied <code>type</code>
 	 */
+	// TODO: Delete when rewriting common-resources modules
 	public static Object coerceTagValue(final String value, final String type) {
 		return Constants.TAGS_TYPE_BOOLEAN.equals(type) ? Boolean.valueOf(value) : value;
 	}
-
-	public static final FieldsCoercer TAG_VALUE_COERCER = ResourcesHelper
-			.getBiFieldCoercer(SITES_TAGS.SITA_VALUE, TAGS.TAGS_TYPE, (value, type) -> ResourcesHelper.coerceTagValue((String) value, (String) type));
 
 	/**
 	 * The {@link SITES_TAGS#SITA_VALUE} field coerced to either a boolean or a
@@ -200,27 +192,6 @@ public class ResourcesHelper {
 	 */
 	public static <T> Field<T> coalesce(final Field<T> field, final T value) {
 		return DSL.coalesce(field, value).as(field);
-	}
-
-	/**
-	 * TODO: Delete and have the computed Tags list directly injected into
-	 * anything that requires it, the same way it's done with
-	 * {@link Restrictions} and {@link RecordsCollator}.<br />
-	 * <br />
-	 *
-	 * Extracts a multi-valued {@link Map} of tags from the query parameters for
-	 * a specific API call.<br />
-	 * The {@link Predicate} used to determine which parameters are to be
-	 * considered as tags is {@link ResourcesHelper#IS_TAG_KEY}
-	 *
-	 * @param uriInfo
-	 *            The {@link UriInfo} representing the request
-	 */
-	@SuppressWarnings("null") // is never null
-	public static @NonNull Map<Integer, List<String>> getTagsFromUri(final UriInfo uriInfo) {
-		return uriInfo.getQueryParameters().entrySet().stream()
-				.filter(x -> IS_TAG_KEY.test(x.getKey()))
-				.collect(Collectors.toMap(x -> Integer.valueOf(x.getKey()), Entry::getValue));
 	}
 
 	/**

@@ -2,10 +2,12 @@ package org.ccjmne.orca.api.modules;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -240,7 +242,8 @@ public class RecordsCollator {
 	private <T extends Record> SelectQuery<T> applyFilteringImpl(final SelectQuery<T> query) {
 		query.addConditions(this.filterWhere.stream()
 				.map(Filter.toCondition(Arrays.asList(query.fields())))
-				.filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList()));
+				.filter(Optional::isPresent).map(Optional::get)
+				.collect(FieldCondition.JOIN_SAME_FIELDS_WITH_OR).values());
 		return query;
 	}
 
@@ -251,7 +254,8 @@ public class RecordsCollator {
 	private <T extends Record> SelectQuery<T> applySortingImpl(final SelectQuery<T> query) {
 		query.addOrderBy(this.orderBy.stream()
 				.map(Sort.toSortField(Arrays.asList(query.fields())))
-				.filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList()));
+				.filter(Optional::isPresent).map(Optional::get)
+				.collect(Collectors.toList()));
 		return query;
 	}
 
@@ -306,8 +310,7 @@ public class RecordsCollator {
 		 * @return A {@link Function} to be used with
 		 *         {@link Stream#map(Function)}
 		 */
-		// TODO: Multiple filters for the same property shall be joined w/ Condition#or
-		public static Function<? super Filter, Optional<? extends Condition>> toCondition(final List<Field<?>> availableFields) {
+		public static Function<? super Filter, Optional<? extends FieldCondition<?>>> toCondition(final List<Field<?>> availableFields) {
 			return self -> {
 				final Optional<Field<?>> found = availableFields.stream().filter(f -> f.getName().equals(self.field)).findFirst();
 				if (!found.isPresent()) {
@@ -315,23 +318,24 @@ public class RecordsCollator {
 				}
 
 				if (Boolean.class.equals(found.get().getType())) {
-					return Optional.of(DSL.field(self.field, Boolean.class).eq(Convert.convert(self.value, Boolean.class)));
+					return Optional.of(FieldCondition.on(DSL.field(self.field, Boolean.class)).apply(f -> f.eq(Convert.convert(self.value, Boolean.class))));
 				}
 
 				if (Number.class.isAssignableFrom(found.get().getType())) {
-					return Optional.of(Filter.comparisonCondition(DSL.field(self.field, Double.class), self.comparator)
-							.apply(DSL.field(self.value, Double.class)));
+					return Optional.of(FieldCondition.on(DSL.field(self.field, Double.class))
+							.apply(f -> Filter.comparisonCondition(f, self.comparator).apply(DSL.field(self.value, Double.class))));
 				}
 
 				if (JsonNode.class.equals(found.get().getType())) {
-					final Field<Object> f = DSL.field("{0} #>> {1}", Object.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path));
-					return Constants.FILTER_VALUE_NULL.equals(self.value)	? Optional.of(self.comparator.equals("eq") ? f.isNull() : f.isNotNull())
-																			: Optional.of(Filter.comparisonCondition(f, self.comparator)
-																					.apply(DSL.val(self.value, Object.class)));
+					final Field<Object> field = DSL.field("{0} #>> {1}", Object.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path));
+					return Optional.of(Constants.FILTER_VALUE_NULL
+							.equals(self.value)	? FieldCondition.on(field).apply(f -> self.comparator.equals("eq") ? f.isNull() : f.isNotNull())
+												: FieldCondition.on(field)
+														.apply(f -> Filter.comparisonCondition(f, self.comparator).apply(DSL.val(self.value, Object.class))));
 				}
 
-				return Optional.of(ResourcesHelper.unaccent(DSL.field(self.field, String.class))
-						.containsIgnoreCase(ResourcesHelper.unaccent(DSL.val(self.value))));
+				return Optional.of(FieldCondition.on(ResourcesHelper.unaccent(DSL.field(self.field, String.class)))
+						.apply(f -> f.containsIgnoreCase(ResourcesHelper.unaccent(DSL.val(self.value)))));
 			};
 		}
 
@@ -407,11 +411,91 @@ public class RecordsCollator {
 
 				if (JsonNode.class.equals(found.get().getType())) {
 					return Optional
-							.of(self.asSortField.apply(DSL.field("{0}#>{1}", JsonNode.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path))));
+							.of(self.asSortField.apply(DSL.field("{0} #> {1}", JsonNode.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path))));
 				}
 
 				return Optional.of(self.asSortField.apply(DSL.field(self.field)));
 			};
+		}
+	}
+
+	// TODO: Merge MutableCondition directly with FieldCondition
+	// TODO: Document
+	private static class FieldCondition<T> {
+
+		protected static final Collector<FieldCondition<?>, ?, Map<Field<?>, Condition>> JOIN_SAME_FIELDS_WITH_OR = Collectors
+				.groupingBy(FieldCondition::getField,
+							Collector.of(MutableCondition::new, MutableCondition::or, MutableCondition::combine, MutableCondition::get));
+
+		private final Field<T> field;
+		private final Condition condition;
+
+		private FieldCondition(final Field<T> field, final Condition condition) {
+			this.field = field;
+			this.condition = condition;
+		}
+
+		protected static <T> Function<Function<? super Field<T>, ? extends Condition>, FieldCondition<T>> on(final Field<T> field) {
+			return func -> new FieldCondition<>(field, func.apply(field));
+		}
+
+		protected Field<T> getField() {
+			return this.field;
+		}
+
+		protected Condition getCondition() {
+			return this.condition;
+		}
+
+		/**
+		 * Uses a <strong>mutable</strong> (*shrieks*) {@link Condition} to accumulate
+		 * {@link FieldCondition}s using
+		 * {@link Collector#of(java.util.function.Supplier, java.util.function.BiConsumer, java.util.function.BinaryOperator, java.util.stream.Collector.Characteristics...)}.
+		 */
+		private static class MutableCondition {
+
+			private Condition condition;
+
+			public MutableCondition() {
+				this.condition = DSL.falseCondition(); // TODO: use noCondition when upgrading jOOQ
+			}
+
+			/**
+			 * Combines two {@code MutableConditions} using an {@code OR} link.
+			 *
+			 * @param other
+			 *            The other {@code MutableCondition} to combine with {@code this}
+			 * @return A new {@code MutableCondition} like {@code WHERE [this] OR [other]}
+			 */
+			public MutableCondition combine(final MutableCondition other) {
+				this.condition = this.condition.or(other.condition);
+				return this;
+			}
+
+			/**
+			 * Add another {@link Condition} to the {@code acc} {@code MutableConditions}
+			 * using an {@code OR} link.
+			 *
+			 * @param acc
+			 *            The {@code MutableCondition} to update with an alternative
+			 *            {@link Condition}
+			 * @param other
+			 *            The alternative {@link Condition} to be fulfilled
+			 */
+			public static void or(final MutableCondition acc, final FieldCondition<?> other) {
+				acc.condition = acc.condition.or(other.getCondition());
+			}
+
+			/**
+			 * Get the underlying {@link Condition}, as the {@code finisher} attribute for
+			 * {@link Collector#of(java.util.function.Supplier, java.util.function.BiConsumer, java.util.function.BinaryOperator, java.util.stream.Collector.Characteristics...)}.
+			 *
+			 * @return The underlying {@link Condition} which is {@code truthy} when any of
+			 *         the accumulated {@link Conditions} is so.
+			 */
+			public Condition get() {
+				return this.condition;
+			}
 		}
 	}
 }

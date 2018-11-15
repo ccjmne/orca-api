@@ -62,6 +62,7 @@ public class ResourcesUnrestricted {
 		return this.ctx.selectFrom(CERTIFICATES).orderBy(CERTIFICATES.CERT_ORDER).fetch();
 	}
 
+	// TODO: Rewrite using JSON_TYPE
 	public List<Map<String, Object>> listTags() {
 		try (
 				final Select<?> valuesStats = DSL
