@@ -295,7 +295,7 @@ public class ResourcesEndpoint {
 			}
 
 			query.addOrderBy(TRAININGS.TRNG_DATE);
-			return this.collator.applyAll(query).fetch();
+			return this.ctx.fetch(this.collator.applyAll(query));
 		}
 	}
 
