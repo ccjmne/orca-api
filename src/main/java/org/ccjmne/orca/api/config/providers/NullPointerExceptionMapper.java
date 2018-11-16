@@ -14,11 +14,11 @@ import org.slf4j.LoggerFactory;
 @Produces(MediaType.APPLICATION_JSON)
 public class NullPointerExceptionMapper implements ExceptionMapper<NullPointerException> {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(NullPointerExceptionMapper.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NullPointerExceptionMapper.class);
 
-	@Override
-	public Response toResponse(final NullPointerException e) {
-		LOGGER.warn("Could not process request.", e);
-		return Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
-	}
+  @Override
+  public Response toResponse(final NullPointerException e) {
+    LOGGER.warn("Could not process request.", e);
+    return Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
+  }
 }

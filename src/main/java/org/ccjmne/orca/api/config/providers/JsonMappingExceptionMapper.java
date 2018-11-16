@@ -16,11 +16,11 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 @Produces(MediaType.APPLICATION_JSON)
 public class JsonMappingExceptionMapper implements ExceptionMapper<JsonMappingException> {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(JsonMappingExceptionMapper.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(JsonMappingExceptionMapper.class);
 
-	@Override
-	public Response toResponse(final JsonMappingException e) {
-		LOGGER.warn("Could not process request.", e);
-		return Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();
-	}
+  @Override
+  public Response toResponse(final JsonMappingException e) {
+    LOGGER.warn("Could not process request.", e);
+    return Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();
+  }
 }

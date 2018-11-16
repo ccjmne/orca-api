@@ -14,11 +14,11 @@ import org.slf4j.LoggerFactory;
 @Produces(MediaType.APPLICATION_JSON)
 public class IllegalArgumentExceptionMapper implements ExceptionMapper<IllegalArgumentException> {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(IllegalArgumentExceptionMapper.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IllegalArgumentExceptionMapper.class);
 
-	@Override
-	public Response toResponse(final IllegalArgumentException e) {
-		LOGGER.warn("Could not process request.", e);
-		return Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();
-	}
+  @Override
+  public Response toResponse(final IllegalArgumentException e) {
+    LOGGER.warn("Could not process request.", e);
+    return Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();
+  }
 }

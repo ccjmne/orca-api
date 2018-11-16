@@ -26,28 +26,28 @@ import com.google.common.collect.Maps;
 // TODO: merge with ResourcesCommonEndpoint?
 public class ResourcesByKeysCommonEndpoint {
 
-	private final ResourcesUnrestricted resources;
+  private final ResourcesUnrestricted resources;
 
-	@Inject
-	public ResourcesByKeysCommonEndpoint(final ResourcesUnrestricted resources) {
-		this.resources = resources;
-	}
+  @Inject
+  public ResourcesByKeysCommonEndpoint(final ResourcesUnrestricted resources) {
+    this.resources = resources;
+  }
 
-	@GET
-	@Path("trainingtypes")
-	public Map<Integer, Map<String, Object>> listTrainingTypes() {
-		return Maps.uniqueIndex(this.resources.listTrainingTypes(), trty -> (Integer) trty.get(TRAININGTYPES.TRTY_PK.getName()));
-	}
+  @GET
+  @Path("trainingtypes")
+  public Map<Integer, Map<String, Object>> listTrainingTypes() {
+    return Maps.uniqueIndex(this.resources.listTrainingTypes(), trty -> (Integer) trty.get(TRAININGTYPES.TRTY_PK.getName()));
+  }
 
-	@GET
-	@Path("certificates")
-	public Map<Integer, CertificatesRecord> listCertificates() {
-		return this.resources.listCertificates().intoMap(CERTIFICATES.CERT_PK);
-	}
+  @GET
+  @Path("certificates")
+  public Map<Integer, CertificatesRecord> listCertificates() {
+    return this.resources.listCertificates().intoMap(CERTIFICATES.CERT_PK);
+  }
 
-	@GET
-	@Path("tags")
-	public Map<Integer, Map<String, Object>> listTags() {
-		return Maps.uniqueIndex(this.resources.listTags(), x -> (Integer) x.get(TAGS.TAGS_PK.getName()));
-	}
+  @GET
+  @Path("tags")
+  public Map<Integer, Map<String, Object>> listTags() {
+    return Maps.uniqueIndex(this.resources.listTags(), x -> (Integer) x.get(TAGS.TAGS_PK.getName()));
+  }
 }

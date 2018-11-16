@@ -33,93 +33,93 @@ import com.github.zafarkhaja.semver.Version;
 @Path("patch-notes")
 public class PatchNotesEndpoint {
 
-	public static class PatchNotes {
+  public static class PatchNotes {
 
-		// DTOs members are public final
-		public final String version;
-		public final long timestamp;
-		public final String contents;
+    // DTOs members are public final
+    public final String version;
+    public final long timestamp;
+    public final String contents;
 
-		private boolean unread;
+    private boolean unread;
 
-		private PatchNotes(
-							@JsonProperty("version") final String version,
-							@JsonProperty("timestamp") final long timestamp,
-							@JsonProperty("contents") final String contents) {
-			this.version = version;
-			this.timestamp = timestamp;
-			this.contents = contents;
-		}
+    private PatchNotes(
+                       @JsonProperty("version") final String version,
+                       @JsonProperty("timestamp") final long timestamp,
+                       @JsonProperty("contents") final String contents) {
+      this.version = version;
+      this.timestamp = timestamp;
+      this.contents = contents;
+    }
 
-		@JsonProperty("unread")
-		public boolean isUnread() {
-			return this.unread;
-		}
+    @JsonProperty("unread")
+    public boolean isUnread() {
+      return this.unread;
+    }
 
-		void checkUnreadSince(final String lastCheckedVersion, final OffsetDateTime lastCheckedTimestamp) {
-			this.unread = (null == lastCheckedVersion) || (null == lastCheckedTimestamp)
-					|| Version.valueOf(lastCheckedVersion).lessThan(Version.valueOf(this.version))
-					|| lastCheckedTimestamp.isBefore(OffsetDateTime.ofInstant(Instant.ofEpochMilli(this.timestamp), ZoneOffset.UTC));
-		}
-	}
+    void checkUnreadSince(final String lastCheckedVersion, final OffsetDateTime lastCheckedTimestamp) {
+      this.unread = (null == lastCheckedVersion) || (null == lastCheckedTimestamp)
+          || Version.valueOf(lastCheckedVersion).lessThan(Version.valueOf(this.version))
+          || lastCheckedTimestamp.isBefore(OffsetDateTime.ofInstant(Instant.ofEpochMilli(this.timestamp), ZoneOffset.UTC));
+    }
+  }
 
-	private static final String PATCH_NOTES_SERVICE_HOST = System.getProperty("patch_notes_service", "wfhqpe4fok.execute-api.eu-west-1.amazonaws.com");
-	private static final String PATCH_NOTES_SERVICE_URL = String.format("https://%s/Prod?previous=true", PATCH_NOTES_SERVICE_HOST);
+  private static final String PATCH_NOTES_SERVICE_HOST = System.getProperty("patch_notes_service", "wfhqpe4fok.execute-api.eu-west-1.amazonaws.com");
+  private static final String PATCH_NOTES_SERVICE_URL = String.format("https://%s/Prod?previous=true", PATCH_NOTES_SERVICE_HOST);
 
-	private final DSLContext ctx;
-	private final HttpClient client;
-	private final ObjectMapper objectMapper;
+  private final DSLContext ctx;
+  private final HttpClient client;
+  private final ObjectMapper objectMapper;
 
-	@Inject
-	private PatchNotesEndpoint(final DSLContext ctx, final HttpClient client, final ObjectMapper objectMapper) {
-		this.ctx = ctx;
-		this.client = client;
-		this.objectMapper = objectMapper;
-	}
+  @Inject
+  private PatchNotesEndpoint(final DSLContext ctx, final HttpClient client, final ObjectMapper objectMapper) {
+    this.ctx = ctx;
+    this.client = client;
+    this.objectMapper = objectMapper;
+  }
 
-	@GET
-	public List<PatchNotes> listRelevantPatchNotes(@QueryParam("version") final String version, @Context final HttpServletRequest request) throws Exception {
-		final Record2<String, OffsetDateTime> lastChecked = this.ctx.select(USERS.USER_NEWSPULL_VERSION, USERS.USER_NEWSPULL_TIMESTAMP)
-				.from(USERS).where(USERS.USER_ID.eq(request.getRemoteUser())).fetchOne();
+  @GET
+  public List<PatchNotes> listRelevantPatchNotes(@QueryParam("version") final String version, @Context final HttpServletRequest request) throws Exception {
+    final Record2<String, OffsetDateTime> lastChecked = this.ctx.select(USERS.USER_NEWSPULL_VERSION, USERS.USER_NEWSPULL_TIMESTAMP)
+        .from(USERS).where(USERS.USER_ID.eq(request.getRemoteUser())).fetchOne();
 
-		final List<PatchNotes> patches = this.client
-				.execute(	new HttpGet(new URIBuilder(PATCH_NOTES_SERVICE_URL).addParameter("version", version).build()),
-							response -> {
-								final int statusCode = response.getStatusLine().getStatusCode();
-								if ((statusCode >= 400) && (statusCode < 600)) {
-									try (final Scanner sc = new Scanner(response.getEntity().getContent())) {
-										throw new IllegalArgumentException(sc.useDelimiter("\\A").next());
-									}
-								}
+    final List<PatchNotes> patches = this.client
+        .execute(new HttpGet(new URIBuilder(PATCH_NOTES_SERVICE_URL).addParameter("version", version).build()),
+                 response -> {
+                   final int statusCode = response.getStatusLine().getStatusCode();
+                   if ((statusCode >= 400) && (statusCode < 600)) {
+                     try (final Scanner sc = new Scanner(response.getEntity().getContent())) {
+                       throw new IllegalArgumentException(sc.useDelimiter("\\A").next());
+                     }
+                   }
 
-								return this.objectMapper.readValue(	response.getEntity().getContent(),
-																	TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, PatchNotes.class));
-							});
+                   return this.objectMapper.readValue(response.getEntity().getContent(),
+                                                      TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, PatchNotes.class));
+                 });
 
-		return patches.stream()
-				.peek(patch -> patch.checkUnreadSince(	lastChecked.get(USERS.USER_NEWSPULL_VERSION),
-														lastChecked.get(USERS.USER_NEWSPULL_TIMESTAMP)))
-				.collect(Collectors.toList());
-	}
+    return patches.stream()
+        .peek(patch -> patch.checkUnreadSince(lastChecked.get(USERS.USER_NEWSPULL_VERSION),
+                                              lastChecked.get(USERS.USER_NEWSPULL_TIMESTAMP)))
+        .collect(Collectors.toList());
+  }
 
-	@GET
-	@Path("unread")
-	public boolean hasUnread(@QueryParam("version") final String version, @Context final HttpServletRequest request) throws Exception {
-		return listRelevantPatchNotes(version, request).stream().anyMatch(PatchNotes::isUnread);
-	}
+  @GET
+  @Path("unread")
+  public boolean hasUnread(@QueryParam("version") final String version, @Context final HttpServletRequest request) throws Exception {
+    return listRelevantPatchNotes(version, request).stream().anyMatch(PatchNotes::isUnread);
+  }
 
-	@POST
-	@Path("read")
-	public void updateLastCheckedPatchNotes(@QueryParam("version") final String version, @Context final HttpServletRequest request) {
-		try {
-			Version.valueOf(version);
-		} catch (final Exception e) {
-			throw new IllegalArgumentException(String.format("Invalid version number: %s", version));
-		}
+  @POST
+  @Path("read")
+  public void updateLastCheckedPatchNotes(@QueryParam("version") final String version, @Context final HttpServletRequest request) {
+    try {
+      Version.valueOf(version);
+    } catch (final Exception e) {
+      throw new IllegalArgumentException(String.format("Invalid version number: %s", version));
+    }
 
-		this.ctx.update(USERS)
-				.set(USERS.USER_NEWSPULL_VERSION, version)
-				.set(USERS.USER_NEWSPULL_TIMESTAMP, DSL.currentOffsetDateTime())
-				.where(USERS.USER_ID.eq(request.getRemoteUser())).execute();
-	}
+    this.ctx.update(USERS)
+        .set(USERS.USER_NEWSPULL_VERSION, version)
+        .set(USERS.USER_NEWSPULL_TIMESTAMP, DSL.currentOffsetDateTime())
+        .where(USERS.USER_ID.eq(request.getRemoteUser())).execute();
+  }
 }

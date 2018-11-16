@@ -18,43 +18,43 @@ import org.quartz.SchedulerException;
 @Singleton
 public class DemoEndpoint {
 
-	private static final String SECRET = System.getProperty("init.secret");
-	private static final DateFormat WITH_TIME = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
+  private static final String SECRET = System.getProperty("init.secret");
+  private static final DateFormat WITH_TIME = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
 
-	private final DemoDataManager manager;
+  private final DemoDataManager manager;
 
-	@Inject
-	public DemoEndpoint(final DemoDataManager manager) {
-		this.manager = manager;
-	}
+  @Inject
+  public DemoEndpoint(final DemoDataManager manager) {
+    this.manager = manager;
+  }
 
-	@GET
-	public boolean isDemo() {
-		return this.manager.isDemoEnabled();
-	}
+  @GET
+  public boolean isDemo() {
+    return this.manager.isDemoEnabled();
+  }
 
-	@GET
-	@Path("next")
-	public Response getNextFireTime() throws SchedulerException {
-		final Date nextFireTime = this.manager.getNextFireTime();
-		if (null == nextFireTime) {
-			return Response.noContent().build();
-		}
+  @GET
+  @Path("next")
+  public Response getNextFireTime() throws SchedulerException {
+    final Date nextFireTime = this.manager.getNextFireTime();
+    if (null == nextFireTime) {
+      return Response.noContent().build();
+    }
 
-		return Response.ok(WITH_TIME.format(nextFireTime)).build();
-	}
+    return Response.ok(WITH_TIME.format(nextFireTime)).build();
+  }
 
-	@POST
-	@Path("trigger")
-	public void trigger(final String secret) throws SchedulerException {
-		if (!this.manager.isDemoEnabled()) {
-			throw new IllegalStateException("Demo mode is not enabled.");
-		}
+  @POST
+  @Path("trigger")
+  public void trigger(final String secret) throws SchedulerException {
+    if (!this.manager.isDemoEnabled()) {
+      throw new IllegalStateException("Demo mode is not enabled.");
+    }
 
-		if ((SECRET == null) || SECRET.isEmpty() || !SECRET.equals(secret)) {
-			throw new IllegalStateException("The instance is not set up for (re)initilisation or your password is invalid.");
-		}
+    if ((SECRET == null) || SECRET.isEmpty() || !SECRET.equals(secret)) {
+      throw new IllegalStateException("The instance is not set up for (re)initilisation or your password is invalid.");
+    }
 
-		this.manager.trigger();
-	}
+    this.manager.trigger();
+  }
 }

@@ -15,43 +15,43 @@ import org.slf4j.LoggerFactory;
 @Provider
 public class OrcaApplicationEventListener implements ApplicationEventListener {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(OrcaApplicationEventListener.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(OrcaApplicationEventListener.class);
 
-	private final DemoDataManager demoDataManager;
+  private final DemoDataManager demoDataManager;
 
-	@Inject
-	public OrcaApplicationEventListener(final DemoDataManager demoDataManager) {
-		this.demoDataManager = demoDataManager;
-	}
+  @Inject
+  public OrcaApplicationEventListener(final DemoDataManager demoDataManager) {
+    this.demoDataManager = demoDataManager;
+  }
 
-	@Override
-	public void onEvent(final ApplicationEvent event) {
-		switch (event.getType()) {
-			case DESTROY_FINISHED:
-				try {
-					this.demoDataManager.shutdown();
-				} catch (final SchedulerException e) {
-					LOGGER.error("An error occured during scheduler shutdown.", e);
-				}
+  @Override
+  public void onEvent(final ApplicationEvent event) {
+    switch (event.getType()) {
+      case DESTROY_FINISHED:
+        try {
+          this.demoDataManager.shutdown();
+        } catch (final SchedulerException e) {
+          LOGGER.error("An error occured during scheduler shutdown.", e);
+        }
 
-				break;
-			case INITIALIZATION_FINISHED:
-				try {
-					this.demoDataManager.start();
-				} catch (final SchedulerException e) {
-					LOGGER.error("An error occured during scheduler startup.", e);
-				}
+        break;
+      case INITIALIZATION_FINISHED:
+        try {
+          this.demoDataManager.start();
+        } catch (final SchedulerException e) {
+          LOGGER.error("An error occured during scheduler startup.", e);
+        }
 
-				break;
-			// $CASES-OMITTED$
-			default:
-				break;
-		}
-	}
+        break;
+      // $CASES-OMITTED$
+      default:
+        break;
+    }
+  }
 
-	@Override
-	public RequestEventListener onRequest(final RequestEvent requestEvent) {
-		// Don't listen to request_events
-		return null;
-	}
+  @Override
+  public RequestEventListener onRequest(final RequestEvent requestEvent) {
+    // Don't listen to request_events
+    return null;
+  }
 }

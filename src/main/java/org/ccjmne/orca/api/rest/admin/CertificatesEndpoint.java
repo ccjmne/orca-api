@@ -31,185 +31,185 @@ import org.jooq.impl.DSL;
 @Path("certificates")
 public class CertificatesEndpoint {
 
-	private final DSLContext ctx;
+  private final DSLContext ctx;
 
-	@Inject
-	public CertificatesEndpoint(final DSLContext ctx, final Restrictions restrictions) {
-		if (!restrictions.canManageCertificates()) {
-			throw new ForbiddenException();
-		}
+  @Inject
+  public CertificatesEndpoint(final DSLContext ctx, final Restrictions restrictions) {
+    if (!restrictions.canManageCertificates()) {
+      throw new ForbiddenException();
+    }
 
-		this.ctx = ctx;
-	}
+    this.ctx = ctx;
+  }
 
-	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	public Integer createCert(final Map<String, String> cert) {
-		final Integer cert_pk = new Integer(this.ctx.nextval(Sequences.CERTIFICATES_CERT_PK_SEQ).intValue());
-		this.updateCert(cert_pk, cert);
-		return cert_pk;
-	}
+  @POST
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Integer createCert(final Map<String, String> cert) {
+    final Integer cert_pk = new Integer(this.ctx.nextval(Sequences.CERTIFICATES_CERT_PK_SEQ).intValue());
+    this.updateCert(cert_pk, cert);
+    return cert_pk;
+  }
 
-	/**
-	 * @return <code>true</code> iff a new {@link Record} was created
-	 */
-	@PUT
-	@Path("{cert_pk}")
-	@Consumes(MediaType.APPLICATION_JSON)
-	public Boolean updateCert(@PathParam("cert_pk") final Integer cert_pk, final Map<String, String> cert) {
-		return Transactions.with(this.ctx, transactionCtx -> {
-			final boolean exists = this.ctx.fetchExists(CERTIFICATES, CERTIFICATES.CERT_PK.eq(cert_pk));
-			if (exists) {
-				transactionCtx.update(CERTIFICATES)
-						.set(CERTIFICATES.CERT_NAME, cert.get(CERTIFICATES.CERT_NAME.getName()))
-						.set(CERTIFICATES.CERT_SHORT, cert.get(CERTIFICATES.CERT_SHORT.getName()))
-						.set(CERTIFICATES.CERT_TARGET, Integer.valueOf(cert.get(CERTIFICATES.CERT_TARGET.getName())))
-						.set(CERTIFICATES.CERT_PERMANENTONLY, Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())))
-						.where(CERTIFICATES.CERT_PK.eq(cert_pk)).execute();
-			} else {
-				transactionCtx.insertInto(
-											CERTIFICATES,
-											CERTIFICATES.CERT_PK,
-											CERTIFICATES.CERT_NAME,
-											CERTIFICATES.CERT_SHORT,
-											CERTIFICATES.CERT_TARGET,
-											CERTIFICATES.CERT_PERMANENTONLY,
-											CERTIFICATES.CERT_ORDER)
-						.values(
-								cert_pk,
-								cert.get(CERTIFICATES.CERT_NAME.getName()),
-								cert.get(CERTIFICATES.CERT_SHORT.getName()),
-								Integer.valueOf(cert.get(CERTIFICATES.CERT_TARGET.getName())),
-								Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())),
-								transactionCtx
-										.select(DSL.coalesce(DSL.max(CERTIFICATES.CERT_ORDER), Integer.valueOf(0)).add(Integer.valueOf(1)).as("order"))
-										.from(CERTIFICATES)
-										.fetchOne("order", Integer.class))
-						.execute();
-			}
+  /**
+   * @return <code>true</code> iff a new {@link Record} was created
+   */
+  @PUT
+  @Path("{cert_pk}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Boolean updateCert(@PathParam("cert_pk") final Integer cert_pk, final Map<String, String> cert) {
+    return Transactions.with(this.ctx, transactionCtx -> {
+      final boolean exists = this.ctx.fetchExists(CERTIFICATES, CERTIFICATES.CERT_PK.eq(cert_pk));
+      if (exists) {
+        transactionCtx.update(CERTIFICATES)
+            .set(CERTIFICATES.CERT_NAME, cert.get(CERTIFICATES.CERT_NAME.getName()))
+            .set(CERTIFICATES.CERT_SHORT, cert.get(CERTIFICATES.CERT_SHORT.getName()))
+            .set(CERTIFICATES.CERT_TARGET, Integer.valueOf(cert.get(CERTIFICATES.CERT_TARGET.getName())))
+            .set(CERTIFICATES.CERT_PERMANENTONLY, Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())))
+            .where(CERTIFICATES.CERT_PK.eq(cert_pk)).execute();
+      } else {
+        transactionCtx.insertInto(
+                                  CERTIFICATES,
+                                  CERTIFICATES.CERT_PK,
+                                  CERTIFICATES.CERT_NAME,
+                                  CERTIFICATES.CERT_SHORT,
+                                  CERTIFICATES.CERT_TARGET,
+                                  CERTIFICATES.CERT_PERMANENTONLY,
+                                  CERTIFICATES.CERT_ORDER)
+            .values(
+                    cert_pk,
+                    cert.get(CERTIFICATES.CERT_NAME.getName()),
+                    cert.get(CERTIFICATES.CERT_SHORT.getName()),
+                    Integer.valueOf(cert.get(CERTIFICATES.CERT_TARGET.getName())),
+                    Boolean.valueOf(cert.get(CERTIFICATES.CERT_PERMANENTONLY.getName())),
+                    transactionCtx
+                        .select(DSL.coalesce(DSL.max(CERTIFICATES.CERT_ORDER), Integer.valueOf(0)).add(Integer.valueOf(1)).as("order"))
+                        .from(CERTIFICATES)
+                        .fetchOne("order", Integer.class))
+            .execute();
+      }
 
-			return Boolean.valueOf(!exists);
-		});
-	}
+      return Boolean.valueOf(!exists);
+    });
+  }
 
-	@POST
-	@Path("trainingtypes")
-	@Consumes(MediaType.APPLICATION_JSON)
-	public Integer createTrty(final Map<String, Object> trty) {
-		final Integer trty_pk = new Integer(this.ctx.nextval(Sequences.TRAININGTYPES_TRTY_PK_SEQ).intValue());
-		this.updateTrty(trty_pk, trty);
-		return trty_pk;
-	}
+  @POST
+  @Path("trainingtypes")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Integer createTrty(final Map<String, Object> trty) {
+    final Integer trty_pk = new Integer(this.ctx.nextval(Sequences.TRAININGTYPES_TRTY_PK_SEQ).intValue());
+    this.updateTrty(trty_pk, trty);
+    return trty_pk;
+  }
 
-	/**
-	 * @return <code>true</code> iff a new {@link Record} was created
-	 */
-	@PUT
-	@Path("trainingtypes/{trty_pk}")
-	@Consumes(MediaType.APPLICATION_JSON)
-	public Boolean updateTrty(@PathParam("trty_pk") final Integer trty_pk, final Map<String, Object> trty) {
-		return Transactions.with(this.ctx, transactionCtx -> {
-			final boolean exists = this.ctx.fetchExists(TRAININGTYPES, TRAININGTYPES.TRTY_PK.eq(trty_pk));
-			if (exists) {
-				transactionCtx.update(TRAININGTYPES)
-						.set(TRAININGTYPES.TRTY_NAME, String.valueOf(trty.get(TRAININGTYPES.TRTY_NAME.getName())))
-						.where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
-			} else {
-				transactionCtx.insertInto(
-											TRAININGTYPES,
-											TRAININGTYPES.TRTY_PK,
-											TRAININGTYPES.TRTY_NAME,
-											TRAININGTYPES.TRTY_ORDER)
-						.values(
-								trty_pk,
-								trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString(),
-								transactionCtx
-										.select(DSL.coalesce(DSL.max(TRAININGTYPES.TRTY_ORDER), Integer.valueOf(0)).add(Integer.valueOf(1)).as("order"))
-										.from(TRAININGTYPES)
-										.fetchOne("order", Integer.class))
-						.execute();
+  /**
+   * @return <code>true</code> iff a new {@link Record} was created
+   */
+  @PUT
+  @Path("trainingtypes/{trty_pk}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Boolean updateTrty(@PathParam("trty_pk") final Integer trty_pk, final Map<String, Object> trty) {
+    return Transactions.with(this.ctx, transactionCtx -> {
+      final boolean exists = this.ctx.fetchExists(TRAININGTYPES, TRAININGTYPES.TRTY_PK.eq(trty_pk));
+      if (exists) {
+        transactionCtx.update(TRAININGTYPES)
+            .set(TRAININGTYPES.TRTY_NAME, String.valueOf(trty.get(TRAININGTYPES.TRTY_NAME.getName())))
+            .where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
+      } else {
+        transactionCtx.insertInto(
+                                  TRAININGTYPES,
+                                  TRAININGTYPES.TRTY_PK,
+                                  TRAININGTYPES.TRTY_NAME,
+                                  TRAININGTYPES.TRTY_ORDER)
+            .values(
+                    trty_pk,
+                    trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString(),
+                    transactionCtx
+                        .select(DSL.coalesce(DSL.max(TRAININGTYPES.TRTY_ORDER), Integer.valueOf(0)).add(Integer.valueOf(1)).as("order"))
+                        .from(TRAININGTYPES)
+                        .fetchOne("order", Integer.class))
+            .execute();
 
-				transactionCtx
-						.insertInto(TRAINERPROFILES_TRAININGTYPES, TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK, TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK)
-						.values(Constants.DEFAULT_TRAINERPROFILE, trty_pk).execute();
-			}
+        transactionCtx
+            .insertInto(TRAINERPROFILES_TRAININGTYPES, TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK, TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK)
+            .values(Constants.DEFAULT_TRAINERPROFILE, trty_pk).execute();
+      }
 
-			transactionCtx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(trty_pk)).execute();
-			@SuppressWarnings("unchecked")
-			final Row2<Integer, Integer>[] certificates = ((Map<String, Integer>) trty.getOrDefault("certificates", Collections.EMPTY_MAP)).entrySet()
-					.stream().map((entry) -> DSL.row(Integer.valueOf(entry.getKey()), entry.getValue())).toArray(Row2[]::new);
+      transactionCtx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(trty_pk)).execute();
+      @SuppressWarnings("unchecked")
+      final Row2<Integer, Integer>[] certificates = ((Map<String, Integer>) trty.getOrDefault("certificates", Collections.EMPTY_MAP)).entrySet()
+          .stream().map((entry) -> DSL.row(Integer.valueOf(entry.getKey()), entry.getValue())).toArray(Row2[]::new);
 
-			if (certificates.length > 0) {
-				transactionCtx.insertInto(
-											TRAININGTYPES_CERTIFICATES,
-											TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK,
-											TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
-											TRAININGTYPES_CERTIFICATES.TTCE_DURATION)
-						.select(DSL.select(
-											DSL.val(trty_pk),
-											DSL.field("cert_pk", Integer.class),
-											DSL.field("duration", Integer.class))
-								.from(DSL.values(certificates).as("unused", "cert_pk", "duration")))
-						.execute();
-			}
+      if (certificates.length > 0) {
+        transactionCtx.insertInto(
+                                  TRAININGTYPES_CERTIFICATES,
+                                  TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK,
+                                  TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
+                                  TRAININGTYPES_CERTIFICATES.TTCE_DURATION)
+            .select(DSL.select(
+                               DSL.val(trty_pk),
+                               DSL.field("cert_pk", Integer.class),
+                               DSL.field("duration", Integer.class))
+                .from(DSL.values(certificates).as("unused", "cert_pk", "duration")))
+            .execute();
+      }
 
-			return Boolean.valueOf(!exists);
-		});
-	}
+      return Boolean.valueOf(!exists);
+    });
+  }
 
-	@POST
-	@SuppressWarnings({ "unchecked", "null" })
-	@Path("reorder")
-	public void reassignCertificates(final Map<Integer, Integer> reassignmentMap) {
-		if (null == reassignmentMap) {
-			return;
-		}
+  @POST
+  @SuppressWarnings({ "unchecked", "null" })
+  @Path("reorder")
+  public void reassignCertificates(final Map<Integer, Integer> reassignmentMap) {
+    if (null == reassignmentMap) {
+      return;
+    }
 
-		Transactions.with(this.ctx, transactionCtx -> {
-			transactionCtx.update(CERTIFICATES)
-					.set(CERTIFICATES.CERT_ORDER, DSL.field("new_order", Integer.class))
-					.from(DSL.values(reassignmentMap.entrySet().stream().map(entry -> DSL.row(entry.getKey(), entry.getValue())).toArray(Row2[]::new))
-							.as("unused", "pk", "new_order"))
-					.where(CERTIFICATES.CERT_PK.eq(DSL.field("pk", Integer.class)))
-					.execute();
-			transactionCtx.execute(ResourcesHelper.cleanupSequence(CERTIFICATES, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_ORDER));
-		});
-	}
+    Transactions.with(this.ctx, transactionCtx -> {
+      transactionCtx.update(CERTIFICATES)
+          .set(CERTIFICATES.CERT_ORDER, DSL.field("new_order", Integer.class))
+          .from(DSL.values(reassignmentMap.entrySet().stream().map(entry -> DSL.row(entry.getKey(), entry.getValue())).toArray(Row2[]::new))
+              .as("unused", "pk", "new_order"))
+          .where(CERTIFICATES.CERT_PK.eq(DSL.field("pk", Integer.class)))
+          .execute();
+      transactionCtx.execute(ResourcesHelper.cleanupSequence(CERTIFICATES, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_ORDER));
+    });
+  }
 
-	@POST
-	@SuppressWarnings({ "unchecked", "null" })
-	@Path("trainingtypes/reorder")
-	public void reassignTrainingTypes(final Map<Integer, Integer> reassignmentMap) {
-		if (null == reassignmentMap) {
-			return;
-		}
+  @POST
+  @SuppressWarnings({ "unchecked", "null" })
+  @Path("trainingtypes/reorder")
+  public void reassignTrainingTypes(final Map<Integer, Integer> reassignmentMap) {
+    if (null == reassignmentMap) {
+      return;
+    }
 
-		Transactions.with(this.ctx, transactionCtx -> {
-			transactionCtx.update(TRAININGTYPES)
-					.set(TRAININGTYPES.TRTY_ORDER, DSL.field("new_order", Integer.class))
-					.from(DSL.values(reassignmentMap.entrySet().stream().map(entry -> DSL.row(entry.getKey(), entry.getValue())).toArray(Row2[]::new))
-							.as("unused", "pk", "new_order"))
-					.where(TRAININGTYPES.TRTY_PK.eq(DSL.field("pk", Integer.class)))
-					.execute();
-			transactionCtx.execute(ResourcesHelper.cleanupSequence(TRAININGTYPES, TRAININGTYPES.TRTY_PK, TRAININGTYPES.TRTY_ORDER));
-		});
-	}
+    Transactions.with(this.ctx, transactionCtx -> {
+      transactionCtx.update(TRAININGTYPES)
+          .set(TRAININGTYPES.TRTY_ORDER, DSL.field("new_order", Integer.class))
+          .from(DSL.values(reassignmentMap.entrySet().stream().map(entry -> DSL.row(entry.getKey(), entry.getValue())).toArray(Row2[]::new))
+              .as("unused", "pk", "new_order"))
+          .where(TRAININGTYPES.TRTY_PK.eq(DSL.field("pk", Integer.class)))
+          .execute();
+      transactionCtx.execute(ResourcesHelper.cleanupSequence(TRAININGTYPES, TRAININGTYPES.TRTY_PK, TRAININGTYPES.TRTY_ORDER));
+    });
+  }
 
-	@DELETE
-	@Path("{cert_pk}")
-	public void deleteCert(@PathParam("cert_pk") final Integer cert_pk) {
-		Transactions.with(this.ctx, transactionCtx -> {
-			transactionCtx.delete(CERTIFICATES).where(CERTIFICATES.CERT_PK.eq(cert_pk)).execute();
-			transactionCtx.execute(ResourcesHelper.cleanupSequence(CERTIFICATES, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_ORDER));
-		});
-	}
+  @DELETE
+  @Path("{cert_pk}")
+  public void deleteCert(@PathParam("cert_pk") final Integer cert_pk) {
+    Transactions.with(this.ctx, transactionCtx -> {
+      transactionCtx.delete(CERTIFICATES).where(CERTIFICATES.CERT_PK.eq(cert_pk)).execute();
+      transactionCtx.execute(ResourcesHelper.cleanupSequence(CERTIFICATES, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_ORDER));
+    });
+  }
 
-	@DELETE
-	@Path("trainingtypes/{trty_pk}")
-	public void deleteTrty(@PathParam("trty_pk") final Integer trty_pk) {
-		Transactions.with(this.ctx, transactionCtx -> {
-			transactionCtx.delete(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
-			transactionCtx.execute(ResourcesHelper.cleanupSequence(TRAININGTYPES, TRAININGTYPES.TRTY_PK, TRAININGTYPES.TRTY_ORDER));
-		});
-	}
+  @DELETE
+  @Path("trainingtypes/{trty_pk}")
+  public void deleteTrty(@PathParam("trty_pk") final Integer trty_pk) {
+    Transactions.with(this.ctx, transactionCtx -> {
+      transactionCtx.delete(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
+      transactionCtx.execute(ResourcesHelper.cleanupSequence(TRAININGTYPES, TRAININGTYPES.TRTY_PK, TRAININGTYPES.TRTY_ORDER));
+    });
+  }
 }
