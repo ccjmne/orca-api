@@ -47,14 +47,16 @@ import com.google.common.base.MoreObjects;
  */
 public class RecordsCollator {
 
-  private static final String PARAMETER_NAME_PAGE_SIZE = "page-size";
+  private static final String PARAMETER_NAME_PAGE_SIZE   = "page-size";
   private static final String PARAMETER_NAME_PAGE_OFFSET = "page-offset";
-  private static final Pattern SORT_ENTRY = Pattern.compile("^sort\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?<direction>.*)$");
+
+  private static final Pattern SORT_ENTRY   = Pattern.compile("^sort\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?<direction>.*)$");
   private static final Pattern FILTER_ENTRY = Pattern
       .compile("^filter\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?:(?<comparator>lt|le|eq|ge|gt|ne):)?(?<value>.*)$");
 
-  private final List<? extends Sort> orderBy;
+  private final List<? extends Sort>   orderBy;
   private final List<? extends Filter> filterWhere;
+
   private final int limit;
   private final int offset;
 
@@ -274,9 +276,9 @@ public class RecordsCollator {
 
   private static class Filter {
 
-    private final String field;
-    private final String value;
-    private final String comparator;
+    private final String   field;
+    private final String   value;
+    private final String   comparator;
     private final String[] path;
 
     protected Filter(final String field, final String path, final String comparator, final String value) {
@@ -372,8 +374,9 @@ public class RecordsCollator {
 
   private static class Sort {
 
-    private final String field;
+    private final String   field;
     private final String[] path;
+
     private final Function<? super Field<?>, ? extends SortField<?>> asSortField;
 
     protected Sort(final String field, final String path, final String direction) {
@@ -435,13 +438,11 @@ public class RecordsCollator {
   private static class FieldCondition<T> {
 
     protected static final Collector<FieldCondition<?>, ?, Map<Field<?>, Condition>> JOIN_SAME_FIELDS_WITH_OR = Collectors
-        .groupingBy(FieldCondition::getField,
-                    Collector.<FieldCondition<?>, FieldCondition<?>, Condition> of(FieldCondition::new, FieldCondition::consume,
-                                                                                   FieldCondition::operator,
-                                                                                   FieldCondition::joinOr));
+        .groupingBy(FieldCondition::getField, Collector.<FieldCondition<?>, FieldCondition<?>, Condition> of(FieldCondition::new, FieldCondition::consume,
+                                                                                                             FieldCondition::operator, FieldCondition::joinOr));
 
     private final Optional<Field<T>> field;
-    private final List<Condition> conditions;
+    private final List<Condition>    conditions;
 
     /**
      * Instantiate a new {@code FieldCondition} as follows:

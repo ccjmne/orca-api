@@ -52,11 +52,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 @Path("resources")
 public class ResourcesEndpoint {
 
-  private final DSLContext ctx;
-  private final ResourcesSelection resourcesSelection;
+  private final DSLContext          ctx;
+  private final ResourcesSelection  resourcesSelection;
   private final StatisticsSelection statisticsSelection;
-  private final RecordsCollator collator;
-  private final QueryParameters parameters;
+  private final RecordsCollator     collator;
+  private final QueryParameters     parameters;
 
   // TODO: Should not have any use for this and should delegate restricted
   // data access mechanics to RestrictedResourcesHelper

@@ -29,13 +29,13 @@ public class Restrictions {
 
   private final DSLContext ctx;
 
-  private final boolean accessTrainings;
-  private final boolean accessAllSites;
-  private final boolean manageEmployeeNotes;
-  private final boolean manageSitesAndTags;
-  private final boolean manageCertificates;
-  private final boolean manageUsers;
-  private final boolean manageOwnAccount;
+  private final boolean       accessTrainings;
+  private final boolean       accessAllSites;
+  private final boolean       manageEmployeeNotes;
+  private final boolean       manageSitesAndTags;
+  private final boolean       manageCertificates;
+  private final boolean       manageUsers;
+  private final boolean       manageOwnAccount;
   private final List<Integer> accessibleSites;
   private final List<Integer> manageableTypes;
 

@@ -46,9 +46,9 @@ public class ClientEndpoint {
 
   public static final String ORCA_RESOURCES_BUCKET = "orca-resources";
 
-  private final DSLContext ctx;
+  private final DSLContext     ctx;
   private final AmazonS3Client client;
-  private final Restrictions restrictions;
+  private final Restrictions   restrictions;
 
   @Inject
   public ClientEndpoint(final DSLContext ctx, final AmazonS3Client client, final Restrictions restrictions) {

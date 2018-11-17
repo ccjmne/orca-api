@@ -24,10 +24,10 @@ public class DemoBareWorkingState {
 
   public static final String DEMO_PASSWORD = "pwd";
 
-  private static final String DEMO_CLIENT_ID = "demo";
-  private static final String DEMO_CLIENT_NAME = "Version de démonstration";
+  private static final String DEMO_CLIENT_ID     = "demo";
+  private static final String DEMO_CLIENT_NAME   = "Version de démonstration";
   private static final String DEMO_CLIENT_MAILTO = "infos@orca-solution.com";
-  private static final String DEMO_CLIENT_LOGO = "https://s3-eu-west-1.amazonaws.com/orca-resources/logo_complete.png";
+  private static final String DEMO_CLIENT_LOGO   = "https://s3-eu-west-1.amazonaws.com/orca-resources/logo_complete.png";
 
   private static final String DEMO_TRAINERPROFILE = "Tous types de formation";
 
@@ -92,7 +92,6 @@ public class DemoBareWorkingState {
         .values(Constants.USER_ROOT, Constants.ROLE_TRAINER, null, Constants.DEFAULT_TRAINERPROFILE)
         .values(Constants.USER_ROOT, Constants.ROLE_ADMIN, Integer.valueOf(4), null)
         .execute();
-
   }
 
   @SuppressWarnings("unchecked")

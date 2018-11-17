@@ -41,7 +41,7 @@ public class StatisticsEndpoint {
   // TODO: Should not have any use for these two and should delegate
   // restricted data access mechanics to RestrictedResourcesAccess
   private final ResourcesEndpoint resources;
-  private final Restrictions restrictions;
+  private final Restrictions      restrictions;
 
   @Inject
   public StatisticsEndpoint(

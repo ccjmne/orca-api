@@ -32,7 +32,7 @@ import org.jooq.impl.DSL;
 @Path("account")
 public class AccountEndpoint {
 
-  private final DSLContext ctx;
+  private final DSLContext   ctx;
   private final Restrictions restrictions;
 
   @Inject

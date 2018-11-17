@@ -436,7 +436,7 @@ public class ResourcesHelper {
   public static class RecordSlicer {
 
     private final Map<String, Object> record;
-    private final int idx;
+    private final int                 idx;
 
     protected RecordSlicer(final Record record, final int idx) {
       this(record.intoMap(), idx);

@@ -24,12 +24,12 @@ import com.github.jhonnymertz.wkhtmltopdf.wrapper.params.Param;
 public class ReportsEndpoint {
 
   private static final String DEFAULT_ORIENTATION = "portrait";
-  private static final String DEFAULT_SIZE = "a4";
+  private static final String DEFAULT_SIZE        = "a4";
 
   public static class ReportRequest {
 
-    private final String size;
-    private final String orientation;
+    private final String       size;
+    private final String       orientation;
     private final List<String> pages;
 
     public ReportRequest(

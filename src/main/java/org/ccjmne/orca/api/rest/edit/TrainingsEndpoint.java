@@ -29,7 +29,7 @@ import org.jooq.impl.DSL;
 @Path("trainings")
 public class TrainingsEndpoint {
 
-  private final DSLContext ctx;
+  private final DSLContext   ctx;
   private final Restrictions restrictions;
 
   @Inject

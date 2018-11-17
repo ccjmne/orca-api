@@ -18,7 +18,7 @@ import org.quartz.SchedulerException;
 @Singleton
 public class DemoEndpoint {
 
-  private static final String SECRET = System.getProperty("init.secret");
+  private static final String     SECRET    = System.getProperty("init.secret");
   private static final DateFormat WITH_TIME = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
 
   private final DemoDataManager manager;

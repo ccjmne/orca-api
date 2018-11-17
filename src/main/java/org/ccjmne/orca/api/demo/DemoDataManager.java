@@ -33,15 +33,16 @@ public class DemoDataManager {
 
   // Defaults to every SUNDAY at 3:00 AM
   private static final String SCHEDULE_CRON_EXPRESSION = System.getProperty("demo-cronwipe", "0 0 3 ? * *");
+
   private static final TriggerKey TRIGGER_KEY = new TriggerKey("trigger");
-  private static final JobKey JOB_KEY = new JobKey("reset");
+  private static final JobKey     JOB_KEY     = new JobKey("reset");
 
   // TODO: replace the entire scheduling thing w/ an *actual* cron job
   private final Scheduler scheduler;
 
-  private final DSLContext ctx;
+  private final DSLContext     ctx;
   private final AmazonS3Client client;
-  private final ObjectMapper mapper;
+  private final ObjectMapper   mapper;
 
   @Inject
   public DemoDataManager(final DSLContext ctx, final AmazonS3Client client, final ObjectMapper mapper) throws SchedulerException {

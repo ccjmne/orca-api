@@ -36,9 +36,11 @@ import org.jooq.impl.DSL;
 @Path("users-admin")
 public class UsersEndpoint {
 
-  private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-  private static final int PASSWORD_LENGTH = 8;
+  // TODO: Inject all Randoms
   private static final Random RANDOM = new Random();
+
+  private static final String ALPHANUMERIC    = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+  private static final int    PASSWORD_LENGTH = 8;
 
   private final DSLContext ctx;
 

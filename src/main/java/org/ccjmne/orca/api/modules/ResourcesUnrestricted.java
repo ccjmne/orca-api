@@ -34,7 +34,7 @@ public class ResourcesUnrestricted {
   public static final Field<Integer[]> TRAININGTYPE_CERTIFICATES = ResourcesHelper
       .arrayAggDistinctOmitNull(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK).as("certificates");
 
-  private final DSLContext ctx;
+  private final DSLContext         ctx;
   private final ResourcesSelection resources;
 
   @Inject

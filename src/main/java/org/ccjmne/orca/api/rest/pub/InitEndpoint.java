@@ -20,7 +20,7 @@ public class InitEndpoint {
 
   private static final String SECRET = System.getProperty("init.secret");
 
-  private final DSLContext ctx;
+  private final DSLContext     ctx;
   private final AmazonS3Client client;
 
   @Inject

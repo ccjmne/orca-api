@@ -37,7 +37,7 @@ public class PatchNotesEndpoint {
 
     // DTOs members are public final
     public final String version;
-    public final long timestamp;
+    public final long   timestamp;
     public final String contents;
 
     private boolean unread;
@@ -64,10 +64,10 @@ public class PatchNotesEndpoint {
   }
 
   private static final String PATCH_NOTES_SERVICE_HOST = System.getProperty("patch_notes_service", "wfhqpe4fok.execute-api.eu-west-1.amazonaws.com");
-  private static final String PATCH_NOTES_SERVICE_URL = String.format("https://%s/Prod?previous=true", PATCH_NOTES_SERVICE_HOST);
+  private static final String PATCH_NOTES_SERVICE_URL  = String.format("https://%s/Prod?previous=true", PATCH_NOTES_SERVICE_HOST);
 
-  private final DSLContext ctx;
-  private final HttpClient client;
+  private final DSLContext   ctx;
+  private final HttpClient   client;
   private final ObjectMapper objectMapper;
 
   @Inject

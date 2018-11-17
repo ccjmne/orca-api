@@ -18,8 +18,9 @@ public class TrainingsStatistics {
 
   public static class TrainingsStatisticsBuilder {
 
-    private final Map<Integer, Set<Integer>> certificatesByTrainingType;
+    private final Map<Integer, Set<Integer>>                   certificatesByTrainingType;
     private final Map<Integer, TrainingsCertificateStatistics> certificates;
+
     private Range<Date> dateRange;
 
     protected TrainingsStatisticsBuilder(final Map<Integer, Set<Integer>> certificatesByTrainingType, final Range<Date> dateRange) {
@@ -63,7 +64,7 @@ public class TrainingsStatistics {
     }
 
     public TrainingsStatistics build() {
-      return new TrainingsStatistics(getBeginning(), getEnd(), this.certificates);
+      return new TrainingsStatistics(this.getBeginning(), this.getEnd(), this.certificates);
     }
 
     public Date getBeginning() {
@@ -93,6 +94,7 @@ public class TrainingsStatistics {
 
   private final Date beginning;
   private final Date end;
+
   private final Map<Integer, TrainingsCertificateStatistics> certificates;
 
   public TrainingsStatistics(final Date beginning, final Date end, final Map<Integer, TrainingsCertificateStatistics> certificates) {
@@ -124,7 +126,7 @@ public class TrainingsStatistics {
       public int employeesExpired;
     }
 
-    public final TrainingsStatisticsData statistics;
+    public final TrainingsStatisticsData               statistics;
     public final Map<Integer, TrainingsStatisticsData> trainingTypesStatistics;
 
     public TrainingsCertificateStatistics() {

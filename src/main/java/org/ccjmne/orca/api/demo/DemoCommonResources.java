@@ -22,19 +22,19 @@ import com.google.common.collect.ImmutableMap;
 
 public class DemoCommonResources {
 
-  private static final Integer CERT_SST = Integer.valueOf(1);
-  private static final Integer CERT_EPI = Integer.valueOf(2);
-  private static final Integer CERT_DAE = Integer.valueOf(3);
+  private static final Integer CERT_SST  = Integer.valueOf(1);
+  private static final Integer CERT_EPI  = Integer.valueOf(2);
+  private static final Integer CERT_DAE  = Integer.valueOf(3);
   private static final Integer CERT_H0B0 = Integer.valueOf(4);
   private static final Integer CERT_EVAC = Integer.valueOf(5);
   private static final Integer CERT_FSST = Integer.valueOf(6);
 
-  public static final Integer TRTY_SSTI = Integer.valueOf(1);
-  public static final Integer TRTY_SSTR = Integer.valueOf(2);
-  public static final Integer TRTY_EPI = Integer.valueOf(3);
-  public static final Integer TRTY_DAE = Integer.valueOf(4);
-  public static final Integer TRTY_H0B0 = Integer.valueOf(5);
-  public static final Integer TRTY_EVAC = Integer.valueOf(6);
+  public static final Integer TRTY_SSTI  = Integer.valueOf(1);
+  public static final Integer TRTY_SSTR  = Integer.valueOf(2);
+  public static final Integer TRTY_EPI   = Integer.valueOf(3);
+  public static final Integer TRTY_DAE   = Integer.valueOf(4);
+  public static final Integer TRTY_H0B0  = Integer.valueOf(5);
+  public static final Integer TRTY_EVAC  = Integer.valueOf(6);
   public static final Integer TRTY_FSSTI = Integer.valueOf(7);
   public static final Integer TRTY_FSSTR = Integer.valueOf(8);
 

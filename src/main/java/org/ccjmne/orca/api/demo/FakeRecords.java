@@ -36,8 +36,8 @@ public class FakeRecords {
   private static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
 
   private static Map<String, List<String>> FIRST_NAMES;
-  private static List<String> LAST_NAMES;
-  private static List<String> CITIES;
+  private static List<String>              LAST_NAMES;
+  private static List<String>              CITIES;
 
   static {
     try {

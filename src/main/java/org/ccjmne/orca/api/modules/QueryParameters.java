@@ -34,15 +34,15 @@ public class QueryParameters {
   private static final Param<JsonNode> TAGS_VALUE_UNIVERSAL = DSL.val(JsonNodeFactory.instance.textNode(Constants.TAGS_VALUE_UNIVERSAL),
                                                                       ResourcesHelper.JSON_TYPE);
 
-  public static final Type<Integer> EMPLOYEE = new Type<>("employee", Integer.class);
-  public static final Type<Integer> SITE = new Type<>("site", Integer.class);
-  public static final Type<Integer> SESSION = new Type<>("session", Integer.class);
-  public static final Type<Boolean> INCLUDE_DECOMISSIONED = new Type<>("include-decommissioned", Boolean.class);
-  public static final Type<Date> DATE = new Type<>("date", Date.class);
-  public static final CustomType<Field<JsonNode>> GROUP_BY_FIELD = new CustomType<>("group-by", value -> value
+  public static final Type<Integer>               EMPLOYEE              = new Type<>("employee", Integer.class);
+  public static final Type<Integer>               SITE                  = new Type<>("site", Integer.class);
+  public static final Type<Integer>               SESSION               = new Type<>("session", Integer.class);
+  public static final Type<Boolean>               INCLUDE_DECOMISSIONED = new Type<>("include-decommissioned", Boolean.class);
+  public static final Type<Date>                  DATE                  = new Type<>("date", Date.class);
+  public static final CustomType<Field<JsonNode>> GROUP_BY_FIELD        = new CustomType<>("group-by", value -> value
       .isEmpty() ? TAGS_VALUE_UNIVERSAL : DSL.field("site_tags -> {0}", ResourcesHelper.JSON_TYPE, value), TAGS_VALUE_UNIVERSAL);
 
-  private final Map<Type<?>, Param<?>> types;
+  private final Map<Type<?>, Param<?>>     types;
   private final Map<CustomType<?>, Object> customTypes;
 
   /**
@@ -126,6 +126,7 @@ public class QueryParameters {
     private static final Map<String, CustomType<?>> TYPES = new HashMap<>();
 
     protected final T orElse;
+
     private final Function<? super String, ? extends T> coercer;
 
     protected CustomType(final String name, final Function<? super String, ? extends T> coercer) {

@@ -17,7 +17,9 @@ import org.jooq.impl.DSL;
 
 public class DemoDataUsers {
 
+  // TODO: Inject all Randoms
   private static final Random RANDOM = new Random();
+
   private static final Field<String> GENERATED_PASSWORD = DSL.md5(DemoBareWorkingState.DEMO_PASSWORD);
 
   public static void generate(final DSLContext ctx) {

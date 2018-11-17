@@ -28,7 +28,7 @@ import org.jooq.impl.DSL;
 public class ResourcesSelection {
 
   private final QueryParameters parameters;
-  private final Restrictions restrictions;
+  private final Restrictions    restrictions;
   private final RecordsCollator recordsCollator;
 
   @Inject

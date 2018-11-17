@@ -7,6 +7,7 @@ import java.text.SimpleDateFormat;
 public class APIDateFormat {
 
   public static final String FORMAT = "yyyy-MM-dd";
+
   private static final ThreadLocal<DateFormat> DELEGATE = new ThreadLocal<DateFormat>() {
 
     @Override

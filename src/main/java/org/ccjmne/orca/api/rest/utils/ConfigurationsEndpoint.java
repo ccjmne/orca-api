@@ -33,7 +33,7 @@ public class ConfigurationsEndpoint {
 
   private static final List<String> AVAILABLE_TYPES = Arrays.asList("import-employees", "import-sites", "pdf-site");
 
-  private final DSLContext ctx;
+  private final DSLContext   ctx;
   private final ObjectMapper mapper;
 
   @Inject

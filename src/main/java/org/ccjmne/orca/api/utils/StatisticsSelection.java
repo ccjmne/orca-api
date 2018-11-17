@@ -186,13 +186,14 @@ public class StatisticsSelection {
     }
   }
 
+  // TODO: Move all that to ResourcesEndpoint
   public static final Field<Integer> TRAINING_REGISTERED = DSL.count(TRAININGS_EMPLOYEES.TREM_PK).as("registered");
-  public static final Field<Integer> TRAINING_VALIDATED = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
+  public static final Field<Integer> TRAINING_VALIDATED  = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
       .filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_VALIDATED)).as("validated");
-  public static final Field<Integer> TRAINING_FLUNKED = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
+  public static final Field<Integer> TRAINING_FLUNKED    = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
       .filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_FLUNKED)).as("flunked");
-  public static final Field<Integer> TRAINING_MISSING = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
+  public static final Field<Integer> TRAINING_MISSING    = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
       .filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_MISSING)).as("missing");
-  public static final Field<String> TRAINING_TRAINERS = DSL.select(DSL.arrayAgg(TRAININGS_TRAINERS.TRTR_EMPL_FK)).from(TRAININGS_TRAINERS)
+  public static final Field<String>  TRAINING_TRAINERS   = DSL.select(DSL.arrayAgg(TRAININGS_TRAINERS.TRTR_EMPL_FK)).from(TRAININGS_TRAINERS)
       .where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK)).asField("trainers");
 }
