@@ -18,31 +18,31 @@ import com.amazonaws.services.s3.AmazonS3Client;
 @Singleton
 public class InitEndpoint {
 
-	private static final String SECRET = System.getProperty("init.secret");
+  private static final String SECRET = System.getProperty("init.secret");
 
-	private final DSLContext ctx;
-	private final AmazonS3Client client;
+  private final DSLContext     ctx;
+  private final AmazonS3Client client;
 
-	@Inject
-	public InitEndpoint(final DSLContext ctx, final AmazonS3Client client) {
-		this.ctx = ctx;
-		this.client = client;
-	}
+  @Inject
+  public InitEndpoint(final DSLContext ctx, final AmazonS3Client client) {
+    this.ctx = ctx;
+    this.client = client;
+  }
 
-	@POST
-	public void init(final String secret) {
-		if ((SECRET == null) || SECRET.isEmpty() || !SECRET.equals(secret)) {
-			throw new IllegalStateException("The instance is not set up for (re)initilisation or your password is invalid.");
-		}
+  @POST
+  public void init(final String secret) {
+    if ((SECRET == null) || SECRET.isEmpty() || !SECRET.equals(secret)) {
+      throw new IllegalStateException("The instance is not set up for (re)initilisation or your password is invalid.");
+    }
 
-		if (null == this.ctx.selectFrom(USERS).where(USERS.USER_ID.eq(Constants.USER_ROOT)).fetchOne()) {
-			throw new IllegalStateException("The database has already been initialised.");
-		}
+    if (null == this.ctx.selectFrom(USERS).where(USERS.USER_ID.eq(Constants.USER_ROOT)).fetchOne()) {
+      throw new IllegalStateException("The database has already been initialised.");
+    }
 
-		this.ctx.transaction(config -> {
-			try (final DSLContext transactionCtx = DSL.using(config)) {
-				DemoBareWorkingState.restore(transactionCtx, this.client);
-			}
-		});
-	}
+    this.ctx.transaction(config -> {
+      try (final DSLContext transactionCtx = DSL.using(config)) {
+        DemoBareWorkingState.restore(transactionCtx, this.client);
+      }
+    });
+  }
 }

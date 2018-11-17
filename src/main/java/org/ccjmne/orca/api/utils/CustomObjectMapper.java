@@ -20,57 +20,57 @@ import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 @SuppressWarnings("serial")
 public class CustomObjectMapper extends ObjectMapper {
 
-	public CustomObjectMapper() {
-		super.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		super.setDateFormat(APIDateFormat.getDateFormat());
-		super.registerModule(new AllKindsOfDatesSerialiserModule());
-		super.registerModule(new JOOQResultsSerialiserModule());
-		super.registerModule(new AfterburnerModule());
-	}
+  public CustomObjectMapper() {
+    super.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    super.setDateFormat(APIDateFormat.getDateFormat());
+    super.registerModule(new AllKindsOfDatesSerialiserModule());
+    super.registerModule(new JOOQResultsSerialiserModule());
+    super.registerModule(new AfterburnerModule());
+  }
 
-	private class AllKindsOfDatesSerialiserModule extends SimpleModule {
+  private class AllKindsOfDatesSerialiserModule extends SimpleModule {
 
-		public AllKindsOfDatesSerialiserModule() {
-			super(
-					"AllKindsOfDatesSerialiserModule",
-					new Version(1, 0, 0, null, null, null),
-					Arrays.asList(new StdSerializer<java.sql.Date>(java.sql.Date.class, false) {
+    public AllKindsOfDatesSerialiserModule() {
+      super(
+            "AllKindsOfDatesSerialiserModule",
+            new Version(1, 0, 0, null, null, null),
+            Arrays.asList(new StdSerializer<java.sql.Date>(java.sql.Date.class, false) {
 
-						@Override
-						public void serialize(final java.sql.Date value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException {
-							provider.findValueSerializer(java.util.Date.class).serialize(new java.util.Date(value.getTime()), jgen, provider);
-						}
-					}, new StdSerializer<LocalDate>(LocalDate.class, false) {
+              @Override
+              public void serialize(final java.sql.Date value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException {
+                provider.findValueSerializer(java.util.Date.class).serialize(new java.util.Date(value.getTime()), jgen, provider);
+              }
+            }, new StdSerializer<LocalDate>(LocalDate.class, false) {
 
-						@Override
-						public void serialize(final LocalDate value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException {
-							provider.findValueSerializer(java.sql.Date.class).serialize(java.sql.Date.valueOf(value), jgen, provider);
-						}
-					}));
-		}
-	}
+              @Override
+              public void serialize(final LocalDate value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException {
+                provider.findValueSerializer(java.sql.Date.class).serialize(java.sql.Date.valueOf(value), jgen, provider);
+              }
+            }));
+    }
+  }
 
-	private class JOOQResultsSerialiserModule extends SimpleModule {
+  private class JOOQResultsSerialiserModule extends SimpleModule {
 
-		public JOOQResultsSerialiserModule() {
-			super(
-					"JOOQResultsSerialiserModule",
-					new Version(1, 0, 0, null, null, null),
-					Arrays.asList(new StdSerializer<Result<? extends Record>>(Result.class, false) {
+    public JOOQResultsSerialiserModule() {
+      super(
+            "JOOQResultsSerialiserModule",
+            new Version(1, 0, 0, null, null, null),
+            Arrays.asList(new StdSerializer<Result<? extends Record>>(Result.class, false) {
 
-						@Override
-						public void serialize(final Result<? extends Record> value, final JsonGenerator jgen, final SerializerProvider provider)
-								throws IOException, JsonGenerationException {
-							jgen.writeObject(value.intoMaps());
-						}
-					}, new StdSerializer<Record>(Record.class, false) {
+              @Override
+              public void serialize(final Result<? extends Record> value, final JsonGenerator jgen, final SerializerProvider provider)
+                  throws IOException, JsonGenerationException {
+                jgen.writeObject(value.intoMaps());
+              }
+            }, new StdSerializer<Record>(Record.class, false) {
 
-						@Override
-						public void serialize(final Record value, final JsonGenerator jgen, final SerializerProvider provider)
-								throws IOException, JsonGenerationException {
-							jgen.writeObject(value.intoMap());
-						}
-					}));
-		}
-	}
+              @Override
+              public void serialize(final Record value, final JsonGenerator jgen, final SerializerProvider provider)
+                  throws IOException, JsonGenerationException {
+                jgen.writeObject(value.intoMap());
+              }
+            }));
+    }
+  }
 }

@@ -14,8 +14,8 @@ import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 @Produces(MediaType.APPLICATION_JSON)
 public class ConfiguredJacksonJaxbJsonProvider extends JacksonJaxbJsonProvider {
 
-	@Inject
-	public ConfiguredJacksonJaxbJsonProvider(final ObjectMapper mapper) {
-		super(mapper, null);
-	}
+  @Inject
+  public ConfiguredJacksonJaxbJsonProvider(final ObjectMapper mapper) {
+    super(mapper, null);
+  }
 }

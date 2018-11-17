@@ -14,11 +14,11 @@ import org.slf4j.LoggerFactory;
 @Produces(MediaType.APPLICATION_JSON)
 public class NumberFormatExceptionMapper implements ExceptionMapper<NumberFormatException> {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(NumberFormatExceptionMapper.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NumberFormatExceptionMapper.class);
 
-	@Override
-	public Response toResponse(final NumberFormatException e) {
-		LOGGER.warn("Could not process request.", e);
-		return Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();
-	}
+  @Override
+  public Response toResponse(final NumberFormatException e) {
+    LOGGER.warn("Could not process request.", e);
+    return Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();
+  }
 }

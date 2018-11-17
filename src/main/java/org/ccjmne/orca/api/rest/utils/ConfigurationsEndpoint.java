@@ -31,87 +31,87 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Path("configs")
 public class ConfigurationsEndpoint {
 
-	private static final List<String> AVAILABLE_TYPES = Arrays.asList("import-employees", "import-sites", "pdf-site");
+  private static final List<String> AVAILABLE_TYPES = Arrays.asList("import-employees", "import-sites", "pdf-site");
 
-	private final DSLContext ctx;
-	private final ObjectMapper mapper;
+  private final DSLContext   ctx;
+  private final ObjectMapper mapper;
 
-	@Inject
-	public ConfigurationsEndpoint(final DSLContext ctx, final ObjectMapper mapper) {
-		this.ctx = ctx;
-		this.mapper = mapper;
-	}
+  @Inject
+  public ConfigurationsEndpoint(final DSLContext ctx, final ObjectMapper mapper) {
+    this.ctx = ctx;
+    this.mapper = mapper;
+  }
 
-	@GET
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result<ConfigsRecord> listConfigs(@QueryParam("type") final String type) {
-		if ((type != null) && !AVAILABLE_TYPES.contains(type)) {
-			throw new IllegalArgumentException(String.format("Configuration can only be one of: %s", AVAILABLE_TYPES));
-		}
+  @GET
+  @Produces(MediaType.APPLICATION_JSON)
+  public Result<ConfigsRecord> listConfigs(@QueryParam("type") final String type) {
+    if ((type != null) && !AVAILABLE_TYPES.contains(type)) {
+      throw new IllegalArgumentException(String.format("Configuration can only be one of: %s", AVAILABLE_TYPES));
+    }
 
-		try (final SelectQuery<ConfigsRecord> query = DSL.selectFrom(CONFIGS).getQuery()) {
-			query.addSelect(CONFIGS.CONF_PK, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME);
-			if (type != null) {
-				query.addConditions(CONFIGS.CONF_TYPE.eq(type));
-			}
+    try (final SelectQuery<ConfigsRecord> query = DSL.selectFrom(CONFIGS).getQuery()) {
+      query.addSelect(CONFIGS.CONF_PK, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME);
+      if (type != null) {
+        query.addConditions(CONFIGS.CONF_TYPE.eq(type));
+      }
 
-			return this.ctx.fetch(query);
-		}
-	}
+      return this.ctx.fetch(query);
+    }
+  }
 
-	@GET
-	@Path("{conf_pk}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public ConfigsRecord lookupConfig(@PathParam("conf_pk") final Integer key) {
-		return this.ctx.selectFrom(CONFIGS).where(CONFIGS.CONF_PK.eq(key)).fetchOne();
-	}
+  @GET
+  @Path("{conf_pk}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public ConfigsRecord lookupConfig(@PathParam("conf_pk") final Integer key) {
+    return this.ctx.selectFrom(CONFIGS).where(CONFIGS.CONF_PK.eq(key)).fetchOne();
+  }
 
-	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	public Integer createConfig(@QueryParam("type") final String type, @QueryParam("name") final String name, final String requestBody) {
-		final Integer key = new Integer(this.ctx.nextval(Sequences.CONFIGS_CONF_PK_SEQ).intValue());
-		this.updateConfig(key, type, name, requestBody);
-		return key;
-	}
+  @POST
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Integer createConfig(@QueryParam("type") final String type, @QueryParam("name") final String name, final String requestBody) {
+    final Integer key = new Integer(this.ctx.nextval(Sequences.CONFIGS_CONF_PK_SEQ).intValue());
+    this.updateConfig(key, type, name, requestBody);
+    return key;
+  }
 
-	@PUT
-	@Path("{conf_pk}")
-	@Consumes(MediaType.APPLICATION_JSON)
-	public Boolean updateConfig(
-								@PathParam("conf_pk") final Integer key,
-								@QueryParam("type") final String type,
-								@QueryParam("name") final String name,
-								final String requestBody) {
-		if ((type == null) || (name == null) || name.trim().isEmpty() || !AVAILABLE_TYPES.contains(type)) {
-			throw new IllegalArgumentException(String.format("Configuration type and name must be provided, and type be one of: %s", AVAILABLE_TYPES));
-		}
+  @PUT
+  @Path("{conf_pk}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Boolean updateConfig(
+                              @PathParam("conf_pk") final Integer key,
+                              @QueryParam("type") final String type,
+                              @QueryParam("name") final String name,
+                              final String requestBody) {
+    if ((type == null) || (name == null) || name.trim().isEmpty() || !AVAILABLE_TYPES.contains(type)) {
+      throw new IllegalArgumentException(String.format("Configuration type and name must be provided, and type be one of: %s", AVAILABLE_TYPES));
+    }
 
-		return this.ctx.transactionResult((config) -> {
-			try (final DSLContext transactionCtx = DSL.using(config)) {
-				final String trimmed = name.trim();
+    return this.ctx.transactionResult((config) -> {
+      try (final DSLContext transactionCtx = DSL.using(config)) {
+        final String trimmed = name.trim();
 
-				@SuppressWarnings("null")
-				final String minified = this.mapper.readValue(requestBody, JsonNode.class).toString();
-				if (transactionCtx.fetchExists(	CONFIGS,
-												CONFIGS.CONF_TYPE.eq(type).and(CONFIGS.CONF_NAME.equalIgnoreCase(trimmed)).and(CONFIGS.CONF_PK.ne(key)))) {
-					throw new IllegalArgumentException(String.format("A configuration item named '%s' already exists for the type '%s'.", trimmed, type));
-				}
+        @SuppressWarnings("null")
+        final String minified = this.mapper.readValue(requestBody, JsonNode.class).toString();
+        if (transactionCtx.fetchExists(CONFIGS,
+                                       CONFIGS.CONF_TYPE.eq(type).and(CONFIGS.CONF_NAME.equalIgnoreCase(trimmed)).and(CONFIGS.CONF_PK.ne(key)))) {
+          throw new IllegalArgumentException(String.format("A configuration item named '%s' already exists for the type '%s'.", trimmed, type));
+        }
 
-				final boolean exists = 1 == transactionCtx.deleteFrom(CONFIGS).where(CONFIGS.CONF_PK.eq(key)).execute();
-				transactionCtx.insertInto(CONFIGS, CONFIGS.CONF_PK, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME, CONFIGS.CONF_DATA)
-						.values(key, type, trimmed, minified)
-						.execute();
+        final boolean exists = 1 == transactionCtx.deleteFrom(CONFIGS).where(CONFIGS.CONF_PK.eq(key)).execute();
+        transactionCtx.insertInto(CONFIGS, CONFIGS.CONF_PK, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME, CONFIGS.CONF_DATA)
+            .values(key, type, trimmed, minified)
+            .execute();
 
-				return Boolean.valueOf(exists);
-			} catch (final IOException e) {
-				throw new IllegalArgumentException("Configuration must be a valid JSON object.");
-			}
-		});
-	}
+        return Boolean.valueOf(exists);
+      } catch (final IOException e) {
+        throw new IllegalArgumentException("Configuration must be a valid JSON object.");
+      }
+    });
+  }
 
-	@DELETE
-	@Path("{conf_pk}")
-	public boolean deleteConfig(@PathParam("conf_pk") final Integer key) {
-		return 1 == this.ctx.deleteFrom(CONFIGS).where(CONFIGS.CONF_PK.eq(key)).execute();
-	}
+  @DELETE
+  @Path("{conf_pk}")
+  public boolean deleteConfig(@PathParam("conf_pk") final Integer key) {
+    return 1 == this.ctx.deleteFrom(CONFIGS).where(CONFIGS.CONF_PK.eq(key)).execute();
+  }
 }

@@ -6,31 +6,32 @@ import java.text.SimpleDateFormat;
 
 public class APIDateFormat {
 
-	public static final String FORMAT = "yyyy-MM-dd";
-	private static final ThreadLocal<DateFormat> DELEGATE = new ThreadLocal<DateFormat>() {
+  public static final String FORMAT = "yyyy-MM-dd";
 
-		@Override
-		@SuppressWarnings("serial")
-		protected DateFormat initialValue() {
-			return new SimpleDateFormat(APIDateFormat.FORMAT) {
+  private static final ThreadLocal<DateFormat> DELEGATE = new ThreadLocal<DateFormat>() {
 
-				@Override
-				public StringBuffer format(final java.util.Date date, final StringBuffer toAppendTo, final java.text.FieldPosition pos) {
-					if (date.equals(Constants.DATE_INFINITY)) {
-						return toAppendTo.insert(pos.getBeginIndex(), Constants.DATE_INFINITY_LITERAL);
-					}
+    @Override
+    @SuppressWarnings("serial")
+    protected DateFormat initialValue() {
+      return new SimpleDateFormat(APIDateFormat.FORMAT) {
 
-					return super.format(date, toAppendTo, pos);
-				}
-			};
-		}
-	};
+        @Override
+        public StringBuffer format(final java.util.Date date, final StringBuffer toAppendTo, final java.text.FieldPosition pos) {
+          if (date.equals(Constants.DATE_INFINITY)) {
+            return toAppendTo.insert(pos.getBeginIndex(), Constants.DATE_INFINITY_LITERAL);
+          }
 
-	public static java.sql.Date parseAsSql(final String source) throws ParseException {
-		return new java.sql.Date(APIDateFormat.DELEGATE.get().parse(source).getTime());
-	}
+          return super.format(date, toAppendTo, pos);
+        }
+      };
+    }
+  };
 
-	public static DateFormat getDateFormat() {
-		return APIDateFormat.DELEGATE.get();
-	}
+  public static java.sql.Date parseAsSql(final String source) throws ParseException {
+    return new java.sql.Date(APIDateFormat.DELEGATE.get().parse(source).getTime());
+  }
+
+  public static DateFormat getDateFormat() {
+    return APIDateFormat.DELEGATE.get();
+  }
 }

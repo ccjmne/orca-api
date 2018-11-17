@@ -19,28 +19,28 @@ import org.jooq.Result;
 @Path("resources-common")
 public class ResourcesCommonEndpoint {
 
-	private final ResourcesUnrestricted delegate;
+  private final ResourcesUnrestricted delegate;
 
-	@Inject
-	public ResourcesCommonEndpoint(final ResourcesUnrestricted delegate) {
-		this.delegate = delegate;
-	}
+  @Inject
+  public ResourcesCommonEndpoint(final ResourcesUnrestricted delegate) {
+    this.delegate = delegate;
+  }
 
-	@GET
-	@Path("trainingtypes")
-	public List<Map<String, Object>> listTrainingTypes() {
-		return this.delegate.listTrainingTypes();
-	}
+  @GET
+  @Path("trainingtypes")
+  public List<Map<String, Object>> listTrainingTypes() {
+    return this.delegate.listTrainingTypes();
+  }
 
-	@GET
-	@Path("certificates")
-	public Result<CertificatesRecord> listCertificates() {
-		return this.delegate.listCertificates();
-	}
+  @GET
+  @Path("certificates")
+  public Result<CertificatesRecord> listCertificates() {
+    return this.delegate.listCertificates();
+  }
 
-	@GET
-	@Path("tags")
-	public List<Map<String, Object>> listTags() {
-		return this.delegate.listTags();
-	}
+  @GET
+  @Path("tags")
+  public List<Map<String, Object>> listTags() {
+    return this.delegate.listTags();
+  }
 }
