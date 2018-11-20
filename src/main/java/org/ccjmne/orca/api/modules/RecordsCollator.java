@@ -1,5 +1,6 @@
 package org.ccjmne.orca.api.modules;
 
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -332,15 +333,31 @@ public class RecordsCollator {
           return Optional.empty();
         }
 
+        // If String, perform non-accented, case-insensitive partial match search
+        if (String.class.equals(found.get().getType())) {
+          return Optional.of(FieldCondition.on(ResourcesHelper.unaccent(DSL.field(self.field, String.class)),
+                                               f -> f.containsIgnoreCase(ResourcesHelper.unaccent(DSL.val(self.value)))));
+        }
+
+        // If Number-like, parse it first
+        if (Number.class.isAssignableFrom(found.get().getType())) {
+          return Optional.of(FieldCondition.on(DSL.field(self.field, Double.class),
+                                               f -> Filter.compare(f, self.comparator, DSL.val(self.value, Double.class))));
+        }
+
+        // It Date, parse first
+        if (Date.class.equals(found.get().getType())) {
+          return Optional.of(FieldCondition.on(DSL.field(self.field, Date.class), f -> Filter.compare(f, self.comparator, DSL.val(self.value, Date.class))));
+        }
+
+        // If Boolean, interpret things like:
+        // 1, 0, yes, no, Y, N, true, false, on, off, enabled, and: disabled
         if (Boolean.class.equals(found.get().getType())) {
           return Optional.of(FieldCondition.on(DSL.field(self.field, Boolean.class), f -> f.eq(Convert.convert(self.value, Boolean.class))));
         }
 
-        if (Number.class.isAssignableFrom(found.get().getType())) {
-          return Optional
-              .of(FieldCondition.on(DSL.field(self.field, Double.class), f -> Filter.compare(f, self.comparator, DSL.field(self.value, Double.class))));
-        }
-
+        // If JsonNode, handle eq:null and ne:null
+        // TODO: maybe also handle these for any field type
         if (JsonNode.class.equals(found.get().getType())) {
           return Optional.of(FieldCondition
               .on(DSL.field("{0} #>> {1}", Object.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path)),
@@ -348,8 +365,8 @@ public class RecordsCollator {
                                                                  : f -> Filter.compare(f, self.comparator, DSL.val(self.value, Object.class))));
         }
 
-        return Optional.of(FieldCondition.on(ResourcesHelper.unaccent(DSL.field(self.field, String.class)),
-                                             f -> f.containsIgnoreCase(ResourcesHelper.unaccent(DSL.val(self.value)))));
+        // Default: regular comparison
+        return Optional.of(FieldCondition.on(DSL.field(self.field), f -> Filter.compare(f, self.comparator, DSL.field(self.value))));
       };
     }
 
