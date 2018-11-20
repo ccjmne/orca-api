@@ -6,31 +6,22 @@ import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
 
-import java.sql.Date;
-import java.text.ParseException;
-import java.util.List;
-
 import javax.inject.Inject;
-import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
 
 import org.ccjmne.orca.api.modules.QueryParameters;
 import org.ccjmne.orca.api.modules.RecordsCollator;
 import org.ccjmne.orca.api.modules.Restrictions;
-import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.ResourcesSelection;
 import org.ccjmne.orca.api.utils.StatisticsSelection;
-import org.ccjmne.orca.jooq.classes.tables.records.TrainingsEmployeesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -230,96 +221,43 @@ public class ResourcesEndpoint {
   }
 
   /*
-   * TODO: Rewrite the entire TRAINING SESSION API below
+   * SESSIONS listing methods
+   * ------------------------------------------------------------------------
+   * GET /sessions
+   * GET /sessions/{session}
+   * GET /employees/{employee}/sessions
    */
 
   @GET
-  @Path("trainings")
-  // TODO: rewrite
-  public Result<Record> listTrainings(
-                                      @QueryParam("employee") final Integer empl_pk,
-                                      @QueryParam("type") final List<Integer> types,
-                                      @QueryParam("date") final String dateStr,
-                                      @QueryParam("from") final String fromStr,
-                                      @QueryParam("to") final String toStr,
-                                      @QueryParam("completed") final Boolean completedOnly)
-      throws ParseException {
-    if (!this.restrictions.canAccessTrainings()) {
-      throw new ForbiddenException();
-    }
+  @Path("sessions")
+  public Result<Record> listSessions() {
+    final Table<Record> sessions = this.resourcesSelection.selectSessions().asTable();
+    final Table<? extends Record> stats = StatisticsSelection.selectSessionsStats().asTable();
 
-    final Date date = dateStr == null ? null : APIDateFormat.parseAsSql(dateStr);
-    final Date from = fromStr == null ? null : APIDateFormat.parseAsSql(fromStr);
-    final Date to = toStr == null ? null : APIDateFormat.parseAsSql(toStr);
+    return this.ctx.fetch(this.collator.applyAll(DSL.select(sessions.fields())
+        .select(ResourcesHelper.jsonbObjectAggNullSafe(stats.field("outcome"), stats.field("count")).as("stats"))
+        .select(DSL.sum(stats.field("count", Integer.class)).as("trainees_count"))
+        .from(sessions)
+        .leftOuterJoin(stats)
+        .on(stats.field(TRAININGS_EMPLOYEES.TREM_TRNG_FK).eq(sessions.field(TRAININGS.TRNG_PK)))
+        .groupBy(sessions.fields())));
+  }
 
-    try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
-      query.addSelect(TRAININGS.fields());
-      query.addFrom(TRAININGS);
-      query.addGroupBy(TRAININGS.fields());
-      query.addJoin(TRAININGS_EMPLOYEES, JoinType.LEFT_OUTER_JOIN, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK));
-
-      query.addSelect(StatisticsSelection.TRAINING_REGISTERED);
-      query.addSelect(StatisticsSelection.TRAINING_VALIDATED);
-      query.addSelect(StatisticsSelection.TRAINING_FLUNKED);
-      query.addSelect(StatisticsSelection.TRAINING_MISSING);
-      query.addSelect(StatisticsSelection.TRAINING_TRAINERS);
-
-      if (empl_pk != null) {
-        final Table<TrainingsEmployeesRecord> employeeOutcomes = DSL.selectFrom(TRAININGS_EMPLOYEES).where(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(empl_pk))
-            .asTable();
-        query.addJoin(employeeOutcomes, employeeOutcomes.field(TRAININGS_EMPLOYEES.TREM_TRNG_FK).eq(TRAININGS_EMPLOYEES.TREM_TRNG_FK));
-        query.addSelect(employeeOutcomes.fields());
-        query.addGroupBy(employeeOutcomes.fields());
-      }
-
-      if (!types.isEmpty()) {
-        query.addJoin(TRAININGTYPES, TRAININGS.TRNG_TRTY_FK.eq(TRAININGTYPES.TRTY_PK).and(TRAININGTYPES.TRTY_PK.in(types)));
-      }
-
-      if (date != null) {
-        query.addConditions(TRAININGS.TRNG_START.isNotNull()
-            .and(TRAININGS.TRNG_START.le(date).and(TRAININGS.TRNG_DATE.ge(date)))
-            .or(TRAININGS.TRNG_DATE.eq(date)));
-      }
-
-      if (from != null) {
-        query.addConditions(TRAININGS.TRNG_DATE.ge(from).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.ge(from))));
-      }
-
-      if (to != null) {
-        query.addConditions(TRAININGS.TRNG_DATE.le(to).or(TRAININGS.TRNG_START.isNotNull().and(TRAININGS.TRNG_START.le(to))));
-      }
-
-      if ((completedOnly != null) && completedOnly.booleanValue()) {
-        query.addConditions(TRAININGS.TRNG_OUTCOME.eq(Constants.TRNG_OUTCOME_COMPLETED));
-      }
-
-      query.addOrderBy(TRAININGS.TRNG_DATE);
-      return this.ctx.fetch(this.collator.applyAll(query));
+  @GET
+  @Path("sessions/{session}")
+  public Record lookupSession() {
+    try {
+      return this.listSessions().get(0);
+    } catch (final IndexOutOfBoundsException e) {
+      // TODO: Maybe handle with an ExceptionMapper
+      throw new NotFoundException();
     }
   }
 
   @GET
-  @Path("trainings/{trng_pk}")
-  // TODO: rewrite
-  public Record lookupTraining(@PathParam("trng_pk") final Integer trng_pk) {
-    if (!this.restrictions.canAccessTrainings()) {
-      throw new ForbiddenException();
-    }
-
-    try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
-      query.addSelect(TRAININGS.fields());
-      query.addFrom(TRAININGS);
-      query.addJoin(TRAININGS_EMPLOYEES, JoinType.LEFT_OUTER_JOIN, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK));
-      query.addSelect(StatisticsSelection.TRAINING_REGISTERED);
-      query.addSelect(StatisticsSelection.TRAINING_VALIDATED);
-      query.addSelect(StatisticsSelection.TRAINING_FLUNKED);
-      query.addSelect(StatisticsSelection.TRAINING_MISSING);
-      query.addSelect(StatisticsSelection.TRAINING_TRAINERS);
-      query.addConditions(TRAININGS.TRNG_PK.eq(trng_pk));
-      query.addGroupBy(TRAININGS.fields());
-      return query.fetchOne();
-    }
+  @Path("employees/{employee}/sessions")
+  public Result<Record> lookupEmployeeSessions() {
+    return this.listSessions();
   }
 
   @GET
