@@ -9,8 +9,9 @@ import javax.ws.rs.Path;
 
 import org.ccjmne.orca.api.demo.DemoBareWorkingState;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Transactions;
+import org.ccjmne.orca.api.utils.Transactions.TransactionConsumer;
 import org.jooq.DSLContext;
-import org.jooq.impl.DSL;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 
@@ -39,10 +40,6 @@ public class InitEndpoint {
       throw new IllegalStateException("The database has already been initialised.");
     }
 
-    this.ctx.transaction(config -> {
-      try (final DSLContext transactionCtx = DSL.using(config)) {
-        DemoBareWorkingState.restore(transactionCtx, this.client);
-      }
-    });
+    Transactions.with(this.ctx, (TransactionConsumer<DSLContext>) transactionCtx -> DemoBareWorkingState.restore(transactionCtx, this.client));
   }
 }

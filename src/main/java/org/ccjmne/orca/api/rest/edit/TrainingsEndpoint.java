@@ -21,10 +21,11 @@ import javax.ws.rs.PathParam;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Transactions;
+import org.ccjmne.orca.api.utils.Transactions.TransactionFunction;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingsRecord;
 import org.jooq.DSLContext;
-import org.jooq.impl.DSL;
 
 @Path("trainings")
 public class TrainingsEndpoint {
@@ -40,21 +41,17 @@ public class TrainingsEndpoint {
 
   @POST
   public Integer addTraining(final Map<String, Object> training) {
-    return this.ctx.transactionResult(config -> {
-      try (final DSLContext transactionContext = DSL.using(config)) {
-        return this.insertTraining(new Integer(transactionContext.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transactionContext);
-      }
+    return Transactions.with(this.ctx, transaction -> {
+      return this.insertTraining(new Integer(transaction.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transaction);
     });
   }
 
   @POST
   @Path("/bulk")
   public void addTrainings(final List<Map<String, Object>> trainings) {
-    this.ctx.transaction(config -> {
-      try (final DSLContext transactionContext = DSL.using(config)) {
-        for (final Map<String, Object> training : trainings) {
-          this.insertTraining(new Integer(transactionContext.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transactionContext);
-        }
+    Transactions.with(this.ctx, transaction -> {
+      for (final Map<String, Object> training : trainings) {
+        this.insertTraining(new Integer(transaction.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transaction);
       }
     });
   }
@@ -62,23 +59,17 @@ public class TrainingsEndpoint {
   @PUT
   @Path("{trng_pk}")
   public Boolean updateTraining(@PathParam("trng_pk") final Integer trng_pk, final Map<String, Object> training) {
-    return this.ctx.transactionResult(config -> {
-      try (final DSLContext transactionCtx = DSL.using(config)) {
-        final Boolean exists = this.deleteTrainingImpl(trng_pk, transactionCtx);
-        this.insertTraining(trng_pk, training, transactionCtx);
-        return exists;
-      }
+    return Transactions.with(this.ctx, transaction -> {
+      final Boolean exists = this.deleteTrainingImpl(trng_pk, transaction);
+      this.insertTraining(trng_pk, training, transaction);
+      return exists;
     });
   }
 
   @DELETE
   @Path("{trng_pk}")
   public Boolean deleteTraining(@PathParam("trng_pk") final Integer trng_pk) {
-    return this.ctx.transactionResult(config -> {
-      try (final DSLContext transactionCtx = DSL.using(config)) {
-        return this.deleteTrainingImpl(trng_pk, transactionCtx);
-      }
-    });
+    return Transactions.with(this.ctx, (TransactionFunction<DSLContext, Boolean>) transaction -> this.deleteTrainingImpl(trng_pk, transaction));
   }
 
   private Boolean deleteTrainingImpl(final Integer trng_pk, final DSLContext transactionCtx) {

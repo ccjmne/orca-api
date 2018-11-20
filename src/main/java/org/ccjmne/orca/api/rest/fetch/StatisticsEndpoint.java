@@ -26,6 +26,7 @@ import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics;
 import org.ccjmne.orca.api.rest.resources.TrainingsStatistics.TrainingsStatisticsBuilder;
 import org.ccjmne.orca.api.utils.APIDateFormat;
+import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.Record;
 
 import com.google.common.collect.ImmutableList;
@@ -68,7 +69,7 @@ public class StatisticsEndpoint {
       throw new ForbiddenException();
     }
 
-    final List<Record> trainings = this.resources.listTrainings(null, Collections.EMPTY_LIST, null, null, null, Boolean.TRUE);
+    final List<Record> trainings = this.resources.listSessions();
 
     final Map<Integer, Set<Integer>> certs = Maps.transformValues(this.commonResources.listTrainingTypes(),
                                                                   trty -> ((Map<Integer, Object>) trty.get("certificates")).keySet());
@@ -108,6 +109,10 @@ public class StatisticsEndpoint {
     final Iterator<TrainingsStatisticsBuilder> iterator = trainingsStatsBuilders.iterator();
     TrainingsStatisticsBuilder next = iterator.next();
     for (final Record training : trainings) {
+      if (!training.get(TRAININGS.TRNG_OUTCOME).equals(Constants.TRNG_OUTCOME_COMPLETED)) {
+        continue;
+      }
+
       final Date relevantDate = dateMapper.apply(training);
       if (relevantDate.before(next.getBeginning())) {
         continue;

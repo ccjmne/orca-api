@@ -18,6 +18,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.ccjmne.orca.jooq.classes.tables.records.ConfigsRecord;
 import org.jooq.DSLContext;
@@ -86,14 +87,11 @@ public class ConfigurationsEndpoint {
       throw new IllegalArgumentException(String.format("Configuration type and name must be provided, and type be one of: %s", AVAILABLE_TYPES));
     }
 
-    return this.ctx.transactionResult((config) -> {
-      try (final DSLContext transactionCtx = DSL.using(config)) {
+    return Transactions.with(this.ctx, transactionCtx -> {
+      try {
         final String trimmed = name.trim();
-
-        @SuppressWarnings("null")
         final String minified = this.mapper.readValue(requestBody, JsonNode.class).toString();
-        if (transactionCtx.fetchExists(CONFIGS,
-                                       CONFIGS.CONF_TYPE.eq(type).and(CONFIGS.CONF_NAME.equalIgnoreCase(trimmed)).and(CONFIGS.CONF_PK.ne(key)))) {
+        if (transactionCtx.fetchExists(CONFIGS, CONFIGS.CONF_TYPE.eq(type).and(CONFIGS.CONF_NAME.equalIgnoreCase(trimmed)).and(CONFIGS.CONF_PK.ne(key)))) {
           throw new IllegalArgumentException(String.format("A configuration item named '%s' already exists for the type '%s'.", trimmed, type));
         }
 
