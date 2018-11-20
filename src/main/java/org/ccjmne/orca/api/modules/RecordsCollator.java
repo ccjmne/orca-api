@@ -333,41 +333,41 @@ public class RecordsCollator {
         }
 
         if (Boolean.class.equals(found.get().getType())) {
-          return Optional.of(FieldCondition.on(DSL.field(self.field, Boolean.class)).apply(f -> f.eq(Convert.convert(self.value, Boolean.class))));
+          return Optional.of(FieldCondition.on(DSL.field(self.field, Boolean.class), f -> f.eq(Convert.convert(self.value, Boolean.class))));
         }
 
         if (Number.class.isAssignableFrom(found.get().getType())) {
-          return Optional.of(FieldCondition.on(DSL.field(self.field, Double.class))
-              .apply(f -> Filter.comparisonCondition(f, self.comparator).apply(DSL.field(self.value, Double.class))));
+          return Optional
+              .of(FieldCondition.on(DSL.field(self.field, Double.class), f -> Filter.compare(f, self.comparator, DSL.field(self.value, Double.class))));
         }
 
         if (JsonNode.class.equals(found.get().getType())) {
-          return Optional.of(FieldCondition.on(DSL.field("{0} #>> {1}", Object.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path)))
-              .apply(Constants.FILTER_VALUE_NULL.equals(self.value) ? f -> self.comparator.equals("eq") ? f.isNull() : f.isNotNull()
-                                                                    : f -> Filter.comparisonCondition(f, self.comparator)
-                                                                        .apply(DSL.val(self.value, Object.class))));
+          return Optional.of(FieldCondition
+              .on(DSL.field("{0} #>> {1}", Object.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path)),
+                  Constants.FILTER_VALUE_NULL.equals(self.value) ? f -> self.comparator.equals("eq") ? f.isNull() : f.isNotNull()
+                                                                 : f -> Filter.compare(f, self.comparator, DSL.val(self.value, Object.class))));
         }
 
-        return Optional.of(FieldCondition.on(ResourcesHelper.unaccent(DSL.field(self.field, String.class)))
-            .apply(f -> f.containsIgnoreCase(ResourcesHelper.unaccent(DSL.val(self.value)))));
+        return Optional.of(FieldCondition.on(ResourcesHelper.unaccent(DSL.field(self.field, String.class)),
+                                             f -> f.containsIgnoreCase(ResourcesHelper.unaccent(DSL.val(self.value)))));
       };
     }
 
-    private static <T> Function<? super Field<T>, ? extends Condition> comparisonCondition(final Field<T> field, final String comparator) {
+    private static <T> Condition compare(final Field<T> field, final String comparator, final Field<T> value) {
       switch (comparator) {
         case "ne":
-          return field::ne;
+          return field.ne(value);
         case "lt":
-          return field::lt;
+          return field.lt(value);
         case "le":
-          return field::le;
+          return field.le(value);
         case "ge":
-          return field::ge;
+          return field.ge(value);
         case "gt":
-          return field::gt;
+          return field.gt(value);
         case "eq":
         default:
-          return field::eq;
+          return field.eq(value);
       }
     }
   }
@@ -438,24 +438,23 @@ public class RecordsCollator {
   private static class FieldCondition<T> {
 
     protected static final Collector<FieldCondition<?>, ?, Map<Field<?>, Condition>> JOIN_SAME_FIELDS_WITH_OR = Collectors
-        .groupingBy(FieldCondition::getField, Collector.<FieldCondition<?>, FieldCondition<?>, Condition> of(FieldCondition::new, FieldCondition::consume,
-                                                                                                             FieldCondition::operator, FieldCondition::joinOr));
+        .groupingBy(FieldCondition::getField, Collector.<FieldCondition<?>, FieldCondition<?>, Condition> of(FieldCondition::new, FieldCondition::accept,
+                                                                                                             FieldCondition::combine, FieldCondition::joinOr));
 
     private final Optional<Field<T>> field;
     private final List<Condition>    conditions;
 
     /**
-     * Instantiate a new {@code FieldCondition} as follows:
+     * Instantiate a new {@code FieldCondition}. For example:
      *
      * <pre>
      * final {@code Field<Integer>} field = DSL.field("my_int", Integer.class);
      * final {@code FieldCondition<Integer>} fieldCondition = FieldCondition
-     *     .on(field)
-     *     .apply(f -> f.isNotNull());
+     *     .on(field, f -> f.isNotNull());
      * </pre>
      */
-    protected static <T> Function<Function<? super Field<T>, ? extends Condition>, FieldCondition<T>> on(@NonNull final Field<T> field) {
-      return func -> new FieldCondition<>(field, func.apply(field));
+    protected static <T> FieldCondition<T> on(@NonNull final Field<T> field, final Function<? super Field<T>, ? extends Condition> getCondition) {
+      return new FieldCondition<>(field, getCondition.apply(field));
     }
 
     private FieldCondition(final Field<T> field, final Condition condition) {
@@ -480,7 +479,7 @@ public class RecordsCollator {
      *          The other {@code FieldCondition} to combine with {@code this}
      * @return {@code this} {@code FieldCondition}, mutated appropriately.
      */
-    private FieldCondition<?> operator(final FieldCondition<?> other) {
+    private FieldCondition<?> combine(final FieldCondition<?> other) {
       this.conditions.addAll(other.conditions);
       return this;
     }
@@ -494,7 +493,7 @@ public class RecordsCollator {
      * @param other
      *          The other {@code FieldCondition} to combine with {@code acc}
      */
-    private static void consume(final FieldCondition<?> acc, final FieldCondition<?> other) {
+    private static void accept(final FieldCondition<?> acc, final FieldCondition<?> other) {
       acc.conditions.addAll(other.conditions);
     }
 

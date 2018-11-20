@@ -116,8 +116,13 @@ public class ResourcesHelper {
    *         {@link ResourcesHelper#rowToJson(Field...)}
    */
   public static Field<JsonNode> jsonbObjectAggNullSafe(final Field<?> key, final Field<?>... fields) {
-    return DSL.field("COALESCE(jsonb_object_agg({0}, ({1})) FILTER (WHERE {0} IS NOT NULL), '{}')::jsonb", JSON_TYPE, key,
-                     ResourcesHelper.rowToJson(fields));
+    return DSL.coalesce(DSL.field("jsonb_object_agg({0}, ({1})) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, key, ResourcesHelper.rowToJson(fields)),
+                        JsonNodeFactory.instance.objectNode());
+  }
+
+  // TODO: Document
+  public static Field<JsonNode> jsonbObjectAggNullSafe(final Field<?> key, final Field<?> value) {
+    return DSL.coalesce(DSL.field("jsonb_object_agg({0}, {1}) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, key, value), JsonNodeFactory.instance.objectNode());
   }
 
   /**
@@ -142,11 +147,6 @@ public class ResourcesHelper {
    */
   public static Field<JsonNode> jsonbObjectAgg(final Field<?> key, final Field<?>... fields) {
     return DSL.field("jsonb_object_agg({0}, ({1}))::jsonb", JSON_TYPE, key, ResourcesHelper.rowToJson(fields));
-  }
-
-  // TODO: Document
-  public static Field<JsonNode> jsonbObjectAggNullSafe(final Field<?> key, final Field<?> value) {
-    return DSL.coalesce(DSL.field("jsonb_object_agg({0}, {1})", JSON_TYPE, key, value), JsonNodeFactory.instance.objectNode());
   }
 
   /**
