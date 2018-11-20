@@ -20,6 +20,8 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Field;
 import org.jooq.Param;
 import org.jooq.Record;
+import org.jooq.Record1;
+import org.jooq.Row1;
 import org.jooq.SelectFinalStep;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
@@ -28,6 +30,11 @@ import org.jooq.types.DayToSecond;
 import org.jooq.types.YearToMonth;
 
 public class StatisticsSelection {
+
+  @SuppressWarnings("unchecked")
+  private static final Table<Record1<String>> OUTCOMES_TABLE = DSL
+      .values(Constants.EMPLOYEES_OUTCOMES.stream().map(DSL::row).toArray(Row1[]::new))
+      .asTable("employees_outcomes", "outcome");
 
   private static final Integer DURATION_INFINITE = Integer.valueOf(0);
 
@@ -46,10 +53,6 @@ public class StatisticsSelection {
         .otherwise(Constants.STATUS_DANGER);
   }
 
-  private static Field<Date> fieldOptedOut() {
-    return DSL.field(EMPLOYEES_VOIDINGS.EMVO_DATE);
-  }
-
   private final Optional<Param<Date>> date;
 
   @Inject
@@ -64,7 +67,7 @@ public class StatisticsSelection {
                 TRAININGS_EMPLOYEES.TREM_EMPL_FK,
                 TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
                 ResourcesHelper.formatDate(StatisticsSelection.EXPIRY).as("expiry"),
-                StatisticsSelection.fieldOptedOut().as("void_since"),
+                DSL.field(EMPLOYEES_VOIDINGS.EMVO_DATE).as("void_since"),
                 StatisticsSelection.fieldValidity(this.date).as("status"))
         .from(TRAININGTYPES_CERTIFICATES)
         .join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK))
@@ -184,6 +187,15 @@ public class StatisticsSelection {
       q.addGroupBy(sitesStats.field(CERTIFICATES.CERT_PK));
       return q;
     }
+  }
+
+  public static SelectQuery<? extends Record> selectSessionsStats() {
+    final Field<@NonNull String> outcome = OUTCOMES_TABLE.field("outcome", String.class);
+    return DSL
+        .select(TRAININGS_EMPLOYEES.TREM_TRNG_FK, outcome, DSL.count().as("count"))
+        .from(OUTCOMES_TABLE)
+        .leftOuterJoin(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(outcome))
+        .groupBy(TRAININGS_EMPLOYEES.TREM_TRNG_FK, outcome).getQuery();
   }
 
   // TODO: Move all that to ResourcesEndpoint

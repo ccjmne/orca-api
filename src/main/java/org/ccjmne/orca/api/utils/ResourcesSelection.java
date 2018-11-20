@@ -5,7 +5,9 @@ import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
 
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
@@ -123,6 +125,33 @@ public class ResourcesSelection {
           .leftOuterJoin(SITES_TAGS).on(SITES_TAGS.SITA_SITE_FK.eq(query.field(SITES.SITE_PK)))
           .join(TAGS).on(TAGS.TAGS_PK.eq(SITES_TAGS.SITA_TAGS_FK)) // In order to extract TAGS_TYPE for TAG_VALUE_COERCED
           .groupBy(query.fields()));
+    }
+  }
+
+  public SelectQuery<Record> selectSessions() {
+    if (!this.restrictions.canAccessTrainings()) {
+      throw new ForbiddenException();
+    }
+
+    try (final SelectQuery<Record> query = DSL.select().getQuery()) {
+      query.addSelect(TRAININGS.fields());
+      query.addSelect(ResourcesHelper.arrayAggDistinctOmitNull(TRAININGS_TRAINERS.TRTR_EMPL_FK).as("trainers"));
+      query.addFrom(TRAININGS);
+      query.addJoin(TRAININGS_TRAINERS, JoinType.LEFT_OUTER_JOIN, TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK));
+
+      if (this.parameters.has(QueryParameters.SESSION)) {
+        query.addConditions(TRAININGS.TRNG_PK.eq(this.parameters.get(QueryParameters.SESSION)));
+      }
+
+      if (this.parameters.has(QueryParameters.EMPLOYEE)) {
+        query.addSelect(TRAININGS_EMPLOYEES.fields());
+        query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK)
+            .and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(this.parameters.get(QueryParameters.EMPLOYEE))));
+        query.addGroupBy(TRAININGS_EMPLOYEES.fields());
+      }
+
+      query.addGroupBy(TRAININGS.fields());
+      return this.recordsCollator.applyFAndS(query);
     }
   }
 }

@@ -61,14 +61,15 @@ public class Constants {
   public static final String       TRNG_OUTCOME_CANCELLED = "CANCELLED";
   public static final String       TRNG_OUTCOME_COMPLETED = "COMPLETED";
   public static final String       TRNG_OUTCOME_SCHEDULED = "SCHEDULED";
-  public static final List<String> TRAINING_OUTCOMES      = Arrays.asList(Constants.TRNG_OUTCOME_CANCELLED, Constants.TRNG_OUTCOME_COMPLETED,
-                                                                          Constants.TRNG_OUTCOME_SCHEDULED);
+  public static final List<String> TRAINING_OUTCOMES      = Arrays.asList(TRNG_OUTCOME_CANCELLED, TRNG_OUTCOME_COMPLETED, TRNG_OUTCOME_SCHEDULED);
 
-  public static final String EMPL_OUTCOME_CANCELLED = "CANCELLED";
-  public static final String EMPL_OUTCOME_FLUNKED   = "FLUNKED";
-  public static final String EMPL_OUTCOME_MISSING   = "MISSING";
-  public static final String EMPL_OUTCOME_PENDING   = "PENDING";
-  public static final String EMPL_OUTCOME_VALIDATED = "VALIDATED";
+  public static final String       EMPL_OUTCOME_CANCELLED = "CANCELLED";
+  public static final String       EMPL_OUTCOME_FLUNKED   = "FLUNKED";
+  public static final String       EMPL_OUTCOME_MISSING   = "MISSING";
+  public static final String       EMPL_OUTCOME_PENDING   = "PENDING";
+  public static final String       EMPL_OUTCOME_VALIDATED = "VALIDATED";
+  public static final List<String> EMPLOYEES_OUTCOMES     = Arrays.asList(EMPL_OUTCOME_CANCELLED, EMPL_OUTCOME_FLUNKED, EMPL_OUTCOME_MISSING,
+                                                                          EMPL_OUTCOME_PENDING, EMPL_OUTCOME_VALIDATED);
 
   public static final String TAGS_TYPE_STRING  = "s";
   public static final String TAGS_TYPE_BOOLEAN = "b";
