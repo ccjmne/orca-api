@@ -31,8 +31,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
  */
 public class QueryParameters {
 
-  private static final Param<JsonNode> TAGS_VALUE_UNIVERSAL = DSL.val(JsonNodeFactory.instance.textNode(Constants.TAGS_VALUE_UNIVERSAL),
-                                                                      ResourcesHelper.JSON_TYPE);
+  private static final Field<JsonNode> TAGS_VALUE_UNIVERSAL = DSL.field("{0}::jsonb", ResourcesHelper.JSON_TYPE,
+                                                                        JsonNodeFactory.instance.textNode(Constants.TAGS_VALUE_UNIVERSAL).toString());
 
   public static final Type<Integer>               EMPLOYEE              = new Type<>("employee", Integer.class);
   public static final Type<Integer>               SITE                  = new Type<>("site", Integer.class);
