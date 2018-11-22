@@ -121,6 +121,11 @@ public class ResourcesHelper {
   }
 
   // TODO: Document
+  public static Field<JsonNode> jsonbArrayAgg(final Field<?>... fields) {
+    return DSL.coalesce(DSL.field("jsonb_agg({0})", JSON_TYPE, ResourcesHelper.rowToJson(fields)), JsonNodeFactory.instance.arrayNode());
+  }
+
+  // TODO: Document
   public static Field<JsonNode> jsonbObjectAggNullSafe(final Field<?> key, final Field<?> value) {
     return DSL.coalesce(DSL.field("jsonb_object_agg({0}, {1}) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, key, value), JsonNodeFactory.instance.objectNode());
   }
