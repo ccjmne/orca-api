@@ -32,6 +32,7 @@ import org.jooq.Select;
 import org.jooq.SelectFinalStep;
 import org.jooq.SelectQuery;
 import org.jooq.SortField;
+import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.tools.Convert;
 
@@ -132,6 +133,17 @@ public class RecordsCollator {
   }
 
   /**
+   * Transforms the query into a <em>paginated response</em>, of the following
+   * form:
+   *
+   * <pre>
+   *        +-----------+-------------+------------+---------------+
+   *        | page_size | page_offset | page_count | page_contents |
+   * +------+-----------+-------------+------------+---------------+
+   * | Type | Integer   | Integer     | Integer    | JSON Array    |
+   * +------+-----------+-------------+------------+---------------+
+   * </pre>
+   *
    * Should <strong>only ever be applied onto the outermost query</strong>
    * that actually gets returned to the client.<br />
    * Should <strong>never be used on a sub-query </strong>used internally to
@@ -141,22 +153,36 @@ public class RecordsCollator {
    *          The {@link SelectQuery} to which pagination should be applied
    * @return The original query, for method chaining purposes
    */
-  public <T extends Record> SelectQuery<T> applyPagination(final SelectQuery<T> query) {
+  public <T extends Record> SelectQuery<?> applyPagination(final SelectQuery<T> query) {
+    final Table<T> data = query.asTable("data");
     if (this.limit > 0) {
-      query.addLimit(this.offset, this.limit);
+      return DSL
+          .select(
+                  DSL.val(Integer.valueOf(this.limit)).as("page_size"),
+                  DSL.val(Integer.valueOf(this.offset / this.limit)).as("page_offset"),
+                  DSL.select(DSL.ceil(DSL.count().div(Float.valueOf(this.limit))).as("page_count")).from(data).asField("page_count"),
+                  DSL.select(ResourcesHelper.jsonbArrayAgg(Constants.unqualify(data.fields()))).from(DSL.select().from(data).limit(this.offset, this.limit))
+                      .asField("page_contents"))
+          .getQuery();
     }
 
-    return query;
+    return DSL.select(
+                      DSL.val(Integer.valueOf(0)).as("page_size"),
+                      DSL.val(Integer.valueOf(0)).as("page_offset"),
+                      DSL.val(Integer.valueOf(0)).as("page_count"),
+                      DSL.select(ResourcesHelper.jsonbArrayAgg(data.fields())).from(data).asField("page_contents"))
+        .getQuery();
   }
 
   /**
    * Overload of {@link #applyPagination(SelectQuery)}.
    *
    * @param select
-   *          The {@link Select} whose underlying query to collate
+   *          The {@link Select} whose underlying query to which pagination should
+   *          be applied
    * @return The underlying query, for method chaining purposes
    */
-  public <T extends Record> SelectQuery<T> applyPagination(final SelectFinalStep<T> select) {
+  public <T extends Record> SelectQuery<?> applyPagination(final SelectFinalStep<T> select) {
     return this.applyPagination(select.getQuery());
   }
 
@@ -206,29 +232,30 @@ public class RecordsCollator {
   }
 
   /**
+   * Transforms the query into a <em>filtered</em>, <em>sorted</em> and
+   * <em>paginated response</em>, of the following form:
+   *
+   * <pre>
+   *        +-----------+-------------+------------+---------------+
+   *        | page_size | page_offset | page_count | page_contents |
+   * +------+-----------+-------------+------------+---------------+
+   * | Type | Integer   | Integer     | Integer    | JSON Array    |
+   * +------+-----------+-------------+------------+---------------+
+   * </pre>
+   *
    * Should <strong>only ever be applied onto the outermost query</strong>
    * that actually gets returned to the client.<br />
    * Should <strong>never be used on a sub-query </strong>used internally to
    * refine the results (see {@link #applyPagination(SelectQuery)}). <br />
    * <br />
-   * Creates a <strong>new</strong> query (doing so is necessary, see
-   * {@link #applyFAndS(SelectQuery)}), like:
-   *
-   * <pre>
-   * SELECT * FROM (
-   *     [{@code query}]
-   * ) AS aliased
-   * WHERE aliased.[filters...]
-   * ORDER BY aliased.[sort...]
-   * LIMIT [page-size] OFFSET [page-offset]
-   * </pre>
    *
    * @param query
    *          The {@link SelectQuery} to which filtering, sorting and
    *          pagination should be applied
    * @return A new, filtered, sorted and paginated {@code SelectQuery}
    */
-  public <T extends Record> SelectQuery<T> applyAll(final SelectQuery<T> query) {
+  @Deprecated
+  public SelectQuery<? extends Record> applyAll(final SelectQuery<? extends Record> query) {
     return this.applyPagination(this.applyFAndS(query));
   }
 
@@ -239,7 +266,8 @@ public class RecordsCollator {
    *          The {@link Select} whose underlying query to collate
    * @return A new, filtered, sorted and paginated {@code SelectQuery}
    */
-  public <T extends Record> SelectQuery<T> applyAll(final SelectFinalStep<T> select) {
+  @Deprecated
+  public SelectQuery<? extends Record> applyAll(final SelectFinalStep<? extends Record> select) {
     return this.applyAll(select.getQuery());
   }
 
