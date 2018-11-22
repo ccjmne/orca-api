@@ -198,7 +198,7 @@ public class StatisticsSelection {
         .groupBy(TRAININGS_EMPLOYEES.TREM_TRNG_FK, outcome).getQuery();
   }
 
-  // TODO: Move all that to ResourcesEndpoint
+  // TODO: Delete all these when rewriting sessions statistics module
   public static final Field<Integer> TRAINING_REGISTERED = DSL.count(TRAININGS_EMPLOYEES.TREM_PK).as("registered");
   public static final Field<Integer> TRAINING_VALIDATED  = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
       .filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_VALIDATED)).as("validated");
