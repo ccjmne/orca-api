@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.modules;
+package org.ccjmne.orca.api.inject;
 
 import java.sql.Date;
 import java.util.AbstractMap.SimpleEntry;

@@ -12,9 +12,9 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
 
-import org.ccjmne.orca.api.modules.QueryParameters;
-import org.ccjmne.orca.api.modules.RecordsCollator;
-import org.ccjmne.orca.api.modules.Restrictions;
+import org.ccjmne.orca.api.inject.QueryParameters;
+import org.ccjmne.orca.api.inject.RecordsCollator;
+import org.ccjmne.orca.api.inject.Restrictions;
 import org.jooq.JoinType;
 import org.jooq.Record;
 import org.jooq.SelectQuery;
@@ -27,6 +27,7 @@ import org.jooq.impl.DSL;
  *
  * @author ccjmne
  */
+// TODO: Move to orca.api.inject
 public class ResourcesSelection {
 
   private final QueryParameters parameters;
@@ -62,6 +63,7 @@ public class ResourcesSelection {
     return this.parameters.has(QueryParameters.SESSION) || (this.parameters.has(QueryParameters.EMPLOYEE) && this.restrictions.canAccessTrainings());
   }
 
+  // TODO: Include VOIDINGS
   public SelectQuery<Record> selectEmployees() {
     try (final SelectQuery<Record> query = DSL.select().getQuery()) {
       query.addFrom(EMPLOYEES);

@@ -18,7 +18,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
-import org.ccjmne.orca.api.modules.Restrictions;
+import org.ccjmne.orca.api.inject.Restrictions;
 import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Transactions;
@@ -27,6 +27,8 @@ import org.ccjmne.orca.jooq.classes.Sequences;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingsRecord;
 import org.jooq.DSLContext;
 
+// TODO: Change path to "sessions"
+// TODO: Rewrite using QueryParameters
 @Path("trainings")
 public class TrainingsEndpoint {
 

@@ -5,10 +5,10 @@ import javax.inject.Singleton;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.ccjmne.orca.api.demo.DemoDataManager;
-import org.ccjmne.orca.api.modules.QueryParameters;
-import org.ccjmne.orca.api.modules.RecordsCollator;
-import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
-import org.ccjmne.orca.api.modules.Restrictions;
+import org.ccjmne.orca.api.inject.QueryParameters;
+import org.ccjmne.orca.api.inject.RecordsCollator;
+import org.ccjmne.orca.api.inject.ResourcesUnrestricted;
+import org.ccjmne.orca.api.inject.Restrictions;
 import org.ccjmne.orca.api.utils.CustomObjectMapper;
 import org.ccjmne.orca.api.utils.PostgresDSLContext;
 import org.ccjmne.orca.api.utils.ResourcesSelection;
@@ -46,6 +46,6 @@ public class ApplicationConfig extends ResourceConfig {
     });
 
     super.register(MultiPartFeature.class);
-    super.packages("org.ccjmne.orca.api.config.providers, org.ccjmne.orca.api.rest");
+    super.packages("org.ccjmne.orca.api.config.providers", "org.ccjmne.orca.api.rest");
   }
 }

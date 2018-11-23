@@ -92,20 +92,19 @@ public class PatchNotesEndpoint {
                      }
                    }
 
-                   return this.objectMapper.readValue(response.getEntity().getContent(),
-                                                      TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, PatchNotes.class));
+                   return this.objectMapper
+                       .readValue(response.getEntity().getContent(), TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, PatchNotes.class));
                  });
 
     return patches.stream()
-        .peek(patch -> patch.checkUnreadSince(lastChecked.get(USERS.USER_NEWSPULL_VERSION),
-                                              lastChecked.get(USERS.USER_NEWSPULL_TIMESTAMP)))
+        .peek(patch -> patch.checkUnreadSince(lastChecked.get(USERS.USER_NEWSPULL_VERSION), lastChecked.get(USERS.USER_NEWSPULL_TIMESTAMP)))
         .collect(Collectors.toList());
   }
 
   @GET
   @Path("unread")
   public boolean hasUnread(@QueryParam("version") final String version, @Context final HttpServletRequest request) throws Exception {
-    return listRelevantPatchNotes(version, request).stream().anyMatch(PatchNotes::isUnread);
+    return this.listRelevantPatchNotes(version, request).stream().anyMatch(PatchNotes::isUnread);
   }
 
   @POST

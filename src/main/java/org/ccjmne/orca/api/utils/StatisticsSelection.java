@@ -15,7 +15,7 @@ import java.util.Optional;
 
 import javax.inject.Inject;
 
-import org.ccjmne.orca.api.modules.QueryParameters;
+import org.ccjmne.orca.api.inject.QueryParameters;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Field;
 import org.jooq.Param;
@@ -29,6 +29,7 @@ import org.jooq.impl.DSL;
 import org.jooq.types.DayToSecond;
 import org.jooq.types.YearToMonth;
 
+// TODO: Move to orca.api.inject
 public class StatisticsSelection {
 
   @SuppressWarnings("unchecked")

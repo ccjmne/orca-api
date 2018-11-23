@@ -16,10 +16,11 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import org.ccjmne.orca.api.modules.Restrictions;
+import org.ccjmne.orca.api.inject.Restrictions;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
+// TODO: Rewrite using QueryParameters
 @Path("employees-notes")
 public class EmployeesNotesEndpoint {
 

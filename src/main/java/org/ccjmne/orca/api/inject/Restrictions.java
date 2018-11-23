@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.modules;
+package org.ccjmne.orca.api.inject;
 
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;

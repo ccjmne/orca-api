@@ -7,7 +7,7 @@ import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
-import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
+import org.ccjmne.orca.api.inject.ResourcesUnrestricted;
 import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
 import org.jooq.Result;
 

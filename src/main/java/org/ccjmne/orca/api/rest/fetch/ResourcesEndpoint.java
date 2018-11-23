@@ -14,8 +14,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
-import org.ccjmne.orca.api.modules.QueryParameters;
-import org.ccjmne.orca.api.modules.RecordsCollator;
+import org.ccjmne.orca.api.inject.QueryParameters;
+import org.ccjmne.orca.api.inject.RecordsCollator;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.ResourcesSelection;
