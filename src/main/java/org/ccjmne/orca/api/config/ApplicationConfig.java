@@ -7,7 +7,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.ccjmne.orca.api.demo.DemoDataManager;
 import org.ccjmne.orca.api.inject.QueryParameters;
 import org.ccjmne.orca.api.inject.RecordsCollator;
-import org.ccjmne.orca.api.inject.ResourcesUnrestricted;
 import org.ccjmne.orca.api.inject.Restrictions;
 import org.ccjmne.orca.api.utils.CustomObjectMapper;
 import org.ccjmne.orca.api.utils.PostgresDSLContext;
@@ -36,7 +35,6 @@ public class ApplicationConfig extends ResourceConfig {
         super.bind(DemoDataManager.class).to(DemoDataManager.class).in(Singleton.class);
         super.bind(PostgresDSLContext.class).to(DSLContext.class).in(Singleton.class);
         super.bind(QueryParameters.class).to(QueryParameters.class).in(RequestScoped.class);
-        super.bind(ResourcesUnrestricted.class).to(ResourcesUnrestricted.class).in(Singleton.class);
         super.bind(ResourcesSelection.class).to(ResourcesSelection.class).in(RequestScoped.class);
         super.bind(Restrictions.class).to(Restrictions.class).in(RequestScoped.class);
         super.bind(RecordsCollator.class).to(RecordsCollator.class).in(RequestScoped.class);

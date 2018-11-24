@@ -26,7 +26,7 @@
 			<web-resource-name>Basic account access + unrestricted resources</web-resource-name>
 
 			<url-pattern>/account/*</url-pattern>
-			<url-pattern>/resources-common/*</url-pattern>
+			<url-pattern>/sub-resources/*</url-pattern>
 			<http-method>GET</http-method>
 		</web-resource-collection>
 		<auth-constraint>
