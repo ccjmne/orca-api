@@ -11,14 +11,12 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
 import java.math.BigDecimal;
 import java.sql.Date;
-import java.util.Optional;
 
 import javax.inject.Inject;
 
 import org.ccjmne.orca.api.inject.QueryParameters;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Field;
-import org.jooq.Param;
 import org.jooq.Record;
 import org.jooq.Record1;
 import org.jooq.Row1;
@@ -47,18 +45,18 @@ public class StatisticsSelection {
       .when(EMPLOYEES_VOIDINGS.EMVO_DATE.le(StatisticsSelection.MAX_EXPIRY), EMPLOYEES_VOIDINGS.EMVO_DATE.sub(new DayToSecond(1)))
       .otherwise(StatisticsSelection.MAX_EXPIRY);
 
-  private static Field<String> fieldValidity(final Optional<Param<Date>> date) {
+  private static Field<String> fieldValidity(final Field<Date> date) {
     return DSL
-        .when(StatisticsSelection.EXPIRY.ge(Constants.fieldDate(date).plus(new YearToMonth(0, 6))), Constants.STATUS_SUCCESS)
-        .when(StatisticsSelection.EXPIRY.ge(Constants.fieldDate(date)), Constants.STATUS_WARNING)
+        .when(StatisticsSelection.EXPIRY.ge(date.plus(new YearToMonth(0, 6))), Constants.STATUS_SUCCESS)
+        .when(StatisticsSelection.EXPIRY.ge(date), Constants.STATUS_WARNING)
         .otherwise(Constants.STATUS_DANGER);
   }
 
-  private final Optional<Param<Date>> date;
+  private final Field<Date> date;
 
   @Inject
   public StatisticsSelection(final QueryParameters parameters) {
-    this.date = parameters.of(QueryParameters.DATE);
+    this.date = parameters.get(QueryParameters.DATE);
   }
 
   public SelectFinalStep<? extends Record> selectEmployeesStats() {
@@ -81,7 +79,7 @@ public class StatisticsSelection {
         .on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(TRAININGS_EMPLOYEES.TREM_EMPL_FK)
             .and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(this.date))))
         .where(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_VALIDATED))
-        .and(TRAININGS.TRNG_DATE.le(Constants.fieldDate(this.date)))
+        .and(TRAININGS.TRNG_DATE.le(this.date))
         .groupBy(
                  SITES_EMPLOYEES.SIEM_SITE_FK,
                  TRAININGS_EMPLOYEES.TREM_EMPL_FK,

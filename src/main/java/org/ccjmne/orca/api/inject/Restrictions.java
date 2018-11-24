@@ -17,6 +17,7 @@ import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.jooq.classes.tables.records.UsersRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.UsersRolesRecord;
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 
@@ -85,7 +86,7 @@ public class Restrictions {
     if (user.getUserType().equals(Constants.USERTYPE_EMPLOYEE)) {
       site = this.ctx.selectFrom(SITES_EMPLOYEES)
           .where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(user.getUserEmplFk())
-              .and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.LASTEST_UPDATE))
+              .and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(DSL.currentDate())))
               .and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.DECOMMISSIONED_SITE)))
           .fetchOne(SITES_EMPLOYEES.SIEM_SITE_FK);
     } else {

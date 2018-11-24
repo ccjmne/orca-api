@@ -212,7 +212,7 @@ public class ResourcesHelper {
   /**
    * Parses a {@link Field} as JSON.
    */
-  private static final Field<JsonNode> toJsonb(final Field<?> field) {
+  public static final Field<JsonNode> toJsonb(final Field<?> field) {
     return DSL.field("to_jsonb({0})", JSON_TYPE, field);
   }
 

@@ -72,7 +72,7 @@ public class ResourcesSelection {
       query.addJoin(
                     SITES_EMPLOYEES,
                     SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-                    SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(this.parameters.of(QueryParameters.DATE))),
+                    SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(this.parameters.get(QueryParameters.DATE))),
                     DSL.or(SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.selectSites())),
                            this.includeRetiredEmployees() ? SITES_EMPLOYEES.SIEM_SITE_FK.isNull() : DSL.falseCondition()));
 

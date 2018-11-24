@@ -21,9 +21,9 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Field;
 import org.jooq.Param;
 import org.jooq.impl.DSL;
+import org.jooq.util.postgres.PostgresDataType;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 /**
  * Provides tools to extract arguments from the current
@@ -31,16 +31,13 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
  */
 public class QueryParameters {
 
-  private static final Field<JsonNode> TAGS_VALUE_UNIVERSAL = DSL.field("{0}::jsonb", ResourcesHelper.JSON_TYPE,
-                                                                        JsonNodeFactory.instance.textNode(Constants.TAGS_VALUE_UNIVERSAL).toString());
-
   public static final Type<Integer>               EMPLOYEE              = new Type<>("employee", Integer.class);
   public static final Type<Integer>               SITE                  = new Type<>("site", Integer.class);
   public static final Type<Integer>               SESSION               = new Type<>("session", Integer.class);
   public static final Type<Boolean>               INCLUDE_DECOMISSIONED = new Type<>("include-decommissioned", Boolean.class);
-  public static final Type<Date>                  DATE                  = new Type<>("date", Date.class);
-  public static final CustomType<Field<JsonNode>> GROUP_BY_FIELD        = new CustomType<>("group-by", value -> value
-      .isEmpty() ? TAGS_VALUE_UNIVERSAL : DSL.field("site_tags -> {0}", ResourcesHelper.JSON_TYPE, value), TAGS_VALUE_UNIVERSAL);
+  public static final CustomType<Field<Date>>     DATE                  = new CustomType<>("date", value -> DSL.val(value, Date.class), DSL.currentDate());
+  public static final CustomType<Field<JsonNode>> GROUP_BY_FIELD        = new CustomType<>("group-by", value -> DSL
+      .field("site_tags -> {0}", ResourcesHelper.JSON_TYPE, value), ResourcesHelper.toJsonb(DSL.cast(Constants.TAGS_VALUE_UNIVERSAL, PostgresDataType.TEXT)));
 
   private final Map<Type<?>, Param<?>>     types;
   private final Map<CustomType<?>, Object> customTypes;

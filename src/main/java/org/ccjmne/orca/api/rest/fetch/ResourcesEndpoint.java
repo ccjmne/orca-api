@@ -12,7 +12,6 @@ import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 
 import org.ccjmne.orca.api.inject.QueryParameters;
 import org.ccjmne.orca.api.inject.RecordsCollator;
@@ -228,8 +227,8 @@ public class ResourcesEndpoint {
   @GET
   @Path("updates/{date}")
   // TODO: move to UpdateEndpoint?
-  public Record lookupUpdate(@PathParam("date") final String dateStr) {
-    return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_PK.eq(Constants.selectUpdate(dateStr))).fetchAny();
+  public Record lookupUpdate() {
+    return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_PK.eq(Constants.selectUpdate(this.parameters.get(QueryParameters.DATE)))).fetchAny();
   }
 
   /**
