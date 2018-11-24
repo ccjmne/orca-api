@@ -78,8 +78,9 @@ public class ResourcesHelper {
    * string JSON element.
    */
   public static final Field<JsonNode> TAG_VALUE_COERCED = DSL
-      .when(TAGS.TAGS_TYPE.eq(Constants.TAGS_TYPE_BOOLEAN), ResourcesHelper.toJsonb(DSL.cast(SITES_TAGS.SITA_VALUE, Boolean.class)))
-      .otherwise(ResourcesHelper.toJsonb(SITES_TAGS.SITA_VALUE));
+      .when(Constants.unqualify(TAGS.TAGS_TYPE).eq(Constants.TAGS_TYPE_BOOLEAN),
+            ResourcesHelper.toJsonb(DSL.cast(Constants.unqualify(SITES_TAGS.SITA_VALUE), Boolean.class)))
+      .otherwise(ResourcesHelper.toJsonb(Constants.unqualify(SITES_TAGS.SITA_VALUE)));
 
   /**
    * Formats a date-type {@link Field} as a {@link String}. Handles the case
@@ -102,7 +103,7 @@ public class ResourcesHelper {
    * {@link JsonNode}, keyed by the {@code key} argument.<br />
    * <br />
    * This method <strong>coalesces</strong> the result into an <strong>empty
-   * {@link JsonNode}</strong> when the @c{@code key} field is {@code null}
+   * {@link JsonNode}</strong> when the {@code key} field is {@code null}
    * for an aggregation window.
    *
    * @param key
@@ -120,14 +121,56 @@ public class ResourcesHelper {
                         JsonNodeFactory.instance.objectNode());
   }
 
-  // TODO: Document
+  /**
+   * Builds a {@link JsonNode} for each {@link Record} from the {@code fields}
+   * argument, and <strong>aggregates</strong> these into a single JSON
+   * Array.<br />
+   *
+   * @param fields
+   *          The fields to be included in the resulting {@code JsonNode}
+   *          for each {@code Record}
+   * @return A {@code Field<JsonNode>} built from aggregating the
+   *         {@code fields} argument with
+   *         {@link ResourcesHelper#rowToJson(Field...)}
+   */
   public static Field<JsonNode> jsonbArrayAgg(final Field<?>... fields) {
     return DSL.coalesce(DSL.field("jsonb_agg({0})", JSON_TYPE, ResourcesHelper.rowToJson(fields)), JsonNodeFactory.instance.arrayNode());
   }
 
-  // TODO: Document
+  /**
+   * Aggregates the {@link Record}s into a {@link JsonNode}, as a one-to-one
+   * mapping of the {@code value} argument, by the {@code key} field.<br />
+   * <br />
+   * This method <strong>coalesces</strong> the result into an <strong>empty
+   * {@link JsonNode}</strong> when the {@code key} field is {@code null}
+   * for an aggregation window.
+   *
+   * @param key
+   *          The field by which the resulting {@code JsonNode} is to be
+   *          keyed
+   * @param value
+   *          The field to be included in the resulting {@code JsonNode}
+   *          for each {@code Record}
+   * @return A one-to-one {@code Field<JsonNode>} mapping {@code key} to
+   *         {@code value}
+   */
   public static Field<JsonNode> jsonbObjectAggNullSafe(final Field<?> key, final Field<?> value) {
     return DSL.coalesce(DSL.field("jsonb_object_agg({0}, {1}) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, key, value), JsonNodeFactory.instance.objectNode());
+  }
+
+  /**
+   * <strong>Aggregates</strong> the {@code field} argument into a single JSON
+   * Array.<br />
+   * <br />
+   * This method <strong>filters out</strong> {@code null} values.
+   *
+   * @param field
+   *          The field to be aggregated
+   * @return A {@code Field<JsonNode>} built from aggregating the
+   *         {@code field} argument
+   */
+  public static Field<JsonNode> jsonbArrayAggOmitNull(final Field<?> field) {
+    return DSL.coalesce(DSL.field("jsonb_agg({0}) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, field), JsonNodeFactory.instance.arrayNode());
   }
 
   /**
@@ -151,7 +194,7 @@ public class ResourcesHelper {
    *         {@link ResourcesHelper#rowToJson(Field...)}
    */
   public static Field<JsonNode> jsonbObjectAgg(final Field<?> key, final Field<?>... fields) {
-    return DSL.field("jsonb_object_agg({0}, ({1}))::jsonb", JSON_TYPE, key, ResourcesHelper.rowToJson(fields));
+    return DSL.field("jsonb_object_agg({0}, ({1}))", JSON_TYPE, key, ResourcesHelper.rowToJson(fields));
   }
 
   /**
