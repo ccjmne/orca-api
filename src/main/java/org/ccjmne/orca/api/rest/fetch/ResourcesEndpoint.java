@@ -284,7 +284,7 @@ public class ResourcesEndpoint {
       return this.collator.applyFAndS(DSL
           .select(groups.fields())
           .select(ResourcesHelper.jsonbObjectAggNullSafe(stats.field(CERTIFICATES.CERT_PK), stats
-              .fields("status", "current", "target", "score", "success", "warning", "danger", "sites_success", "sites_warning", "sites_danger"))
+              .fields("status", "current", "score", "success", "warning", "danger", "sites_success", "sites_warning", "sites_danger"))
               .as("sgrp_stats"))
           .from(groups)
           .leftOuterJoin(stats).on(stats.field(groupID).eq(groups.field(groupID)).or(stats.field(groupID).isNull().and(groups.field(groupID).isNull())))

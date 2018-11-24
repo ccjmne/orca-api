@@ -170,7 +170,6 @@ public class StatisticsSelection {
       q.addSelect(sitesStats.field(CERTIFICATES.CERT_PK));
       q.addSelect(
                   DSL.sum(sitesStats.field("current", Integer.class)).as("current"),
-                  DSL.sum(sitesStats.field("target", Integer.class)).as("target"),
                   score.as("score"),
                   DSL.sum(sitesStats.field(Constants.STATUS_SUCCESS, Integer.class)).as(Constants.STATUS_SUCCESS),
                   DSL.sum(sitesStats.field(Constants.STATUS_WARNING, Integer.class)).as(Constants.STATUS_WARNING),
