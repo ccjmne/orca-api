@@ -134,7 +134,8 @@ public class ResourcesHelper {
    *         {@link ResourcesHelper#rowToJson(Field...)}
    */
   public static Field<JsonNode> jsonbArrayAgg(final Field<?>... fields) {
-    return DSL.coalesce(DSL.field("jsonb_agg({0})", JSON_TYPE, ResourcesHelper.rowToJson(fields)), JsonNodeFactory.instance.arrayNode());
+    return DSL.coalesce(DSL.field("jsonb_agg({0}) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, ResourcesHelper.rowToJson(fields)),
+                        JsonNodeFactory.instance.arrayNode());
   }
 
   /**
@@ -206,7 +207,7 @@ public class ResourcesHelper {
    */
   public static Field<JsonNode> rowToJson(final Field<?>... fields) {
     final TableLike<?> inner = DSL.select(fields).asTable();
-    return DSL.select(DSL.field("row_to_json({0})::jsonb", JSON_TYPE, inner)).from(inner).asField();
+    return DSL.select(DSL.field("row_to_json({0})", JSON_TYPE, inner)).from(inner).where(fields[0].isNotNull()).asField();
   }
 
   /**

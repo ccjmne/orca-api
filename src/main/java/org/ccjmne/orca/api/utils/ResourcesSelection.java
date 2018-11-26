@@ -18,6 +18,7 @@ import org.ccjmne.orca.api.inject.Restrictions;
 import org.jooq.JoinType;
 import org.jooq.Record;
 import org.jooq.SelectQuery;
+import org.jooq.Table;
 import org.jooq.impl.DSL;
 
 /**
@@ -65,16 +66,19 @@ public class ResourcesSelection {
 
   // TODO: Include VOIDINGS
   public SelectQuery<Record> selectEmployees() {
+    final Table<Record> sites = this.selectSites().asTable();
     try (final SelectQuery<Record> query = DSL.select().getQuery()) {
+      query.addSelect(EMPLOYEES.fields());
+      query.addSelect(ResourcesHelper.rowToJson(sites.fields(SITES.SITE_PK, SITES.SITE_NAME)).as("site"));
       query.addFrom(EMPLOYEES);
       query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT));
       // TODO: Use DSL.noCondition() when upgrading jOOQ
       query.addJoin(
                     SITES_EMPLOYEES,
                     SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-                    SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(this.parameters.get(QueryParameters.DATE))),
-                    DSL.or(SITES_EMPLOYEES.SIEM_SITE_FK.in(Constants.select(SITES.SITE_PK, this.selectSites())),
-                           this.includeRetiredEmployees() ? SITES_EMPLOYEES.SIEM_SITE_FK.isNull() : DSL.falseCondition()));
+                    SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(this.parameters.get(QueryParameters.DATE))));
+      query.addJoin(sites, this.includeRetiredEmployees() ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
+                    sites.field(SITES.SITE_PK).eq(SITES_EMPLOYEES.SIEM_SITE_FK));
 
       if (this.parameters.has(QueryParameters.SESSION)) {
         if (!this.restrictions.canAccessTrainings()) {
@@ -137,9 +141,11 @@ public class ResourcesSelection {
 
     try (final SelectQuery<Record> query = DSL.select().getQuery()) {
       query.addSelect(TRAININGS.fields());
-      query.addSelect(ResourcesHelper.arrayAggDistinctOmitNull(TRAININGS_TRAINERS.TRTR_EMPL_FK).as("trainers"));
+      query.addSelect(ResourcesHelper
+          .jsonbArrayAgg(EMPLOYEES.fields(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_GENDER, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_SURNAME)).as("trainers"));
       query.addFrom(TRAININGS);
       query.addJoin(TRAININGS_TRAINERS, JoinType.LEFT_OUTER_JOIN, TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK));
+      query.addJoin(EMPLOYEES, JoinType.LEFT_OUTER_JOIN, EMPLOYEES.EMPL_PK.eq(TRAININGS_TRAINERS.TRTR_EMPL_FK));
 
       if (this.parameters.has(QueryParameters.SESSION)) {
         query.addConditions(TRAININGS.TRNG_PK.eq(this.parameters.get(QueryParameters.SESSION)));

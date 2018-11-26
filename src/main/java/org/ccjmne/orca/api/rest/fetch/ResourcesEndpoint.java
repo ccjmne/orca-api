@@ -80,12 +80,6 @@ public class ResourcesEndpoint {
    */
 
   /**
-   * TODO: Implement resources ID to "Display Name" listing methods
-   *
-   * Needs to be a {@code Map} instead of a {@code List}.
-   */
-
-  /**
    * EMPLOYEES listing methods
    * ------------------------------------------------------------------------
    *
