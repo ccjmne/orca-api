@@ -132,7 +132,7 @@
 		<web-resource-collection>
 			<web-resource-name>Trainers-only Management API</web-resource-name>
 
-			<url-pattern>/trainings/*</url-pattern>
+			<url-pattern>/sessions/*</url-pattern>
 			<http-method>POST</http-method>
 			<http-method>PUT</http-method>
 			<http-method>DELETE</http-method>

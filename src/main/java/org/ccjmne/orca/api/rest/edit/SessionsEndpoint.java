@@ -16,8 +16,8 @@ import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 
+import org.ccjmne.orca.api.inject.QueryParameters;
 import org.ccjmne.orca.api.inject.Restrictions;
 import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.Constants;
@@ -27,24 +27,24 @@ import org.ccjmne.orca.jooq.classes.Sequences;
 import org.ccjmne.orca.jooq.classes.tables.records.TrainingsRecord;
 import org.jooq.DSLContext;
 
-// TODO: Change path to "sessions"
-// TODO: Rewrite using QueryParameters
-@Path("trainings")
-public class TrainingsEndpoint {
+@Path("sessions")
+public class SessionsEndpoint {
 
-  private final DSLContext   ctx;
-  private final Restrictions restrictions;
+  private final DSLContext      ctx;
+  private final Restrictions    restrictions;
+  private final QueryParameters parameters;
 
   @Inject
-  public TrainingsEndpoint(final DSLContext ctx, final Restrictions restrictions) {
+  public SessionsEndpoint(final DSLContext ctx, final Restrictions restrictions, final QueryParameters parameters) {
     this.ctx = ctx;
     this.restrictions = restrictions;
+    this.parameters = parameters;
   }
 
   @POST
   public Integer addTraining(final Map<String, Object> training) {
     return Transactions.with(this.ctx, transaction -> {
-      return this.insertTraining(new Integer(transaction.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transaction);
+      return this.insertTrainingImpl(new Integer(transaction.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transaction);
     });
   }
 
@@ -53,25 +53,26 @@ public class TrainingsEndpoint {
   public void addTrainings(final List<Map<String, Object>> trainings) {
     Transactions.with(this.ctx, transaction -> {
       for (final Map<String, Object> training : trainings) {
-        this.insertTraining(new Integer(transaction.nextval(Sequences.TRAININGS_TRNG_PK_SEQ).intValue()), training, transaction);
+        this.insertTrainingImpl(null, training, transaction);
       }
     });
   }
 
   @PUT
-  @Path("{trng_pk}")
-  public Boolean updateTraining(@PathParam("trng_pk") final Integer trng_pk, final Map<String, Object> training) {
+  @Path("{session}")
+  public Boolean updateTraining(final Map<String, Object> training) {
     return Transactions.with(this.ctx, transaction -> {
-      final Boolean exists = this.deleteTrainingImpl(trng_pk, transaction);
-      this.insertTraining(trng_pk, training, transaction);
+      final Boolean exists = this.deleteTrainingImpl(this.parameters.getRaw(QueryParameters.SESSION), transaction);
+      this.insertTrainingImpl(this.parameters.getRaw(QueryParameters.SESSION), training, transaction);
       return exists;
     });
   }
 
   @DELETE
-  @Path("{trng_pk}")
-  public Boolean deleteTraining(@PathParam("trng_pk") final Integer trng_pk) {
-    return Transactions.with(this.ctx, (TransactionFunction<DSLContext, Boolean>) transaction -> this.deleteTrainingImpl(trng_pk, transaction));
+  @Path("{session}")
+  public Boolean deleteTraining() {
+    return Transactions.with(this.ctx, (TransactionFunction<DSLContext, Boolean>) transaction -> this
+        .deleteTrainingImpl(this.parameters.getRaw(QueryParameters.SESSION), transaction));
   }
 
   private Boolean deleteTrainingImpl(final Integer trng_pk, final DSLContext transactionCtx) {
@@ -90,12 +91,12 @@ public class TrainingsEndpoint {
   }
 
   @SuppressWarnings("unchecked")
-  private Integer insertTraining(final Integer trng_pk, final Map<String, Object> map, final DSLContext transactionContext) throws ParseException {
+  private Integer insertTrainingImpl(final Integer trng_pk, final Map<String, Object> map, final DSLContext transactionContext) throws ParseException {
     if (!this.restrictions.getManageableTypes().contains(map.get(TRAININGS.TRNG_TRTY_FK.getName()))) {
       throw new ForbiddenException();
     }
 
-    TrainingsEndpoint.validateOutcomes(map);
+    SessionsEndpoint.validateOutcomes(map);
 
     transactionContext
         .insertInto(
