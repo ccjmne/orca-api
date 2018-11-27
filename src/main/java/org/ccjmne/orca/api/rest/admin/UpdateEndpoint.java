@@ -30,6 +30,13 @@ import org.jooq.InsertValuesStep3;
 import org.jooq.TableField;
 import org.jooq.impl.DSL;
 
+/**
+ * TODO: Rename to UpdatesEndpoint
+ * TODO: Rewrite entirely – the bulk of the work has been delegated to
+ * {@link BulkImportsEndpoint}
+ *
+ * @author ccjmne
+ */
 @Path("update")
 public class UpdateEndpoint {
 
@@ -39,6 +46,7 @@ public class UpdateEndpoint {
   private final DSLContext ctx;
 
   @Inject
+  @Deprecated
   public UpdateEndpoint(final DSLContext ctx, final Restrictions restrictions) {
     if (!restrictions.canManageSitesAndTags()) {
       throw new ForbiddenException();
@@ -49,6 +57,7 @@ public class UpdateEndpoint {
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
+  @Deprecated
   public void process(final List<Map<String, Object>> employees) {
     Transactions.with(this.ctx, transactionCtx -> {
       final Integer updt_pk = new Integer(transactionCtx.nextval(Sequences.UPDATES_UPDT_PK_SEQ).intValue());
