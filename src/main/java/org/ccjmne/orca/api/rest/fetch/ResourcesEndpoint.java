@@ -19,12 +19,10 @@ import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.ResourcesSelection;
 import org.ccjmne.orca.api.utils.StatisticsSelection;
-import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.JoinType;
 import org.jooq.Record;
-import org.jooq.Result;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
@@ -211,16 +209,38 @@ public class ResourcesEndpoint {
     return this.listSessions();
   }
 
+  /**
+   * UPDATES listing methods
+   * TODO: Rewrite when implementing updates administration module
+   * ------------------------------------------------------------------------
+   *
+   * <pre>
+   * +--------+-----------------+-----------+
+   * | Method | Path            | Response  |
+   * +--------+-----------------+-----------+
+   * | GET    | /updates        | PAGINATED |
+   * +--------+-----------------+-----------+
+   * | GET    | /updates/latest | SINGLE    |
+   * +--------+-----------------+-----------+
+   * | GET    | /updates/{date} | SINGLE    |
+   * +--------+-----------------+-----------+
+   * </pre>
+   */
+
   @GET
   @Path("updates")
-  // TODO: move to UpdateEndpoint?
-  public Result<UpdatesRecord> listUpdates() {
-    return this.ctx.selectFrom(UPDATES).orderBy(UPDATES.UPDT_DATE.desc()).fetch();
+  public Record listUpdates() {
+    return this.ctx.fetchOne(this.collator.applyPagination(DSL.selectFrom(UPDATES).orderBy(UPDATES.UPDT_DATE.desc())));
+  }
+
+  @GET
+  @Path("updates/latest")
+  public Record lookupLatestUpdate() {
+    return this.lookupUpdate();
   }
 
   @GET
   @Path("updates/{date}")
-  // TODO: move to UpdateEndpoint?
   public Record lookupUpdate() {
     return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_PK.eq(Constants.selectUpdate(this.parameters.get(QueryParameters.DATE)))).fetchAny();
   }
