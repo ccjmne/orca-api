@@ -59,25 +59,6 @@ public class ResourcesEndpoint {
   }
 
   /**
-   * TODO: Implement history methods
-   *
-   * All the <code>/history</code> methods only concern a single
-   * <strong>resource</strong>.
-   *
-   * TODO: Leverage PostgreSQL's <code>generate_series</code> and only query the
-   * DB once<br />
-   * Code sample:
-   *
-   * <pre>
-   * SELECT generate_series(
-   *     date_trunc('month', '2018-01-23'::date),
-   *     '2018-05-15'::date,
-   *     '1 month'
-   * )::date
-   * </pre>
-   */
-
-  /**
    * EMPLOYEES listing methods
    * ------------------------------------------------------------------------
    *
