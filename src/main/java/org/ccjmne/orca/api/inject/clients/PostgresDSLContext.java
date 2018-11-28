@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.utils;
+package org.ccjmne.orca.api.inject.clients;
 
 import org.jooq.SQLDialect;
 import org.jooq.conf.ParamType;

@@ -13,9 +13,9 @@ import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
+import org.ccjmne.orca.api.inject.core.ResourcesSelection;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
-import org.ccjmne.orca.api.utils.ResourcesSelection;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record3;

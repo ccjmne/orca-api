@@ -25,7 +25,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import org.ccjmne.orca.api.inject.Restrictions;
+import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.jooq.classes.tables.records.ClientRecord;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;

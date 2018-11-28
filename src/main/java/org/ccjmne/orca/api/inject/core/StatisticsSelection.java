@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.utils;
+package org.ccjmne.orca.api.inject.core;
 
 import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_VOIDINGS;
@@ -13,7 +13,9 @@ import java.sql.Date;
 
 import javax.inject.Inject;
 
-import org.ccjmne.orca.api.inject.QueryParameters;
+import org.ccjmne.orca.api.inject.business.QueryParameters;
+import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Field;
 import org.jooq.Record;
@@ -26,7 +28,6 @@ import org.jooq.impl.DSL;
 import org.jooq.types.DayToSecond;
 import org.jooq.types.YearToMonth;
 
-// TODO: Move to orca.api.inject
 public class StatisticsSelection {
 
   @SuppressWarnings("unchecked")

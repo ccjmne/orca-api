@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.inject;
+package org.ccjmne.orca.api.inject.business;
 
 import java.sql.Date;
 import java.util.AbstractMap.SimpleEntry;

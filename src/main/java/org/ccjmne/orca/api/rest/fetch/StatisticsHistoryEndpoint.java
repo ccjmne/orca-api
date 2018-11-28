@@ -12,11 +12,11 @@ import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
-import org.ccjmne.orca.api.inject.QueryParameters;
+import org.ccjmne.orca.api.inject.business.QueryParameters;
+import org.ccjmne.orca.api.inject.core.ResourcesSelection;
+import org.ccjmne.orca.api.inject.core.StatisticsSelection;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
-import org.ccjmne.orca.api.utils.ResourcesSelection;
-import org.ccjmne.orca.api.utils.StatisticsSelection;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.DSLContext;
 import org.jooq.Field;

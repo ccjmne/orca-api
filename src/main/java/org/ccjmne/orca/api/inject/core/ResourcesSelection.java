@@ -1,4 +1,4 @@
-package org.ccjmne.orca.api.utils;
+package org.ccjmne.orca.api.inject.core;
 
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
@@ -12,9 +12,11 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
 
-import org.ccjmne.orca.api.inject.QueryParameters;
-import org.ccjmne.orca.api.inject.RecordsCollator;
-import org.ccjmne.orca.api.inject.Restrictions;
+import org.ccjmne.orca.api.inject.business.QueryParameters;
+import org.ccjmne.orca.api.inject.business.RecordsCollator;
+import org.ccjmne.orca.api.inject.business.Restrictions;
+import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.jooq.JoinType;
 import org.jooq.Record;
 import org.jooq.SelectQuery;
@@ -28,7 +30,6 @@ import org.jooq.impl.DSL;
  *
  * @author ccjmne
  */
-// TODO: Move to orca.api.inject
 public class ResourcesSelection {
 
   private final QueryParameters parameters;
