@@ -30,16 +30,25 @@ public class ApplicationConfig extends ResourceConfig {
 
       @Override
       protected void configure() {
+        // Clients
         super.bind(HttpClients.createDefault()).to(HttpClient.class);
-        super.bind(CustomObjectMapper.class).to(ObjectMapper.class).in(Singleton.class);
-        super.bind(DemoDataManager.class).to(DemoDataManager.class).in(Singleton.class);
-        super.bind(PostgresDSLContext.class).to(DSLContext.class).in(Singleton.class);
-        super.bind(QueryParameters.class).to(QueryParameters.class).in(RequestScoped.class);
-        super.bind(ResourcesSelection.class).to(ResourcesSelection.class).in(RequestScoped.class);
-        super.bind(Restrictions.class).to(Restrictions.class).in(RequestScoped.class);
-        super.bind(RecordsCollator.class).to(RecordsCollator.class).in(RequestScoped.class);
         super.bind(S3Client.class).to(AmazonS3Client.class).in(Singleton.class);
+
+        // Business modules
+        super.bind(PostgresDSLContext.class).to(DSLContext.class).in(Singleton.class);
+        super.bind(Restrictions.class).to(Restrictions.class).in(RequestScoped.class);
+        super.bind(QueryParameters.class).to(QueryParameters.class).in(RequestScoped.class);
+        super.bind(RecordsCollator.class).to(RecordsCollator.class).in(RequestScoped.class);
+
+        // Core modules
+        super.bind(ResourcesSelection.class).to(ResourcesSelection.class).in(RequestScoped.class);
         super.bind(StatisticsSelection.class).to(StatisticsSelection.class).in(RequestScoped.class);
+
+        // Utilities
+        super.bind(CustomObjectMapper.class).to(ObjectMapper.class).in(Singleton.class);
+
+        // Demo engine
+        super.bind(DemoDataManager.class).to(DemoDataManager.class).in(Singleton.class);
       }
     });
 
