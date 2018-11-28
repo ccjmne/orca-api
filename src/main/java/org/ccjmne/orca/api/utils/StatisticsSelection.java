@@ -5,7 +5,6 @@ import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_VOIDINGS;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
@@ -20,7 +19,7 @@ import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Record1;
 import org.jooq.Row1;
-import org.jooq.SelectFinalStep;
+import org.jooq.Select;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
@@ -59,7 +58,17 @@ public class StatisticsSelection {
     this.date = parameters.get(QueryParameters.DATE);
   }
 
-  public SelectFinalStep<? extends Record> selectEmployeesStats() {
+  /**
+   * For historicised statistics.
+   *
+   * @param date
+   *          A mere reference to the {@code generate_series} dates
+   */
+  public StatisticsSelection(final Field<Date> date) {
+    this.date = date;
+  }
+
+  public Select<? extends Record> selectEmployeesStats() {
     return DSL
         .select(
                 SITES_EMPLOYEES.SIEM_SITE_FK,
@@ -88,7 +97,7 @@ public class StatisticsSelection {
   }
 
   @SuppressWarnings("null")
-  public SelectFinalStep<? extends Record> selectSitesStats() {
+  public Select<? extends Record> selectSitesStats() {
     final Table<? extends Record> eStats = this.selectEmployeesStats().asTable();
     final Field<String> eStatus = eStats.field("status", String.class);
     final Table<? extends Record> sStats = DSL
@@ -187,7 +196,7 @@ public class StatisticsSelection {
     }
   }
 
-  public static SelectQuery<? extends Record> selectSessionsStats() {
+  public Select<? extends Record> selectSessionsStats() {
     final Field<@NonNull String> outcome = OUTCOMES_TABLE.field("outcome", String.class);
     return DSL
         .select(TRAININGS_EMPLOYEES.TREM_TRNG_FK, outcome, DSL.count().as("count"))
@@ -195,15 +204,4 @@ public class StatisticsSelection {
         .leftOuterJoin(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(outcome))
         .groupBy(TRAININGS_EMPLOYEES.TREM_TRNG_FK, outcome).getQuery();
   }
-
-  // TODO: Delete all these when rewriting sessions statistics module
-  public static final Field<Integer> TRAINING_REGISTERED = DSL.count(TRAININGS_EMPLOYEES.TREM_PK).as("registered");
-  public static final Field<Integer> TRAINING_VALIDATED  = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
-      .filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_VALIDATED)).as("validated");
-  public static final Field<Integer> TRAINING_FLUNKED    = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
-      .filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_FLUNKED)).as("flunked");
-  public static final Field<Integer> TRAINING_MISSING    = DSL.count(TRAININGS_EMPLOYEES.TREM_OUTCOME)
-      .filterWhere(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_MISSING)).as("missing");
-  public static final Field<String>  TRAINING_TRAINERS   = DSL.select(DSL.arrayAgg(TRAININGS_TRAINERS.TRTR_EMPL_FK)).from(TRAININGS_TRAINERS)
-      .where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK)).asField("trainers");
 }

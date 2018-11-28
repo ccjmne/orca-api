@@ -307,7 +307,7 @@ public class ResourcesEndpoint {
 
   private SelectQuery<Record> findSessions() {
     final Table<Record> sessions = this.resourcesSelection.selectSessions().asTable();
-    final Table<? extends Record> stats = StatisticsSelection.selectSessionsStats().asTable();
+    final Table<? extends Record> stats = this.statisticsSelection.selectSessionsStats().asTable();
 
     return this.collator.applyFAndS(DSL
         .select(sessions.fields())
