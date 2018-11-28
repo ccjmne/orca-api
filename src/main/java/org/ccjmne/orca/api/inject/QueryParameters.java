@@ -35,6 +35,8 @@ public class QueryParameters {
   public static final Type<Integer>               SITE                  = new Type<>("site", Integer.class);
   public static final Type<Integer>               SESSION               = new Type<>("session", Integer.class);
   public static final Type<Boolean>               INCLUDE_DECOMISSIONED = new Type<>("include-decommissioned", Boolean.class);
+  public static final CustomType<Field<Date>>     FROM                  = new CustomType<>("from", value -> DSL.val(value, Date.class), DSL.currentDate());
+  public static final CustomType<Field<Date>>     TO                    = new CustomType<>("to", value -> DSL.val(value, Date.class), DSL.currentDate());
   public static final CustomType<Field<Date>>     DATE                  = new CustomType<>("date", value -> DSL.val(value, Date.class), DSL.currentDate());
   public static final CustomType<Field<JsonNode>> GROUP_BY_FIELD        = new CustomType<>("group-by", value -> DSL
       .field("site_tags -> {0}", ResourcesHelper.JSON_TYPE, value), ResourcesHelper.toJsonb(DSL.cast(Constants.TAGS_VALUE_UNIVERSAL, PostgresDataType.TEXT)));
@@ -88,8 +90,21 @@ public class QueryParameters {
     return Optional.ofNullable(this.get(type));
   }
 
+  /**
+   * Always {@code true} for {@code CustomType}s that have a default value.
+   *
+   * @see QueryParameters#isDefault(CustomType)
+   */
   public <T> boolean has(final CustomType<T> type) {
     return this.of(type).isPresent();
+  }
+
+  /**
+   * Only {@code true} when the given {@code type} does have a default value that
+   * wasn't overridden by the query parameters.
+   */
+  public <T> boolean isDefault(final CustomType<T> type) {
+    return (type.orElse != null) && !this.customTypes.containsKey(type);
   }
 
   @SuppressWarnings("unchecked") // always safe
