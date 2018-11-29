@@ -26,7 +26,7 @@ import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.rest.utils.AccountEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Fields;
-import org.ccjmne.orca.api.utils.ResourcesHelper;
+import org.ccjmne.orca.api.utils.RecordMappers;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -67,7 +67,7 @@ public class UsersEndpoint {
         .leftOuterJoin(USERS_ROLES).on(USERS_ROLES.USER_ID.eq(USERS.USER_ID))
         .where(USERS.USER_ID.ne(Constants.USER_ROOT))
         .groupBy(Fields.concat(Fields.USERS_FIELDS, EMPLOYEES.fields(), SITES.fields()))
-        .fetch(ResourcesHelper.getMapperWithZip(ResourcesHelper
+        .fetch(RecordMappers.getMapperWithZip(RecordMappers
             .getZipSelectMapper("type_array", "level_array", "trainer_array", "true_array"), "roles"));
   }
 
@@ -94,7 +94,7 @@ public class UsersEndpoint {
         .leftOuterJoin(USERS_ROLES).on(USERS_ROLES.USER_ID.eq(USERS.USER_ID))
         .where(USERS.USER_ID.eq(user_id))
         .groupBy(Fields.concat(Fields.USERS_FIELDS, EMPLOYEES.fields(), SITES.fields()))
-        .fetchOne(ResourcesHelper.getMapperWithZip(ResourcesHelper
+        .fetchOne(RecordMappers.getMapperWithZip(RecordMappers
             .getZipSelectMapper("type_array", "level_array", "trainer_array", "true_array"), "roles"));
 
     res.put("restrictions", Restrictions.forUser(user_id, ctx));

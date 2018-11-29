@@ -20,8 +20,13 @@ import org.jooq.RecordMapper;
 
 import com.google.common.collect.ImmutableList;
 
-// TODO: Rename to SubQueries or something
-public class ResourcesHelper {
+/**
+ * Pretty obsolete.
+ * TODO: Delete when updating UsersEndpoint
+ *
+ * @author ccjmne
+ */
+public class RecordMappers {
 
   public static <K, V> RecordMapper<Record, Map<String, Object>> getMapperWithZip(
                                                                                   final ZipRecordMapper<Record, Map<K, V>> zipMapper,
@@ -41,15 +46,15 @@ public class ResourcesHelper {
   }
 
   public static <T> ZipRecordMapper<Record, Map<T, Object>> getZipMapper(final String key, final String... fields) {
-    return ResourcesHelper.getZipMapper(true, key, fields);
+    return RecordMappers.getZipMapper(true, key, fields);
   }
 
   public static <T> ZipRecordMapper<Record, Map<T, Object>> getZipMapper(final Field<T> key, final Field<?>... fields) {
-    return ResourcesHelper.getZipMapper(true, key, fields);
+    return RecordMappers.getZipMapper(true, key, fields);
   }
 
   public static <T> ZipRecordMapper<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final Field<T> key, final Field<?>... fields) {
-    return ResourcesHelper.getZipMapper(ignoreFalsey, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
+    return RecordMappers.getZipMapper(ignoreFalsey, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
   }
 
   public static <T> ZipRecordMapper<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final String key, final String... fields) {
@@ -94,12 +99,12 @@ public class ResourcesHelper {
 
   @SafeVarargs
   public static <K, V> ZipRecordMapper<Record, Map<K, V>> getZipSelectMapper(final Field<K[]> key, final Field<V[]>... fields) {
-    return ResourcesHelper.getZipSelectMapper((r, x) -> x, key, fields);
+    return RecordMappers.getZipSelectMapper((r, x) -> x, key, fields);
   }
 
   @SuppressWarnings("unchecked")
   public static <K, V> ZipRecordMapper<Record, Map<K, V>> getZipSelectMapper(final String key, final String... fields) {
-    return ResourcesHelper.getZipSelectMapper((r, x) -> (V) x, key, fields);
+    return RecordMappers.getZipSelectMapper((r, x) -> (V) x, key, fields);
   }
 
   @SafeVarargs
@@ -107,7 +112,7 @@ public class ResourcesHelper {
                                                                                 final BiFunction<? super RecordSlicer, ? super I, ? extends V> coercer,
                                                                                 final Field<K[]> key,
                                                                                 final Field<I[]>... fields) {
-    return ResourcesHelper.getZipSelectMapper(coercer, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
+    return RecordMappers.getZipSelectMapper(coercer, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
   }
 
   public static <K, I, V> ZipRecordMapper<Record, Map<K, V>> getZipSelectMapper(
@@ -177,11 +182,11 @@ public class ResourcesHelper {
   }
 
   public static RecordMapper<Record, Map<String, Object>> getCoercerMapper(final FieldsCoercer... coercers) {
-    return ResourcesHelper.coercing(record -> record.intoMap(), coercers);
+    return RecordMappers.coercing(record -> record.intoMap(), coercers);
   }
 
   public static RecordMapper<Record, Map<String, Object>> coercing(final RecordMapper<Record, Map<String, Object>> mapper, final FieldsCoercer... coercers) {
-    return record -> ResourcesHelper.apply(mapper.map(record), coercers);
+    return record -> RecordMappers.apply(mapper.map(record), coercers);
   }
 
   public static Map<String, Object> apply(final Map<String, Object> map, final FieldsCoercer... coercers) {
