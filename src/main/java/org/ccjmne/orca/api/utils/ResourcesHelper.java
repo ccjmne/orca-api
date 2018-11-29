@@ -24,7 +24,6 @@ import org.jooq.RecordMapper;
 import org.jooq.Table;
 import org.jooq.Transaction;
 import org.jooq.impl.DSL;
-import org.jooq.util.postgres.PostgresDSL;
 
 import com.google.common.collect.ImmutableList;
 
@@ -37,27 +36,6 @@ public class ResourcesHelper {
    * Pattern: <code>^\d+$</code>
    */
   public static final Predicate<String> IS_TAG_KEY = Pattern.compile("^\\d+$").asPredicate();
-
-  /**
-   * Coerces the given <code>value</code> to a either a {@link Boolean} or a
-   * {@link String}, depending on the <code>type</code> specified in
-   * accordance with the database constants
-   * {@link Constants#TAGS_TYPE_BOOLEAN} and
-   * {@link Constants#TAGS_TYPE_STRING}.
-   *
-   * @param value
-   *          The {@link String} literal to be coerced
-   * @param type
-   *          Either {@link Constants#TAGS_TYPE_BOOLEAN} or
-   *          {@link Constants#TAGS_TYPE_STRING}
-   *
-   * @return The coerced <code>value</code>, either into a {@link Boolean} or
-   *         a {@link String}, depending on the supplied <code>type</code>
-   */
-  // TODO: Delete when rewriting common-resources modules
-  public static Object coerceTagValue(final String value, final String type) {
-    return Constants.TAGS_TYPE_BOOLEAN.equals(type) ? Boolean.valueOf(value) : value;
-  }
 
   /**
    * Formats a date-type {@link Field} as a {@link String}. Handles the case
@@ -74,44 +52,8 @@ public class ResourcesHelper {
         .otherwise(DSL.field("to_char({0}, {1})", String.class, field, APIDateFormat.FORMAT));
   }
 
-  /**
-   * Delegates to {@link DSL#arrayAgg(Field)} and gives the resulting
-   * aggregation the specified {@link Field}'s name.
-   *
-   * @param field
-   *          The field to aggregate
-   */
-  // TODO: Delete if unused
-  public static <T> Field<T[]> arrayAgg(final Field<T> field) {
-    return DSL.arrayAgg(field).as(field);
-  }
-
   public static Field<String> unaccent(final Field<String> field) {
     return DSL.function("unaccent", String.class, field);
-  }
-
-  /**
-   * Delegates to {@link DSL#coalesce(Field, Object)} and gives the resulting
-   * coalition the specified {@link Field}'s name.
-   *
-   * @param field
-   *          The field to coalesce
-   */
-  public static <T> Field<T> coalesce(final Field<T> field, final T value) {
-    return DSL.coalesce(field, value).as(field);
-  }
-
-  /**
-   * Aggregate function on the supplied {@link Field} that selects
-   * <strong>distinct</strong> values into an {@link Array} while omitting
-   * <code>null</code> entries.
-   *
-   * @param field
-   *          The field to aggregate
-   */
-  // TODO: Delete if unused
-  public static <T> Field<T[]> arrayAggDistinctOmitNull(final Field<T> field) {
-    return PostgresDSL.arrayRemove(DSL.arrayAggDistinct(field), DSL.castNull(field.getType())).as(field);
   }
 
   /**
