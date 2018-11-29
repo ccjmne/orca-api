@@ -15,7 +15,7 @@ import javax.ws.rs.Path;
 
 import org.ccjmne.orca.api.inject.core.ResourcesSelection;
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.api.utils.ResourcesHelper;
+import org.ccjmne.orca.api.utils.JSONFields;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record3;
@@ -51,7 +51,7 @@ public class SubResources {
   public Map<Integer, ? extends Record> getSessionTypesMap() {
     return this.ctx
         .select(TRAININGTYPES.fields())
-        .select(ResourcesHelper.jsonbObjectAggNullSafe(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK, TRAININGTYPES_CERTIFICATES.TTCE_DURATION).as("certificates"))
+        .select(JSONFields.objectAgg(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK, TRAININGTYPES_CERTIFICATES.TTCE_DURATION).as("certificates"))
         .from(TRAININGTYPES)
         .join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
         .groupBy(TRAININGTYPES.fields())
@@ -69,8 +69,8 @@ public class SubResources {
         .asTable();
     return this.ctx
         .select(TAGS.fields())
-        .select(ResourcesHelper.jsonbObjectAggNullSafe(stats.field(1), stats.field(2)).as("tags_values_counts"))
-        .select(ResourcesHelper.jsonbArrayAggOmitNull(ResourcesHelper.TAG_VALUE_COERCED).as("tags_values"))
+        .select(JSONFields.objectAgg(stats.field(1), stats.field(2)).as("tags_values_counts"))
+        .select(JSONFields.arrayAgg(JSONFields.TAG_VALUE_COERCED).as("tags_values"))
         .from(TAGS)
         .leftOuterJoin(stats).on(stats.field(SITES_TAGS.SITA_TAGS_FK).eq(TAGS.TAGS_PK))
         .groupBy(TAGS.fields())

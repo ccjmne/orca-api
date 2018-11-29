@@ -16,7 +16,7 @@ import org.ccjmne.orca.api.inject.business.QueryParameters;
 import org.ccjmne.orca.api.inject.core.ResourcesSelection;
 import org.ccjmne.orca.api.inject.core.StatisticsSelection;
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.api.utils.ResourcesHelper;
+import org.ccjmne.orca.api.utils.JSONFields;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -94,7 +94,7 @@ public class StatisticsHistoryEndpoint {
     final Table<Record1<@NonNull Date>> dates = DSL.select(this.date).asTable();
     return DSL
         .select(dates.field(this.date))
-        .select(ResourcesHelper.jsonbObjectAggNullSafe(stats.field(CERTIFICATES.CERT_PK), stats.fields()).as("stats"))
+        .select(JSONFields.objectAgg(stats.field(CERTIFICATES.CERT_PK), stats.fields()).as("stats"))
         .from(dates)
         .leftOuterJoin(DSL.lateral(stats)).on(DSL.trueCondition()) // TODO: use DSL#noCondition when upgrading jOOQ
         .groupBy(this.date)

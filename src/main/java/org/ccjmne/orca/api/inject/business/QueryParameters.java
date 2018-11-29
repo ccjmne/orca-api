@@ -16,7 +16,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.api.utils.ResourcesHelper;
+import org.ccjmne.orca.api.utils.JSONFields;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Field;
 import org.jooq.Param;
@@ -39,7 +39,7 @@ public class QueryParameters {
   public static final CustomType<Field<Date>>     TO                    = new CustomType<>("to", value -> DSL.val(value, Date.class), DSL.currentDate());
   public static final CustomType<Field<Date>>     DATE                  = new CustomType<>("date", value -> DSL.val(value, Date.class), DSL.currentDate());
   public static final CustomType<Field<JsonNode>> GROUP_BY_FIELD        = new CustomType<>("group-by", value -> DSL
-      .field("site_tags -> {0}", ResourcesHelper.JSON_TYPE, value), ResourcesHelper.toJsonb(DSL.cast(Constants.TAGS_VALUE_UNIVERSAL, PostgresDataType.TEXT)));
+      .field("site_tags -> {0}", JSONFields.JSON_TYPE, value), JSONFields.toJson(DSL.cast(Constants.TAGS_VALUE_UNIVERSAL, PostgresDataType.TEXT)));
 
   private final Map<Type<?>, Param<?>>     types;
   private final Map<CustomType<?>, Object> customTypes;

@@ -18,7 +18,7 @@ import org.ccjmne.orca.api.inject.business.RecordsCollator;
 import org.ccjmne.orca.api.inject.core.ResourcesSelection;
 import org.ccjmne.orca.api.inject.core.StatisticsSelection;
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.api.utils.ResourcesHelper;
+import org.ccjmne.orca.api.utils.JSONFields;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.JoinType;
@@ -237,8 +237,8 @@ public class ResourcesEndpoint {
 
     return this.collator.applyFAndS(DSL
         .select(employees.fields())
-        .select(ResourcesHelper
-            .jsonbObjectAggNullSafe(stats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK), stats.fields("status", "expiry", "void_since"))
+        .select(JSONFields
+            .objectAgg(stats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK), stats.fields("status", "expiry", "void_since"))
             .as("empl_stats"))
         .from(employees)
         .leftOuterJoin(stats).on(stats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK).eq(employees.field(EMPLOYEES.EMPL_PK)))
@@ -251,8 +251,8 @@ public class ResourcesEndpoint {
 
     return this.collator.applyFAndS(DSL
         .select(sites.fields())
-        .select(ResourcesHelper
-            .jsonbObjectAggNullSafe(stats.field(CERTIFICATES.CERT_PK), stats.fields("status", "current", "target", "success", "warning", "danger"))
+        .select(JSONFields
+            .objectAgg(stats.field(CERTIFICATES.CERT_PK), stats.fields("status", "current", "target", "success", "warning", "danger"))
             .as("site_stats"))
         .from(sites)
         .leftOuterJoin(stats).on(stats.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(sites.field(SITES.SITE_PK)))
@@ -277,7 +277,7 @@ public class ResourcesEndpoint {
 
       return this.collator.applyFAndS(DSL
           .select(groups.fields())
-          .select(ResourcesHelper.jsonbObjectAggNullSafe(stats.field(CERTIFICATES.CERT_PK), stats
+          .select(JSONFields.objectAgg(stats.field(CERTIFICATES.CERT_PK), stats
               .fields("status", "current", "score", "success", "warning", "danger", "sites_success", "sites_warning", "sites_danger"))
               .as("sgrp_stats"))
           .from(groups)
@@ -292,7 +292,7 @@ public class ResourcesEndpoint {
 
     return this.collator.applyFAndS(DSL
         .select(sessions.fields())
-        .select(ResourcesHelper.jsonbObjectAggNullSafe(stats.field("outcome"), stats.field("count")).as("stats"))
+        .select(JSONFields.objectAgg(stats.field("outcome"), stats.field("count")).as("stats"))
         .select(DSL.sum(stats.field("count", Integer.class)).as("trainees_count"))
         .from(sessions)
         .leftOuterJoin(stats)

@@ -16,7 +16,7 @@ import org.ccjmne.orca.api.inject.business.QueryParameters;
 import org.ccjmne.orca.api.inject.business.RecordsCollator;
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.api.utils.ResourcesHelper;
+import org.ccjmne.orca.api.utils.JSONFields;
 import org.jooq.JoinType;
 import org.jooq.Record;
 import org.jooq.SelectQuery;
@@ -70,7 +70,7 @@ public class ResourcesSelection {
     final Table<Record> sites = this.selectSites().asTable();
     try (final SelectQuery<Record> query = DSL.select().getQuery()) {
       query.addSelect(EMPLOYEES.fields());
-      query.addSelect(ResourcesHelper.rowToJson(sites.fields(SITES.SITE_PK, SITES.SITE_NAME)).as("site"));
+      query.addSelect(JSONFields.rowToJson(sites.fields(SITES.SITE_PK, SITES.SITE_NAME)).as("site"));
       query.addFrom(EMPLOYEES);
       query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT));
       // TODO: Use DSL.noCondition() when upgrading jOOQ
@@ -127,7 +127,7 @@ public class ResourcesSelection {
 
       return this.recordsCollator.applyFAndS(DSL
           .select(query.fields())
-          .select(ResourcesHelper.jsonbObjectAggNullSafe(SITES_TAGS.SITA_TAGS_FK, ResourcesHelper.TAG_VALUE_COERCED).as("site_tags"))
+          .select(JSONFields.objectAgg(SITES_TAGS.SITA_TAGS_FK, JSONFields.TAG_VALUE_COERCED).as("site_tags"))
           .from(query)
           .leftOuterJoin(SITES_TAGS).on(SITES_TAGS.SITA_SITE_FK.eq(query.field(SITES.SITE_PK)))
           .join(TAGS).on(TAGS.TAGS_PK.eq(SITES_TAGS.SITA_TAGS_FK)) // In order to extract TAGS_TYPE for TAG_VALUE_COERCED
@@ -142,8 +142,8 @@ public class ResourcesSelection {
 
     try (final SelectQuery<Record> query = DSL.select().getQuery()) {
       query.addSelect(TRAININGS.fields());
-      query.addSelect(ResourcesHelper
-          .jsonbArrayAgg(EMPLOYEES.fields(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_GENDER, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_SURNAME)).as("trainers"));
+      query.addSelect(JSONFields
+          .arrayAgg(EMPLOYEES.fields(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_GENDER, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_SURNAME)).as("trainers"));
       query.addFrom(TRAININGS);
       query.addJoin(TRAININGS_TRAINERS, JoinType.LEFT_OUTER_JOIN, TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK));
       query.addJoin(EMPLOYEES, JoinType.LEFT_OUTER_JOIN, EMPLOYEES.EMPL_PK.eq(TRAININGS_TRAINERS.TRTR_EMPL_FK));

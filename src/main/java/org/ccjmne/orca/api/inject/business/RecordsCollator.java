@@ -23,6 +23,7 @@ import javax.ws.rs.core.UriInfo;
 
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.JSONFields;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Condition;
@@ -161,7 +162,7 @@ public class RecordsCollator {
                   DSL.val(Integer.valueOf(this.limit)).as("page_size"),
                   DSL.val(Integer.valueOf(this.offset / this.limit)).as("page_offset"),
                   DSL.select(DSL.ceil(DSL.count().div(Float.valueOf(this.limit))).as("page_count")).from(data).asField("page_count"),
-                  DSL.select(ResourcesHelper.jsonbArrayAgg(Constants.unqualify(data.fields()))).from(DSL.select().from(data).limit(this.offset, this.limit))
+                  DSL.select(JSONFields.arrayAgg(Constants.unqualify(data.fields()))).from(DSL.select().from(data).limit(this.offset, this.limit))
                       .asField("page_contents"))
           .getQuery();
     }
@@ -170,7 +171,7 @@ public class RecordsCollator {
                       DSL.val(Integer.valueOf(0)).as("page_size"),
                       DSL.val(Integer.valueOf(0)).as("page_offset"),
                       DSL.val(Integer.valueOf(0)).as("page_count"),
-                      DSL.select(ResourcesHelper.jsonbArrayAgg(data.fields())).from(data).asField("page_contents"))
+                      DSL.select(JSONFields.arrayAgg(data.fields())).from(data).asField("page_contents"))
         .getQuery();
   }
 

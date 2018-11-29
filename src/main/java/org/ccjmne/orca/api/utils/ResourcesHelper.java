@@ -1,9 +1,5 @@
 package org.ccjmne.orca.api.utils;
 
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -20,30 +16,20 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ObjectUtils;
-import org.jooq.Converter;
-import org.jooq.DataType;
 import org.jooq.Field;
 import org.jooq.Query;
 import org.jooq.Record;
 import org.jooq.Record2;
 import org.jooq.RecordMapper;
 import org.jooq.Table;
-import org.jooq.TableLike;
 import org.jooq.Transaction;
 import org.jooq.impl.DSL;
-import org.jooq.impl.SQLDataType;
 import org.jooq.util.postgres.PostgresDSL;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableList;
 
 // TODO: Rename to SubQueries or something
 public class ResourcesHelper {
-
-  public static final DataType<JsonNode> JSON_TYPE = SQLDataType.VARCHAR.asConvertedDataType(new PostgresJSONJacksonJsonNodeConverter());
 
   /**
    * Used to determine which parameters are to be considered as tags. Matches
@@ -74,15 +60,6 @@ public class ResourcesHelper {
   }
 
   /**
-   * The {@link SITES_TAGS#SITA_VALUE} field coerced to either a boolean or a
-   * string JSON element.
-   */
-  public static final Field<JsonNode> TAG_VALUE_COERCED = DSL
-      .when(Constants.unqualify(TAGS.TAGS_TYPE).eq(Constants.TAGS_TYPE_BOOLEAN),
-            ResourcesHelper.toJsonb(DSL.cast(Constants.unqualify(SITES_TAGS.SITA_VALUE), Boolean.class)))
-      .otherwise(ResourcesHelper.toJsonb(Constants.unqualify(SITES_TAGS.SITA_VALUE)));
-
-  /**
    * Formats a date-type {@link Field} as a {@link String}. Handles the case
    * where the date is "never" (for certificate expiration, for instance).
    *
@@ -98,132 +75,13 @@ public class ResourcesHelper {
   }
 
   /**
-   * Builds a {@link JsonNode} for each {@link Record} from the {@code fields}
-   * argument, and <strong>aggregates</strong> these into a single
-   * {@link JsonNode}, keyed by the {@code key} argument.<br />
-   * <br />
-   * This method <strong>coalesces</strong> the result into an <strong>empty
-   * {@link JsonNode}</strong> when the {@code key} field is {@code null}
-   * for an aggregation window.
-   *
-   * @param key
-   *          The field by which the resulting {@code JsonNode} is to be
-   *          keyed
-   * @param fields
-   *          The fields to be included in the resulting {@code JsonNode}
-   *          for each {@code Record}
-   * @return A {@code Field<JsonNode>} built from aggregating the
-   *         {@code fields} argument with
-   *         {@link ResourcesHelper#rowToJson(Field...)}
-   */
-  public static Field<JsonNode> jsonbObjectAggNullSafe(final Field<?> key, final Field<?>... fields) {
-    return DSL.coalesce(DSL.field("jsonb_object_agg({0}, ({1})) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, key, ResourcesHelper.rowToJson(fields)),
-                        JsonNodeFactory.instance.objectNode());
-  }
-
-  /**
-   * Builds a {@link JsonNode} for each {@link Record} from the {@code fields}
-   * argument, and <strong>aggregates</strong> these into a single JSON
-   * Array.<br />
-   *
-   * @param fields
-   *          The fields to be included in the resulting {@code JsonNode}
-   *          for each {@code Record}
-   * @return A {@code Field<JsonNode>} built from aggregating the
-   *         {@code fields} argument with
-   *         {@link ResourcesHelper#rowToJson(Field...)}
-   */
-  public static Field<JsonNode> jsonbArrayAgg(final Field<?>... fields) {
-    return DSL.coalesce(DSL.field("jsonb_agg({0}) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, ResourcesHelper.rowToJson(fields)),
-                        JsonNodeFactory.instance.arrayNode());
-  }
-
-  /**
-   * Aggregates the {@link Record}s into a {@link JsonNode}, as a one-to-one
-   * mapping of the {@code value} argument, by the {@code key} field.<br />
-   * <br />
-   * This method <strong>coalesces</strong> the result into an <strong>empty
-   * {@link JsonNode}</strong> when the {@code key} field is {@code null}
-   * for an aggregation window.
-   *
-   * @param key
-   *          The field by which the resulting {@code JsonNode} is to be
-   *          keyed
-   * @param value
-   *          The field to be included in the resulting {@code JsonNode}
-   *          for each {@code Record}
-   * @return A one-to-one {@code Field<JsonNode>} mapping {@code key} to
-   *         {@code value}
-   */
-  public static Field<JsonNode> jsonbObjectAggNullSafe(final Field<?> key, final Field<?> value) {
-    return DSL.coalesce(DSL.field("jsonb_object_agg({0}, {1}) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, key, value), JsonNodeFactory.instance.objectNode());
-  }
-
-  /**
-   * <strong>Aggregates</strong> the {@code field} argument into a single JSON
-   * Array.<br />
-   * <br />
-   * This method <strong>filters out</strong> {@code null} values.
-   *
-   * @param field
-   *          The field to be aggregated
-   * @return A {@code Field<JsonNode>} built from aggregating the
-   *         {@code field} argument
-   */
-  public static Field<JsonNode> jsonbArrayAggOmitNull(final Field<?> field) {
-    return DSL.coalesce(DSL.field("jsonb_agg({0}) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, field), JsonNodeFactory.instance.arrayNode());
-  }
-
-  /**
-   * Builds a {@link JsonNode} for each {@link Record} from the {@code fields}
-   * argument, and <strong>aggregates</strong> these into a single
-   * {@link JsonNode}, keyed by the {@code key} argument.<br />
-   * <br />
-   * This method requires {@code key} to not be {@code null} in any
-   * aggregation window. If you want a null-safe version of this (for
-   * aggregating <code>OUTER JOIN</code>s for example), use
-   * {@link ResourcesHelper#jsonbObjectAggNullSafe(Field, Field...)} instead.
-   *
-   * @param key
-   *          The field by which the resulting {@code JsonNode} is to be
-   *          keyed
-   * @param fields
-   *          The fields to be included in the resulting {@code JsonNode}
-   *          for each {@code Record}
-   * @return A {@code Field<JsonNode>} built from aggregating the
-   *         {@code fields} argument with
-   *         {@link ResourcesHelper#rowToJson(Field...)}
-   */
-  public static Field<JsonNode> jsonbObjectAgg(final Field<?> key, final Field<?>... fields) {
-    return DSL.field("jsonb_object_agg({0}, ({1}))", JSON_TYPE, key, ResourcesHelper.rowToJson(fields));
-  }
-
-  /**
-   * Builds a {@link JsonNode} from the {@code fields} argument.
-   *
-   * @param fields
-   *          The fields to include in the resulting JSON
-   * @return A {@code Field<JsonNode>} built from the specified {@code fields}
-   */
-  public static Field<JsonNode> rowToJson(final Field<?>... fields) {
-    final TableLike<?> inner = DSL.select(fields).asTable();
-    return DSL.select(DSL.field("row_to_json({0})", JSON_TYPE, inner)).from(inner).where(fields[0].isNotNull()).asField();
-  }
-
-  /**
-   * Parses a {@link Field} as JSON.
-   */
-  public static final Field<JsonNode> toJsonb(final Field<?> field) {
-    return DSL.field("to_jsonb({0})", JSON_TYPE, field);
-  }
-
-  /**
    * Delegates to {@link DSL#arrayAgg(Field)} and gives the resulting
    * aggregation the specified {@link Field}'s name.
    *
    * @param field
    *          The field to aggregate
    */
+  // TODO: Delete if unused
   public static <T> Field<T[]> arrayAgg(final Field<T> field) {
     return DSL.arrayAgg(field).as(field);
   }
@@ -251,6 +109,7 @@ public class ResourcesHelper {
    * @param field
    *          The field to aggregate
    */
+  // TODO: Delete if unused
   public static <T> Field<T[]> arrayAggDistinctOmitNull(final Field<T> field) {
     return PostgresDSL.arrayRemove(DSL.arrayAggDistinct(field), DSL.castNull(field.getType())).as(field);
   }
@@ -529,44 +388,6 @@ public class ResourcesHelper {
 
     public Collection<String> getZippedFields() {
       return this.zippedFields;
-    }
-  }
-
-  @SuppressWarnings("serial")
-  private static class PostgresJSONJacksonJsonNodeConverter implements Converter<Object, JsonNode> {
-
-    private final ObjectMapper mapper;
-
-    protected PostgresJSONJacksonJsonNodeConverter() {
-      this.mapper = new ObjectMapper(); // TODO: Use CustomObjectMapper?
-    }
-
-    @Override
-    public JsonNode from(final Object t) {
-      try {
-        return t == null ? NullNode.instance : this.mapper.readTree(t.toString());
-      } catch (final IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    @Override
-    public Object to(final JsonNode u) {
-      try {
-        return (u == null) || u.equals(NullNode.instance) ? null : this.mapper.writeValueAsString(u);
-      } catch (final IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    @Override
-    public Class<Object> fromType() {
-      return Object.class;
-    }
-
-    @Override
-    public Class<JsonNode> toType() {
-      return JsonNode.class;
     }
   }
 }
