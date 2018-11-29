@@ -238,7 +238,7 @@ public class ResourcesEndpoint {
     return this.collator.applyFAndS(DSL
         .select(employees.fields())
         .select(JSONFields
-            .objectAgg(stats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK), stats.fields("status", "expiry", "void_since"))
+            .objectAgg(stats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK), stats.fields(Fields.EMPLOYEES_STATS_FIELDS))
             .as("empl_stats"))
         .from(employees)
         .leftOuterJoin(stats).on(stats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK).eq(employees.field(EMPLOYEES.EMPL_PK)))
@@ -252,7 +252,7 @@ public class ResourcesEndpoint {
     return this.collator.applyFAndS(DSL
         .select(sites.fields())
         .select(JSONFields
-            .objectAgg(stats.field(CERTIFICATES.CERT_PK), stats.fields("status", "current", "target", "success", "warning", "danger"))
+            .objectAgg(stats.field(CERTIFICATES.CERT_PK), stats.fields(Fields.SITES_STATS_FIELDS))
             .as("site_stats"))
         .from(sites)
         .leftOuterJoin(stats).on(stats.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(sites.field(SITES.SITE_PK)))
@@ -278,7 +278,7 @@ public class ResourcesEndpoint {
       return this.collator.applyFAndS(DSL
           .select(groups.fields())
           .select(JSONFields.objectAgg(stats.field(CERTIFICATES.CERT_PK), stats
-              .fields("status", "current", "score", "success", "warning", "danger", "sites_success", "sites_warning", "sites_danger"))
+              .fields(Fields.SITES_GROUPS_STATS_FIELDS))
               .as("sgrp_stats"))
           .from(groups)
           .leftOuterJoin(stats).on(stats.field(groupID).eq(groups.field(groupID)).or(stats.field(groupID).isNull().and(groups.field(groupID).isNull())))

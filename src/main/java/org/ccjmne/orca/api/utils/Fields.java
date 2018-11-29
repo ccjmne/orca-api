@@ -31,8 +31,13 @@ import com.google.common.collect.Streams;
  */
 public class Fields {
 
-  private static final Integer NO_UPDATE    = Integer.valueOf(-1);
-  public static Field<?>[]     USERS_FIELDS = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK };
+  private static final Integer NO_UPDATE = Integer.valueOf(-1);
+
+  public static Field<?>[] USERS_FIELDS              = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK };
+  public static String[]   EMPLOYEES_STATS_FIELDS    = new String[] { "status", "expiry", "void_since" };
+  public static String[]   SITES_STATS_FIELDS        = new String[] { "status", "current", "target", "success", "warning", "danger" };
+  public static String[]   SITES_GROUPS_STATS_FIELDS = new String[] {
+      "status", "current", "score", "success", "warning", "danger", "sites_success", "sites_warning", "sites_danger" };
 
   /**
    * The {@link SITES_TAGS#SITA_VALUE} field coerced to either a boolean or a

@@ -63,8 +63,8 @@ public class StatisticsHistoryEndpoint {
   public Result<? extends Record> getEmployeesStatsHistory() {
     final Table<Record> employees = this.resourcesSelection.selectEmployees().asTable();
     final Table<? extends Record> stats = this.statisticsSelection.selectEmployeesStats().asTable();
-    return this.ctx.fetch(this.historicise(DSL.select(stats.fields()).from(stats).leftOuterJoin(employees)
-        .on(stats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK).eq(employees.field(EMPLOYEES.EMPL_PK))).asTable()));
+    return this.ctx.fetch(this.historicise(DSL.select().from(stats).leftOuterJoin(employees)
+        .on(stats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK).eq(employees.field(EMPLOYEES.EMPL_PK))).asTable(), Fields.EMPLOYEES_STATS_FIELDS));
   }
 
   @GET
@@ -72,8 +72,8 @@ public class StatisticsHistoryEndpoint {
   public Result<? extends Record> getSitesStatsHistory() {
     final Table<Record> sites = this.resourcesSelection.selectSites().asTable();
     final Table<? extends Record> stats = this.statisticsSelection.selectSitesStats().asTable();
-    return this.ctx.fetch(this.historicise(DSL.select(stats.fields()).from(sites).leftOuterJoin(stats)
-        .on(stats.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(sites.field(SITES.SITE_PK))).asTable()));
+    return this.ctx.fetch(this.historicise(DSL.select().from(sites).leftOuterJoin(stats)
+        .on(stats.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(sites.field(SITES.SITE_PK))).asTable(), Fields.SITES_STATS_FIELDS));
   }
 
   @GET
@@ -86,15 +86,15 @@ public class StatisticsHistoryEndpoint {
     final Table<? extends Record> sites = this.resourcesSelection.selectSites().asTable();
     try (final SelectQuery<? extends Record> stats = this.statisticsSelection.selectSitesGroupsStats()) {
       stats.addJoin(sites, JoinType.RIGHT_OUTER_JOIN, sites.field(SITES.SITE_PK).eq(Fields.unqualify(SITES_EMPLOYEES.SIEM_SITE_FK)));
-      return this.ctx.fetch(this.historicise(stats.asTable()));
+      return this.ctx.fetch(this.historicise(stats.asTable(), Fields.SITES_GROUPS_STATS_FIELDS));
     }
   }
 
-  private SelectQuery<? extends Record> historicise(final Table<? extends Record> stats) {
+  private SelectQuery<? extends Record> historicise(final Table<? extends Record> stats, final String[] fields) {
     final Table<Record1<@NonNull Date>> dates = DSL.select(this.date).asTable();
     return DSL
         .select(dates.field(this.date))
-        .select(JSONFields.objectAgg(stats.field(CERTIFICATES.CERT_PK), stats.fields()).as("stats"))
+        .select(JSONFields.objectAgg(stats.field(CERTIFICATES.CERT_PK), stats.fields(fields)).as("stats"))
         .from(dates)
         .leftOuterJoin(DSL.lateral(stats)).on(DSL.trueCondition()) // TODO: use DSL#noCondition when upgrading jOOQ
         .groupBy(this.date)
