@@ -15,7 +15,7 @@ import javax.ws.rs.Path;
 import org.ccjmne.orca.api.inject.business.QueryParameters;
 import org.ccjmne.orca.api.inject.core.ResourcesSelection;
 import org.ccjmne.orca.api.inject.core.StatisticsSelection;
-import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.JSONFields;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.DSLContext;
@@ -85,7 +85,7 @@ public class StatisticsHistoryEndpoint {
 
     final Table<? extends Record> sites = this.resourcesSelection.selectSites().asTable();
     try (final SelectQuery<? extends Record> stats = this.statisticsSelection.selectSitesGroupsStats()) {
-      stats.addJoin(sites, JoinType.RIGHT_OUTER_JOIN, sites.field(SITES.SITE_PK).eq(Constants.unqualify(SITES_EMPLOYEES.SIEM_SITE_FK)));
+      stats.addJoin(sites, JoinType.RIGHT_OUTER_JOIN, sites.field(SITES.SITE_PK).eq(Fields.unqualify(SITES_EMPLOYEES.SIEM_SITE_FK)));
       return this.ctx.fetch(this.historicise(stats.asTable()));
     }
   }

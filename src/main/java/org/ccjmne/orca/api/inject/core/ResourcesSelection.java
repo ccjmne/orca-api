@@ -16,6 +16,7 @@ import org.ccjmne.orca.api.inject.business.QueryParameters;
 import org.ccjmne.orca.api.inject.business.RecordsCollator;
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.JSONFields;
 import org.jooq.JoinType;
 import org.jooq.Record;
@@ -77,7 +78,7 @@ public class ResourcesSelection {
       query.addJoin(
                     SITES_EMPLOYEES,
                     SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-                    SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(this.parameters.get(QueryParameters.DATE))));
+                    SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Fields.selectUpdate(this.parameters.get(QueryParameters.DATE))));
       query.addJoin(sites, this.includeRetiredEmployees() ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
                     sites.field(SITES.SITE_PK).eq(SITES_EMPLOYEES.SIEM_SITE_FK));
 
@@ -127,7 +128,7 @@ public class ResourcesSelection {
 
       return this.recordsCollator.applyFAndS(DSL
           .select(query.fields())
-          .select(JSONFields.objectAgg(SITES_TAGS.SITA_TAGS_FK, JSONFields.TAG_VALUE_COERCED).as("site_tags"))
+          .select(JSONFields.objectAgg(SITES_TAGS.SITA_TAGS_FK, Fields.TAG_VALUE_COERCED).as("site_tags"))
           .from(query)
           .leftOuterJoin(SITES_TAGS).on(SITES_TAGS.SITA_SITE_FK.eq(query.field(SITES.SITE_PK)))
           .join(TAGS).on(TAGS.TAGS_PK.eq(SITES_TAGS.SITA_TAGS_FK)) // In order to extract TAGS_TYPE for TAG_VALUE_COERCED

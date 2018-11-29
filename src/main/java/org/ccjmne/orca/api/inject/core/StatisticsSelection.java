@@ -15,7 +15,7 @@ import javax.inject.Inject;
 
 import org.ccjmne.orca.api.inject.business.QueryParameters;
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.api.utils.ResourcesHelper;
+import org.ccjmne.orca.api.utils.Fields;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Field;
 import org.jooq.Record;
@@ -75,7 +75,7 @@ public class StatisticsSelection {
                 SITES_EMPLOYEES.SIEM_SITE_FK,
                 TRAININGS_EMPLOYEES.TREM_EMPL_FK,
                 TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
-                ResourcesHelper.formatDate(StatisticsSelection.EXPIRY).as("expiry"),
+                Fields.formatDate(StatisticsSelection.EXPIRY).as("expiry"),
                 DSL.field(EMPLOYEES_VOIDINGS.EMVO_DATE).as("void_since"),
                 StatisticsSelection.fieldValidity(this.date).as("status"))
         .from(TRAININGTYPES_CERTIFICATES)
@@ -87,7 +87,7 @@ public class StatisticsSelection {
             .and(EMPLOYEES_VOIDINGS.EMVO_CERT_FK.eq(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)))
         .join(SITES_EMPLOYEES)
         .on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(TRAININGS_EMPLOYEES.TREM_EMPL_FK)
-            .and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(this.date))))
+            .and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Fields.selectUpdate(this.date))))
         .where(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_VALIDATED))
         .and(TRAININGS.TRNG_DATE.le(this.date))
         .groupBy(
@@ -122,7 +122,7 @@ public class StatisticsSelection {
         .from(CERTIFICATES)
         .join(SITES_EMPLOYEES).on(DSL.trueCondition())
         // TODO: Use DSL.noCondition() when upgrading jOOQ
-        .and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(this.date)))
+        .and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Fields.selectUpdate(this.date)))
         .groupBy(CERTIFICATES.CERT_PK, SITES_EMPLOYEES.SIEM_SITE_FK)
         .asTable();
 

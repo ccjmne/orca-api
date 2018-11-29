@@ -14,7 +14,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
 import org.ccjmne.orca.api.inject.core.ResourcesSelection;
-import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.JSONFields;
 import org.jooq.DSLContext;
 import org.jooq.Record;
@@ -64,13 +64,13 @@ public class SubResources {
     final Table<Record3<Integer, String, Integer>> stats = DSL
         .select(SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE, DSL.count(SITES_TAGS.SITA_VALUE))
         .from(SITES_TAGS)
-        .where(SITES_TAGS.SITA_SITE_FK.in(Constants.select(SITES.SITE_PK, this.resourcesSelection.selectSites())))
+        .where(SITES_TAGS.SITA_SITE_FK.in(Fields.select(SITES.SITE_PK, this.resourcesSelection.selectSites())))
         .groupBy(SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE)
         .asTable();
     return this.ctx
         .select(TAGS.fields())
         .select(JSONFields.objectAgg(stats.field(1), stats.field(2)).as("tags_values_counts"))
-        .select(JSONFields.arrayAgg(JSONFields.TAG_VALUE_COERCED).as("tags_values"))
+        .select(JSONFields.arrayAgg(Fields.TAG_VALUE_COERCED).as("tags_values"))
         .from(TAGS)
         .leftOuterJoin(stats).on(stats.field(SITES_TAGS.SITA_TAGS_FK).eq(TAGS.TAGS_PK))
         .groupBy(TAGS.fields())

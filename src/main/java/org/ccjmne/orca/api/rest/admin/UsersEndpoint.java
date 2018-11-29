@@ -25,6 +25,7 @@ import javax.ws.rs.core.MediaType;
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.rest.utils.AccountEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.jooq.DSLContext;
@@ -55,7 +56,7 @@ public class UsersEndpoint {
   @GET
   @Path("users")
   public List<Map<String, Object>> getUsers() {
-    return this.ctx.select(Constants.USERS_FIELDS).select(EMPLOYEES.fields()).select(SITES.fields())
+    return this.ctx.select(Fields.USERS_FIELDS).select(EMPLOYEES.fields()).select(SITES.fields())
         .select(DSL.arrayAgg(USERS_ROLES.USRO_TYPE).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("type_array"),
                 DSL.arrayAgg(USERS_ROLES.USRO_LEVEL).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("level_array"),
                 DSL.arrayAgg(USERS_ROLES.USRO_TRPR_FK).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("trainer_array"),
@@ -65,7 +66,7 @@ public class UsersEndpoint {
         .leftOuterJoin(SITES).on(SITES.SITE_PK.eq(USERS.USER_SITE_FK))
         .leftOuterJoin(USERS_ROLES).on(USERS_ROLES.USER_ID.eq(USERS.USER_ID))
         .where(USERS.USER_ID.ne(Constants.USER_ROOT))
-        .groupBy(Constants.fields(Constants.USERS_FIELDS, EMPLOYEES.fields(), SITES.fields()))
+        .groupBy(Fields.concat(Fields.USERS_FIELDS, EMPLOYEES.fields(), SITES.fields()))
         .fetch(ResourcesHelper.getMapperWithZip(ResourcesHelper
             .getZipSelectMapper("type_array", "level_array", "trainer_array", "true_array"), "roles"));
   }
@@ -82,7 +83,7 @@ public class UsersEndpoint {
    * given user ID.
    */
   public static Map<String, Object> getUserInfoImpl(final String user_id, final DSLContext ctx) {
-    final Map<String, Object> res = ctx.select(Constants.USERS_FIELDS).select(EMPLOYEES.fields()).select(SITES.fields())
+    final Map<String, Object> res = ctx.select(Fields.USERS_FIELDS).select(EMPLOYEES.fields()).select(SITES.fields())
         .select(DSL.arrayAgg(USERS_ROLES.USRO_TYPE).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("type_array"),
                 DSL.arrayAgg(USERS_ROLES.USRO_LEVEL).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("level_array"),
                 DSL.arrayAgg(USERS_ROLES.USRO_TRPR_FK).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("trainer_array"),
@@ -92,7 +93,7 @@ public class UsersEndpoint {
         .leftOuterJoin(SITES).on(SITES.SITE_PK.eq(USERS.USER_SITE_FK))
         .leftOuterJoin(USERS_ROLES).on(USERS_ROLES.USER_ID.eq(USERS.USER_ID))
         .where(USERS.USER_ID.eq(user_id))
-        .groupBy(Constants.fields(Constants.USERS_FIELDS, EMPLOYEES.fields(), SITES.fields()))
+        .groupBy(Fields.concat(Fields.USERS_FIELDS, EMPLOYEES.fields(), SITES.fields()))
         .fetchOne(ResourcesHelper.getMapperWithZip(ResourcesHelper
             .getZipSelectMapper("type_array", "level_array", "trainer_array", "true_array"), "roles"));
 

@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -20,7 +22,6 @@ import javax.ws.rs.Path;
 
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.classes.tables.records.EmployeesRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.SitesRecord;
@@ -43,6 +44,14 @@ import com.google.common.collect.ImmutableList;
 public class BulkImportsEndpoint {
 
   private final DSLContext ctx;
+
+  /**
+   * Used to determine which parameters are to be considered as tags. Matches
+   * unsigned Base10 integer values.<br />
+   * Pattern: <code>^\d+$</code>
+   */
+  // TODO: delete when updating BulkImportsEndpoint
+  public static final Predicate<String> IS_TAG_KEY = Pattern.compile("^\\d+$").asPredicate();
 
   @Inject
   public BulkImportsEndpoint(final DSLContext ctx, final Restrictions restrictions) {
@@ -140,9 +149,10 @@ public class BulkImportsEndpoint {
       }
 
       // 3. TRUNCATE and INSERT tags
+      // TODO: Should expect the tags to be aggregated under a "site_tags" key
       transactionCtx.truncate(SITES_TAGS).restartIdentity().execute();
       final Table<Record3<String, Integer, String>> tags = DSL.<String, Integer, String> values(sites.stream().flatMap(s -> s.entrySet().stream()
-          .filter(e -> ResourcesHelper.IS_TAG_KEY.test(e.getKey()))
+          .filter(e -> IS_TAG_KEY.test(e.getKey()))
           .peek(e -> {
             // TODO: Prevent insertion of non-boolean values for
             // 'b'-type tags

@@ -17,7 +17,7 @@ import org.ccjmne.orca.api.inject.business.QueryParameters;
 import org.ccjmne.orca.api.inject.business.RecordsCollator;
 import org.ccjmne.orca.api.inject.core.ResourcesSelection;
 import org.ccjmne.orca.api.inject.core.StatisticsSelection;
-import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.JSONFields;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -223,7 +223,7 @@ public class ResourcesEndpoint {
   @GET
   @Path("updates/{date}")
   public Record lookupUpdate() {
-    return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_PK.eq(Constants.selectUpdate(this.parameters.get(QueryParameters.DATE)))).fetchAny();
+    return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_PK.eq(Fields.selectUpdate(this.parameters.get(QueryParameters.DATE)))).fetchAny();
   }
 
   /**
@@ -272,7 +272,7 @@ public class ResourcesEndpoint {
 
     try (final SelectQuery<? extends Record> stats = this.statisticsSelection.selectSitesGroupsStats()) {
       stats.addSelect(groupID);
-      stats.addJoin(sites, JoinType.RIGHT_OUTER_JOIN, sites.field(SITES.SITE_PK).eq(Constants.unqualify(SITES_EMPLOYEES.SIEM_SITE_FK)));
+      stats.addJoin(sites, JoinType.RIGHT_OUTER_JOIN, sites.field(SITES.SITE_PK).eq(Fields.unqualify(SITES_EMPLOYEES.SIEM_SITE_FK)));
       stats.addGroupBy(groupID);
 
       return this.collator.applyFAndS(DSL

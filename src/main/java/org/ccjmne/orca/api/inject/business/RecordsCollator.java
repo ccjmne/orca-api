@@ -23,8 +23,8 @@ import javax.ws.rs.core.UriInfo;
 
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.JSONFields;
-import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Condition;
 import org.jooq.Field;
@@ -162,7 +162,7 @@ public class RecordsCollator {
                   DSL.val(Integer.valueOf(this.limit)).as("page_size"),
                   DSL.val(Integer.valueOf(this.offset / this.limit)).as("page_offset"),
                   DSL.select(DSL.ceil(DSL.count().div(Float.valueOf(this.limit))).as("page_count")).from(data).asField("page_count"),
-                  DSL.select(JSONFields.arrayAgg(Constants.unqualify(data.fields()))).from(DSL.select().from(data).limit(this.offset, this.limit))
+                  DSL.select(JSONFields.arrayAgg(Fields.unqualify(data.fields()))).from(DSL.select().from(data).limit(this.offset, this.limit))
                       .asField("page_contents"))
           .getQuery();
     }
@@ -364,8 +364,8 @@ public class RecordsCollator {
 
         // If String, perform non-accented, case-insensitive partial match search
         if (String.class.equals(found.get().getType())) {
-          return Optional.of(FieldCondition.on(ResourcesHelper.unaccent(DSL.field(self.field, String.class)),
-                                               f -> f.containsIgnoreCase(ResourcesHelper.unaccent(DSL.val(self.value)))));
+          return Optional.of(FieldCondition.on(Fields.unaccent(DSL.field(self.field, String.class)),
+                                               f -> f.containsIgnoreCase(Fields.unaccent(DSL.val(self.value)))));
         }
 
         // If Number-like, parse it first
@@ -467,7 +467,7 @@ public class RecordsCollator {
         }
 
         if (String.class.equals(found.get().getType())) {
-          return Optional.of(self.asSortField.apply(ResourcesHelper.unaccent(DSL.field(self.field, String.class))));
+          return Optional.of(self.asSortField.apply(Fields.unaccent(DSL.field(self.field, String.class))));
         }
 
         if (JsonNode.class.equals(found.get().getType())) {

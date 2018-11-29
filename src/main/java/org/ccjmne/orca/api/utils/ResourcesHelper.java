@@ -11,77 +11,17 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.jooq.Field;
-import org.jooq.Query;
 import org.jooq.Record;
-import org.jooq.Record2;
 import org.jooq.RecordMapper;
-import org.jooq.Table;
-import org.jooq.Transaction;
-import org.jooq.impl.DSL;
 
 import com.google.common.collect.ImmutableList;
 
 // TODO: Rename to SubQueries or something
 public class ResourcesHelper {
-
-  /**
-   * Used to determine which parameters are to be considered as tags. Matches
-   * unsigned Base10 integer values.<br />
-   * Pattern: <code>^\d+$</code>
-   */
-  public static final Predicate<String> IS_TAG_KEY = Pattern.compile("^\\d+$").asPredicate();
-
-  /**
-   * Formats a date-type {@link Field} as a {@link String}. Handles the case
-   * where the date is "never" (for certificate expiration, for instance).
-   *
-   * @param field
-   *          The {@code Field<java.sql.Date>} to be formatted
-   * @return A new {@code VARCHAR}-type {@code Field}, formatted as our API
-   *         formats {@link Date}s.
-   */
-  public static Field<String> formatDate(final Field<java.sql.Date> field) {
-    return DSL
-        .when(field.eq(DSL.inline(Constants.DATE_INFINITY)), Constants.DATE_INFINITY_LITERAL)
-        .otherwise(DSL.field("to_char({0}, {1})", String.class, field, APIDateFormat.FORMAT));
-  }
-
-  public static Field<String> unaccent(final Field<String> field) {
-    return DSL.function("unaccent", String.class, field);
-  }
-
-  /**
-   * Generates a {@link Query} that will remove duplicates and reintroduce
-   * missing entries in the virtual sequence of ordering values stored as a
-   * {@link Table}'s {@link Field}.
-   *
-   * @param table
-   *          The {@link Table} whose ordering field to cleanup
-   * @param key
-   *          A {@link Field} acting as unique ID for the records in this
-   *          table (most likely its <em>primary key</em>)
-   * @param order
-   *          The {@link Field} by which this table's records are to be
-   *          ordered
-   * @return A {@link Query} to be executed, ideally within a
-   *         {@link Transaction}
-   */
-  public static Query cleanupSequence(final Table<?> table, final Field<Integer> key, final Field<Integer> order) {
-    final Field<Integer> newOrder = DSL.rowNumber().over().orderBy(order).as("new_order");
-    final Table<Record2<Integer, Integer>> reorderMap = DSL
-        .select(key, newOrder)
-        .from(table).asTable("reorder_map");
-
-    return DSL.update(table).set(order, reorderMap.field(newOrder))
-        .from(reorderMap)
-        .where(key.eq(reorderMap.field(key)));
-  }
 
   public static <K, V> RecordMapper<Record, Map<String, Object>> getMapperWithZip(
                                                                                   final ZipRecordMapper<Record, Map<K, V>> zipMapper,

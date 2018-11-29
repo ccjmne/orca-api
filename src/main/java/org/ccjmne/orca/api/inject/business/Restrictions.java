@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
 
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.jooq.classes.tables.records.UsersRecord;
 import org.ccjmne.orca.jooq.classes.tables.records.UsersRolesRecord;
 import org.jooq.DSLContext;
@@ -86,7 +87,7 @@ public class Restrictions {
     if (user.getUserType().equals(Constants.USERTYPE_EMPLOYEE)) {
       site = this.ctx.selectFrom(SITES_EMPLOYEES)
           .where(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(user.getUserEmplFk())
-              .and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(DSL.currentDate())))
+              .and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Fields.selectUpdate(DSL.currentDate())))
               .and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.DECOMMISSIONED_SITE)))
           .fetchOne(SITES_EMPLOYEES.SIEM_SITE_FK);
     } else {

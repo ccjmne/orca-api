@@ -15,7 +15,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.inject.business.Restrictions;
-import org.ccjmne.orca.api.utils.ResourcesHelper;
+import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.jooq.DSLContext;
@@ -84,7 +84,7 @@ public class TagsEndpoint {
               .as("unused", "pk", "new_order"))
           .where(TAGS.TAGS_PK.eq(DSL.field("pk", Integer.class)))
           .execute();
-      transactionCtx.execute(ResourcesHelper.cleanupSequence(TAGS, TAGS.TAGS_PK, TAGS.TAGS_ORDER));
+      transactionCtx.execute(Fields.cleanupSequence(TAGS, TAGS.TAGS_PK, TAGS.TAGS_ORDER));
     });
   }
 
@@ -93,7 +93,7 @@ public class TagsEndpoint {
   public void deleteTag(@PathParam("tags_pk") final Integer tags_pk) {
     Transactions.with(this.ctx, transactionCtx -> {
       transactionCtx.delete(TAGS).where(TAGS.TAGS_PK.eq(tags_pk)).execute();
-      transactionCtx.execute(ResourcesHelper.cleanupSequence(TAGS, TAGS.TAGS_PK, TAGS.TAGS_ORDER));
+      transactionCtx.execute(Fields.cleanupSequence(TAGS, TAGS.TAGS_PK, TAGS.TAGS_ORDER));
     });
   }
 }

@@ -20,7 +20,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.api.utils.ResourcesHelper;
+import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.jooq.DSLContext;
@@ -172,7 +172,7 @@ public class CertificatesEndpoint {
               .as("unused", "pk", "new_order"))
           .where(CERTIFICATES.CERT_PK.eq(DSL.field("pk", Integer.class)))
           .execute();
-      transactionCtx.execute(ResourcesHelper.cleanupSequence(CERTIFICATES, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_ORDER));
+      transactionCtx.execute(Fields.cleanupSequence(CERTIFICATES, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_ORDER));
     });
   }
 
@@ -191,7 +191,7 @@ public class CertificatesEndpoint {
               .as("unused", "pk", "new_order"))
           .where(TRAININGTYPES.TRTY_PK.eq(DSL.field("pk", Integer.class)))
           .execute();
-      transactionCtx.execute(ResourcesHelper.cleanupSequence(TRAININGTYPES, TRAININGTYPES.TRTY_PK, TRAININGTYPES.TRTY_ORDER));
+      transactionCtx.execute(Fields.cleanupSequence(TRAININGTYPES, TRAININGTYPES.TRTY_PK, TRAININGTYPES.TRTY_ORDER));
     });
   }
 
@@ -200,7 +200,7 @@ public class CertificatesEndpoint {
   public void deleteCert(@PathParam("cert_pk") final Integer cert_pk) {
     Transactions.with(this.ctx, transactionCtx -> {
       transactionCtx.delete(CERTIFICATES).where(CERTIFICATES.CERT_PK.eq(cert_pk)).execute();
-      transactionCtx.execute(ResourcesHelper.cleanupSequence(CERTIFICATES, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_ORDER));
+      transactionCtx.execute(Fields.cleanupSequence(CERTIFICATES, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_ORDER));
     });
   }
 
@@ -209,7 +209,7 @@ public class CertificatesEndpoint {
   public void deleteTrty(@PathParam("trty_pk") final Integer trty_pk) {
     Transactions.with(this.ctx, transactionCtx -> {
       transactionCtx.delete(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
-      transactionCtx.execute(ResourcesHelper.cleanupSequence(TRAININGTYPES, TRAININGTYPES.TRTY_PK, TRAININGTYPES.TRTY_ORDER));
+      transactionCtx.execute(Fields.cleanupSequence(TRAININGTYPES, TRAININGTYPES.TRTY_PK, TRAININGTYPES.TRTY_ORDER));
     });
   }
 }

@@ -1,8 +1,5 @@
 package org.ccjmne.orca.api.utils;
 
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
-
 import java.io.IOException;
 
 import org.jooq.Converter;
@@ -27,15 +24,6 @@ import com.fasterxml.jackson.databind.node.NullNode;
 public class JSONFields {
 
   public static final DataType<JsonNode> JSON_TYPE = SQLDataType.VARCHAR.asConvertedDataType(new PostgresJSONJacksonJsonNodeConverter());
-
-  /**
-   * The {@link SITES_TAGS#SITA_VALUE} field coerced to either a boolean or a
-   * string JSON element.
-   */
-  public static final Field<JsonNode> TAG_VALUE_COERCED = DSL
-      .when(Constants.unqualify(TAGS.TAGS_TYPE).eq(Constants.TAGS_TYPE_BOOLEAN),
-            JSONFields.toJson(DSL.cast(Constants.unqualify(SITES_TAGS.SITA_VALUE), Boolean.class)))
-      .otherwise(JSONFields.toJson(Constants.unqualify(SITES_TAGS.SITA_VALUE)));
 
   /**
    * Builds a {@link JsonNode} for each {@link Record} from the {@code fields}
