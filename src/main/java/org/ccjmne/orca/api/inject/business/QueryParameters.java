@@ -34,6 +34,7 @@ public class QueryParameters {
   public static final Type<Integer>               EMPLOYEE              = new Type<>("employee", Integer.class);
   public static final Type<Integer>               SITE                  = new Type<>("site", Integer.class);
   public static final Type<Integer>               SESSION               = new Type<>("session", Integer.class);
+  public static final Type<Integer>               CERTIFICATE           = new Type<>("certificate", Integer.class);
   public static final Type<Boolean>               INCLUDE_DECOMISSIONED = new Type<>("include-decommissioned", Boolean.class);
   public static final CustomType<Field<Date>>     FROM                  = new CustomType<>("from", value -> DSL.val(value, Date.class), DSL.currentDate());
   public static final CustomType<Field<Date>>     TO                    = new CustomType<>("to", value -> DSL.val(value, Date.class), DSL.currentDate());
