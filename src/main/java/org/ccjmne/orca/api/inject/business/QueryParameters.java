@@ -71,7 +71,7 @@ public class QueryParameters {
   }
 
   public <T> boolean has(final Type<T> type) {
-    return this.of(type).isPresent();
+    return this.of(type).isPresent() && (this.getRaw(type) != null);
   }
 
   public <T> boolean is(final Type<T> type, @NonNull final T value) {
