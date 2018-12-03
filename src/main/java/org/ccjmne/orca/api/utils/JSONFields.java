@@ -42,10 +42,10 @@ public class JSONFields {
    *          for each {@code Record}
    * @return A {@code Field<JsonNode>} built from aggregating the
    *         {@code fields} argument with
-   *         {@link JSONFields#rowToJson(Field...)}
+   *         {@link JSONFields#toJson(Field...)}
    */
   public static Field<JsonNode> objectAgg(final Field<?> key, final Field<?>... fields) {
-    return DSL.coalesce(DSL.field("jsonb_object_agg({0}, ({1})) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, key, JSONFields.rowToJson(fields)),
+    return DSL.coalesce(DSL.field("jsonb_object_agg({0}, ({1})) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, key, JSONFields.toJson(fields)),
                         JsonNodeFactory.instance.objectNode());
   }
 
@@ -95,10 +95,10 @@ public class JSONFields {
    *          for each {@code Record}
    * @return A {@code Field<JsonNode>} built from aggregating the
    *         {@code fields} argument with
-   *         {@link JSONFields#rowToJson(Field...)}
+   *         {@link JSONFields#toJson(Field...)}
    */
   public static Field<JsonNode> arrayAgg(final Field<?>... fields) {
-    return DSL.coalesce(DSL.field("jsonb_agg({0}) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, JSONFields.rowToJson(fields)),
+    return DSL.coalesce(DSL.field("jsonb_agg({0}) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, JSONFields.toJson(fields)),
                         JsonNodeFactory.instance.arrayNode());
   }
 
@@ -109,9 +109,9 @@ public class JSONFields {
    *          The fields to include in the resulting JSON
    * @return A {@code Field<JsonNode>} built from the specified {@code fields}
    */
-  public static Field<JsonNode> rowToJson(final Field<?>... fields) {
+  public static Field<JsonNode> toJson(final Field<?>... fields) {
     final TableLike<?> inner = DSL.select(fields).asTable();
-    return DSL.select(DSL.field("row_to_json({0})", JSON_TYPE, inner)).from(inner).where(fields[0].isNotNull()).asField();
+    return DSL.select(DSL.field("to_jsonb({0})", JSON_TYPE, inner)).from(inner).where(fields[0].isNotNull()).asField();
   }
 
   /**

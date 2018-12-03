@@ -69,7 +69,7 @@ public class BulkImportsEndpoint {
     Transactions.with(this.ctx, transactionCtx -> {
       // 1. 'UPSERT' employees
       final Map<Boolean, List<@NonNull EmployeesRecord>> records = employees.stream().map(BulkImportsEndpoint.as(EmployeesRecord.class))
-          .peek(BulkImportsEndpoint.setIfExists(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_EXTERNAL_ID,
+          .peek(BulkImportsEndpoint.setExistsFlag(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_EXTERNAL_ID,
                                                 transactionCtx.select(EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_PK).from(EMPLOYEES)
                                                     .where(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT))
                                                     .fetchMap(EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_PK)))
@@ -130,7 +130,7 @@ public class BulkImportsEndpoint {
     Transactions.with(this.ctx, transactionCtx -> {
       // 1. 'UPSERT' sites
       final Map<Boolean, List<SitesRecord>> records = sites.stream().map(BulkImportsEndpoint.as(SitesRecord.class))
-          .peek(BulkImportsEndpoint.setIfExists(SITES.SITE_PK, SITES.SITE_EXTERNAL_ID,
+          .peek(BulkImportsEndpoint.setExistsFlag(SITES.SITE_PK, SITES.SITE_EXTERNAL_ID,
                                                 transactionCtx.select(SITES.SITE_EXTERNAL_ID, SITES.SITE_PK).from(SITES)
                                                     .where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE))
                                                     .fetchMap(SITES.SITE_EXTERNAL_ID, SITES.SITE_PK)))
@@ -188,7 +188,7 @@ public class BulkImportsEndpoint {
   }
 
   @SuppressWarnings("null")
-  private static final <R extends TableRecord<?>, T> Consumer<R> setIfExists(final Field<T> set, final Field<String> find, final Map<String, T> source) {
+  private static final <R extends TableRecord<?>, T> Consumer<R> setExistsFlag(final Field<T> set, final Field<String> find, final Map<String, T> source) {
     return record -> {
       if (source.containsKey(record.get(find))) {
         record.set(set, source.get(record.get(find)));

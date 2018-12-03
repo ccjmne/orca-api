@@ -71,7 +71,7 @@ public class ResourcesSelection {
     final Table<Record> sites = this.selectSites().asTable();
     try (final SelectQuery<Record> query = DSL.select().getQuery()) {
       query.addSelect(EMPLOYEES.fields());
-      query.addSelect(JSONFields.rowToJson(sites.fields(SITES.SITE_PK, SITES.SITE_NAME)).as("site"));
+      query.addSelect(JSONFields.toJson(sites.fields(SITES.SITE_PK, SITES.SITE_NAME)).as("site"));
       query.addFrom(EMPLOYEES);
       query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT));
       // TODO: Use DSL.noCondition() when upgrading jOOQ
