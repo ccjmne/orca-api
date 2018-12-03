@@ -159,7 +159,7 @@
 			<url-pattern>/update/*</url-pattern>
 			<url-pattern>/users-admin/*</url-pattern>
 
-			<http-method>GET</http-method><!-- specific to users-admin -->
+			<http-method>GET</http-method><!-- specific to users-admin and employees-notes -->
 			<http-method>DELETE</http-method>
 			<http-method>POST</http-method>
 			<http-method>PUT</http-method>

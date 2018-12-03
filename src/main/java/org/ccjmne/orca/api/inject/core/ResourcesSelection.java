@@ -66,7 +66,6 @@ public class ResourcesSelection {
     return this.parameters.has(QueryParameters.SESSION) || (this.parameters.has(QueryParameters.EMPLOYEE) && this.restrictions.canAccessTrainings());
   }
 
-  // TODO: Include VOIDINGS
   public SelectQuery<Record> selectEmployees() {
     final Table<Record> sites = this.selectSites().asTable();
     try (final SelectQuery<Record> query = DSL.select().getQuery()) {
