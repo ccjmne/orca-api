@@ -12,7 +12,6 @@ import org.jooq.impl.SQLDataType;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 
 /**
@@ -45,8 +44,7 @@ public class JSONFields {
    *         {@link JSONFields#toJson(Field...)}
    */
   public static Field<JsonNode> objectAgg(final Field<?> key, final Field<?>... fields) {
-    return DSL.coalesce(DSL.field("jsonb_object_agg({0}, ({1})) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, key, JSONFields.toJson(fields)),
-                        JsonNodeFactory.instance.objectNode());
+    return DSL.field("COALESCE(jsonb_object_agg({0}, ({1})) FILTER (WHERE {0} IS NOT NULL), '{}'::jsonb)", JSON_TYPE, key, JSONFields.toJson(fields));
   }
 
   /**
@@ -67,7 +65,7 @@ public class JSONFields {
    *         {@code value}
    */
   public static Field<JsonNode> objectAgg(final Field<?> key, final Field<?> value) {
-    return DSL.coalesce(DSL.field("jsonb_object_agg({0}, {1}) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, key, value), JsonNodeFactory.instance.objectNode());
+    return DSL.field("COALESCE(jsonb_object_agg({0}, {1}) FILTER (WHERE {0} IS NOT NULL), '{}'::jsonb)", JSON_TYPE, key, value);
   }
 
   /**
@@ -82,7 +80,7 @@ public class JSONFields {
    *         {@code field} argument
    */
   public static Field<JsonNode> arrayAgg(final Field<?> field) {
-    return DSL.coalesce(DSL.field("jsonb_agg({0}) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, field), JsonNodeFactory.instance.arrayNode());
+    return DSL.field("COALESCE(jsonb_agg({0}) FILTER (WHERE {0} IS NOT NULL), '[]'::jsonb)", JSON_TYPE, field);
   }
 
   /**
@@ -98,8 +96,7 @@ public class JSONFields {
    *         {@link JSONFields#toJson(Field...)}
    */
   public static Field<JsonNode> arrayAgg(final Field<?>... fields) {
-    return DSL.coalesce(DSL.field("jsonb_agg({0}) FILTER (WHERE {0} IS NOT NULL)", JSON_TYPE, JSONFields.toJson(fields)),
-                        JsonNodeFactory.instance.arrayNode());
+    return DSL.field("COALESCE(jsonb_agg({0}) FILTER (WHERE {0} IS NOT NULL), '[]'::jsonb)", JSON_TYPE, JSONFields.toJson(fields));
   }
 
   /**
