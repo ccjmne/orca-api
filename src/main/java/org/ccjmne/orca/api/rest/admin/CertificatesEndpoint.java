@@ -93,7 +93,7 @@ public class CertificatesEndpoint {
   }
 
   @POST
-  @Path("trainingtypes")
+  @Path("session-types")
   @Consumes(MediaType.APPLICATION_JSON)
   public Integer createTrty(final Map<String, Object> trty) {
     final Integer trty_pk = new Integer(this.ctx.nextval(Sequences.TRAININGTYPES_TRTY_PK_SEQ).intValue());
@@ -105,7 +105,7 @@ public class CertificatesEndpoint {
    * @return <code>true</code> iff a new {@link Record} was created
    */
   @PUT
-  @Path("trainingtypes/{trty_pk}")
+  @Path("session-types/{trty_pk}")
   @Consumes(MediaType.APPLICATION_JSON)
   public Boolean updateTrty(@PathParam("trty_pk") final Integer trty_pk, final Map<String, Object> trty) {
     return Transactions.with(this.ctx, transactionCtx -> {
@@ -178,7 +178,7 @@ public class CertificatesEndpoint {
 
   @POST
   @SuppressWarnings({ "unchecked", "null" })
-  @Path("trainingtypes/reorder")
+  @Path("session-types/reorder")
   public void reassignTrainingTypes(final Map<Integer, Integer> reassignmentMap) {
     if (null == reassignmentMap) {
       return;
@@ -205,7 +205,7 @@ public class CertificatesEndpoint {
   }
 
   @DELETE
-  @Path("trainingtypes/{trty_pk}")
+  @Path("session-types/{trty_pk}")
   public void deleteTrty(@PathParam("trty_pk") final Integer trty_pk) {
     Transactions.with(this.ctx, transactionCtx -> {
       transactionCtx.delete(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
