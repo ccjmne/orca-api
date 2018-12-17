@@ -385,13 +385,19 @@ public class RecordsCollator {
           return Optional.of(FieldCondition.on(DSL.field(self.field, Boolean.class), f -> f.eq(Convert.convert(self.value, Boolean.class))));
         }
 
-        // If JsonNode, handle eq:null and ne:null
-        // TODO: maybe also handle these for any field type
         if (JsonNode.class.equals(found.get().getType())) {
-          return Optional.of(FieldCondition
-              .on(DSL.field("{0} #>> {1}", Object.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path)),
-                  Constants.FILTER_VALUE_NULL.equals(self.value) ? f -> self.comparator.equals("eq") ? f.isNull() : f.isNotNull()
-                                                                 : f -> Filter.compare(f, self.comparator, DSL.val(self.value, Object.class))));
+          // If JsonNode, handle eq:null and ne:null
+          // TODO: maybe also handle these for any field type
+          final Field<String> leaf = DSL.field("{0} #>> {1}", String.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path));
+          if (Constants.FILTER_VALUE_NULL.equals(self.value)) {
+            return Optional.of(FieldCondition.on(leaf, f -> self.comparator.equals("eq") ? f.isNull() : f.isNotNull()));
+          }
+
+          if (null != DSL.<Integer> val(self.value, Integer.class).getValue()) { // Can be cast as Integer
+            return Optional.of(FieldCondition.on(DSL.cast(leaf, Integer.class), f -> Filter.compare(f, self.comparator, DSL.val(self.value, Integer.class))));
+          }
+
+          return Optional.of(FieldCondition.on(leaf, f -> Filter.compare(f, self.comparator, DSL.val(self.value))));
         }
 
         // Default: regular comparison
