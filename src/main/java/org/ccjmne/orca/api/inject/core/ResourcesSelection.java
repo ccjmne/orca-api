@@ -130,7 +130,7 @@ public class ResourcesSelection {
           .select(JSONFields.objectAgg(SITES_TAGS.SITA_TAGS_FK, Fields.TAG_VALUE_COERCED).as("site_tags"))
           .from(query)
           .leftOuterJoin(SITES_TAGS).on(SITES_TAGS.SITA_SITE_FK.eq(query.field(SITES.SITE_PK)))
-          .join(TAGS).on(TAGS.TAGS_PK.eq(SITES_TAGS.SITA_TAGS_FK)) // In order to extract TAGS_TYPE for TAG_VALUE_COERCED
+          .leftOuterJoin(TAGS).on(TAGS.TAGS_PK.eq(SITES_TAGS.SITA_TAGS_FK)) // In order to extract TAGS_TYPE for TAG_VALUE_COERCED
           .groupBy(query.fields()));
     }
   }
