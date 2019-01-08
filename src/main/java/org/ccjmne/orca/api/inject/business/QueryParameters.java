@@ -36,6 +36,7 @@ public class QueryParameters {
   public static final Type<Integer>               SESSION               = new Type<>("session", Integer.class);
   public static final Type<Integer>               CERTIFICATE           = new Type<>("certificate", Integer.class);
   public static final Type<Boolean>               INCLUDE_DECOMISSIONED = new Type<>("include-decommissioned", Boolean.class);
+  public static final CustomType<String>          INTERVAL              = new CustomType<>("interval", value -> value, "month");
   public static final CustomType<Field<Date>>     FROM                  = new CustomType<>("from", value -> DSL.val(value, Date.class), DSL.currentDate());
   public static final CustomType<Field<Date>>     TO                    = new CustomType<>("to", value -> DSL.val(value, Date.class), DSL.currentDate());
   public static final CustomType<Field<Date>>     DATE                  = new CustomType<>("date", value -> DSL.val(value, Date.class), DSL.currentDate());

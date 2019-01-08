@@ -52,9 +52,10 @@ public class StatisticsOverTimeEndpoint {
     this.resourcesSelection = resourcesSelection;
     this.statisticsSelection = new StatisticsSelection(DSL.field(DATE_SERIES_FIELD_NAME, Date.class));
     this.date = DSL
-        .field("generate_series(date_trunc('month', {0}), {1}, '1 month')::date", Date.class,
+        .field("generate_series(date_trunc({2}, {0}), {1}, CONCAT('1 ', {2})::interval)::date", Date.class,
                parameters.get(QueryParameters.FROM),
-               parameters.get(QueryParameters.TO))
+               parameters.get(QueryParameters.TO),
+               parameters.get(QueryParameters.INTERVAL))
         .as(DATE_SERIES_FIELD_NAME);
   }
 
