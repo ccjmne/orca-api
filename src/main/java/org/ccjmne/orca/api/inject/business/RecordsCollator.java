@@ -138,11 +138,11 @@ public class RecordsCollator {
    * form:
    *
    * <pre>
-   *        +-----------+-------------+------------+---------------+
-   *        | page_size | page_offset | page_count | page_contents |
-   * +------+-----------+-------------+------------+---------------+
-   * | Type | Integer   | Integer     | Integer    | JSON Array    |
-   * +------+-----------+-------------+------------+---------------+
+   *        +------------+------------+-----------+-------------+---------------+
+   *        | rslt_count | rslt_pages | page_size | page_offset | page_contents |
+   * +------+------------+------------+-----------+-------------+---------------+
+   * | Type | Integer    | Integer    | Integer   | Integer     | JSON Array    |
+   * +------+------------+------------+-----------+-------------+---------------+
    * </pre>
    *
    * Should <strong>only ever be applied onto the outermost query</strong>
@@ -155,23 +155,26 @@ public class RecordsCollator {
    * @return The original query, for method chaining purposes
    */
   public <T extends Record> SelectQuery<?> applyPagination(final SelectQuery<T> query) {
-    final Table<T> data = query.asTable("data");
+    final Table<T> data = query.asTable("resultset");
     if (this.limit > 0) {
-      return DSL
+      return DSL.with("resultset").as(query)
           .select(
+                  DSL.select(DSL.count()).from("resultset").asField("rslt_count"),
+                  DSL.select(DSL.ceil(DSL.count().div(Float.valueOf(this.limit))).as("rslt_pages")).from("resultset").asField("rslt_pages"),
                   DSL.val(Integer.valueOf(this.limit)).as("page_size"),
                   DSL.val(Integer.valueOf(this.offset / this.limit)).as("page_offset"),
-                  DSL.select(DSL.ceil(DSL.count().div(Float.valueOf(this.limit))).as("page_count")).from(data).asField("page_count"),
-                  DSL.select(JSONFields.arrayAgg(Fields.unqualify(data.fields()))).from(DSL.select().from(data).limit(this.offset, this.limit))
+                  DSL.select(JSONFields.arrayAgg(Fields.unqualify(data.fields()))).from(DSL.select().from("resultset").limit(this.offset, this.limit))
                       .asField("page_contents"))
           .getQuery();
     }
 
-    return DSL.select(
-                      DSL.val(Integer.valueOf(0)).as("page_size"),
-                      DSL.val(Integer.valueOf(0)).as("page_offset"),
-                      DSL.val(Integer.valueOf(0)).as("page_count"),
-                      DSL.select(JSONFields.arrayAgg(data.fields())).from(data).asField("page_contents"))
+    return DSL.with("resultset").as(query)
+        .select(
+                DSL.select(DSL.count()).from("resultset").asField("rslt_count"),
+                DSL.val(Integer.valueOf(1)).as("rslt_pages"),
+                DSL.val(Integer.valueOf(0)).as("page_size"),
+                DSL.val(Integer.valueOf(0)).as("page_offset"),
+                DSL.select(JSONFields.arrayAgg(data.fields())).from("resultset").asField("page_contents"))
         .getQuery();
   }
 
@@ -237,11 +240,11 @@ public class RecordsCollator {
    * <em>paginated response</em>, of the following form:
    *
    * <pre>
-   *        +-----------+-------------+------------+---------------+
-   *        | page_size | page_offset | page_count | page_contents |
-   * +------+-----------+-------------+------------+---------------+
-   * | Type | Integer   | Integer     | Integer    | JSON Array    |
-   * +------+-----------+-------------+------------+---------------+
+   *        +------------+------------+-----------+-------------+---------------+
+   *        | rslt_count | rslt_pages | page_size | page_offset | page_contents |
+   * +------+------------+------------+-----------+-------------+---------------+
+   * | Type | Integer    | Integer    | Integer   | Integer     | JSON Array    |
+   * +------+------------+------------+-----------+-------------+---------------+
    * </pre>
    *
    * Should <strong>only ever be applied onto the outermost query</strong>
