@@ -69,6 +69,7 @@ public class SubResources {
         .asTable();
     return this.ctx
         .select(TAGS.fields())
+        .select(DSL.sum(stats.field(2, Integer.class)).as("tags_sites_count"))
         .select(JSONFields.objectAgg(stats.field(1), stats.field(2)).as("tags_values_counts"))
         .select(JSONFields.arrayAgg(Fields.TAG_VALUE_COERCED).as("tags_values"))
         .from(TAGS)
