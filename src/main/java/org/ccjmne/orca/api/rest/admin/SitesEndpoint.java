@@ -15,10 +15,10 @@ import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.ObjectUtils;
+import org.ccjmne.orca.api.inject.business.QueryParameters;
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Transactions;
@@ -29,22 +29,24 @@ import org.jooq.DSLContext;
 @Path("sites")
 public class SitesEndpoint {
 
-  private final DSLContext ctx;
+  private final DSLContext      ctx;
+  private final QueryParameters parameters;
 
   @Inject
-  public SitesEndpoint(final DSLContext ctx, final Restrictions restrictions) {
+  public SitesEndpoint(final DSLContext ctx, final Restrictions restrictions, final QueryParameters parameters) {
     if (!restrictions.canManageSitesAndTags()) {
       throw new ForbiddenException();
     }
 
     this.ctx = ctx;
+    this.parameters = parameters;
   }
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public Integer createSite(final Map<String, Object> siteDefinition) {
+  public Integer createSite(final Map<String, Object> site) {
     final Integer site_pk = new Integer(this.ctx.nextval(Sequences.SITES_SITE_PK_SEQ).intValue());
-    this.updateSite(site_pk, siteDefinition);
+    this.upsertSite(site_pk, site);
     return site_pk;
   }
 
@@ -53,21 +55,51 @@ public class SitesEndpoint {
    *         actually created
    */
   @PUT
-  @Path("{site_pk}")
+  @Path("{site}")
   @Consumes(MediaType.APPLICATION_JSON)
-  public Boolean updateSite(@PathParam("site_pk") final Integer site_pk, final Map<String, Object> siteDefinition) {
-    return Transactions.with(this.ctx, transactionCtx -> {
-      @SuppressWarnings("unchecked")
-      final Map<String, Object> tags = ObjectUtils.defaultIfNull((Map<String, Object>) siteDefinition.remove("tags"), Collections.emptyMap());
-      final boolean exists = transactionCtx.fetchExists(SITES, SITES.SITE_PK.eq(site_pk));
+  public Boolean updateSite(final Map<String, Object> site) {
+    return this.upsertSite(this.parameters.getRaw(QueryParameters.SITE), site);
+  }
+
+  /**
+   * @return <code>true</code> iff that site was existing and thus, actually
+   *         deleted
+   */
+  @DELETE
+  @Path("{site}")
+  public Boolean deleteSite() {
+    final Integer site = this.parameters.getRaw(QueryParameters.SITE);
+    // Database CASCADEs the deletion of linked users, if any
+    // Database CASCADEs the deletion of its tags
+    return Transactions.with(this.ctx, transaction -> {
+      // Set deleted entity's employees' site to DECOMMISSIONED_SITE
+      final boolean exists = transaction.fetchExists(SITES, SITES.SITE_PK
+          .ne(Constants.DECOMMISSIONED_SITE)
+          .and(SITES.SITE_PK.eq(site)));
       if (exists) {
-        transactionCtx.update(SITES).set(siteDefinition).where(SITES.SITE_PK.eq(site_pk)).execute();
-      } else {
-        transactionCtx.insertInto(SITES).set(siteDefinition).set(SITES.SITE_PK, site_pk).execute();
+        transaction.update(SITES_EMPLOYEES)
+            .set(SITES_EMPLOYEES.SIEM_SITE_FK, Constants.DECOMMISSIONED_SITE)
+            .where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site)).execute();
+        transaction.delete(SITES).where(SITES.SITE_PK.eq(site)).execute();
       }
 
-      transactionCtx.deleteFrom(SITES_TAGS).where(SITES_TAGS.SITA_SITE_FK.eq(site_pk)).execute();
-      transactionCtx.batchInsert(tags.entrySet().stream()
+      return Boolean.valueOf(exists);
+    });
+  }
+
+  private Boolean upsertSite(final Integer site_pk, final Map<String, Object> site) {
+    return Transactions.with(this.ctx, transaction -> {
+      @SuppressWarnings("unchecked")
+      final Map<String, Object> tags = ObjectUtils.defaultIfNull((Map<String, Object>) site.remove("site_tags"), Collections.emptyMap());
+      final boolean exists = transaction.fetchExists(SITES, SITES.SITE_PK.eq(site_pk));
+      if (exists) {
+        transaction.update(SITES).set(site).where(SITES.SITE_PK.eq(site_pk)).execute();
+      } else {
+        transaction.insertInto(SITES).set(site).set(SITES.SITE_PK, site_pk).execute();
+      }
+
+      transaction.deleteFrom(SITES_TAGS).where(SITES_TAGS.SITA_SITE_FK.eq(site_pk)).execute();
+      transaction.batchInsert(tags.entrySet().stream()
           .map(tag -> {
             // TODO: Prevent insertion of non-boolean values for
             // 'b'-type tags
@@ -80,30 +112,4 @@ public class SitesEndpoint {
       return Boolean.valueOf(!exists);
     });
   }
-
-  /**
-   * @return <code>true</code> iff that site was existing and thus, actually
-   *         deleted
-   */
-  @DELETE
-  @Path("{site_pk}")
-  public Boolean deleteSite(@PathParam("site_pk") final Integer site_pk) {
-    // Database CASCADEs the deletion of linked users, if any
-    // Database CASCADEs the deletion of its tags
-    return Transactions.with(this.ctx, transactionCtx -> {
-      // Set deleted entity's employees' site to DECOMMISSIONED_SITE
-      final boolean exists = transactionCtx.fetchExists(SITES, SITES.SITE_PK
-          .ne(Constants.DECOMMISSIONED_SITE)
-          .and(SITES.SITE_PK.eq(site_pk)));
-      if (exists) {
-        transactionCtx.update(SITES_EMPLOYEES)
-            .set(SITES_EMPLOYEES.SIEM_SITE_FK, Constants.DECOMMISSIONED_SITE)
-            .where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(site_pk)).execute();
-        transactionCtx.delete(SITES).where(SITES.SITE_PK.eq(site_pk)).execute();
-      }
-
-      return Boolean.valueOf(exists);
-    });
-  }
-
 }
