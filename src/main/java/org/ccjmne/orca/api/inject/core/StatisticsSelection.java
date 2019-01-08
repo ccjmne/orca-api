@@ -140,6 +140,8 @@ public class StatisticsSelection {
                       DSL.coalesce(sStats.field(Constants.STATUS_DANGER, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_DANGER),
                       current.as("current"),
                       target.as("target"),
+                      DSL.when(target.minus(current).ge(DSL.zero()), target.minus(current)).otherwise(DSL.zero()).as("remaining"),
+                      DSL.round(current.mul(Float.valueOf(100f)).div(eCount), 1).as("percent"),
                       DSL
                           .when(current.ge(target), Constants.STATUS_SUCCESS)
                           .when(current.ge(warningTarget), Constants.STATUS_WARNING)
@@ -176,8 +178,10 @@ public class StatisticsSelection {
 
     try (final SelectQuery<Record> q = DSL.select().getQuery()) {
       q.addSelect(sitesStats.field(CERTIFICATES.CERT_PK));
+      final Field<BigDecimal> current = DSL.sum(sitesStats.field("current", Integer.class));
       q.addSelect(
-                  DSL.sum(sitesStats.field("current", Integer.class)).as("current"),
+                  current.as("current"),
+                  DSL.round(current.mul(Integer.valueOf(100)).div(DSL.sum(sitesStats.field("site_employees", Integer.class))), 1).as("percent"),
                   score.as("score"),
                   DSL.sum(sitesStats.field(Constants.STATUS_SUCCESS, Integer.class)).as(Constants.STATUS_SUCCESS),
                   DSL.sum(sitesStats.field(Constants.STATUS_WARNING, Integer.class)).as(Constants.STATUS_WARNING),
