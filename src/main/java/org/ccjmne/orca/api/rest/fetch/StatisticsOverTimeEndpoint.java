@@ -33,8 +33,8 @@ import org.jooq.impl.DSL;
  *
  * @author ccjmne
  */
-@Path("statistics-history")
-public class StatisticsHistoryEndpoint {
+@Path("statistics-over-time")
+public class StatisticsOverTimeEndpoint {
 
   private static final String DATE_SERIES_FIELD_NAME = "date";
 
@@ -46,7 +46,7 @@ public class StatisticsHistoryEndpoint {
   private final Field<@NonNull Date> date;
 
   @Inject
-  private StatisticsHistoryEndpoint(final DSLContext ctx, final QueryParameters parameters, final ResourcesSelection resourcesSelection) {
+  private StatisticsOverTimeEndpoint(final DSLContext ctx, final QueryParameters parameters, final ResourcesSelection resourcesSelection) {
     this.ctx = ctx;
     this.parameters = parameters;
     this.resourcesSelection = resourcesSelection;
@@ -60,25 +60,25 @@ public class StatisticsHistoryEndpoint {
 
   @GET
   @Path("employees/{employee}")
-  public Result<? extends Record> getEmployeesStatsHistory() {
+  public Result<? extends Record> getEmployeesStatsOverTime() {
     final Table<Record> employees = this.resourcesSelection.selectEmployees().asTable();
     final Table<? extends Record> stats = this.statisticsSelection.selectEmployeesStats().asTable();
-    return this.ctx.fetch(this.historicise(DSL.select().from(stats).leftOuterJoin(employees)
+    return this.ctx.fetch(this.seriesify(DSL.select().from(stats).leftOuterJoin(employees)
         .on(stats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK).eq(employees.field(EMPLOYEES.EMPL_PK))).asTable(), Fields.EMPLOYEES_STATS_FIELDS));
   }
 
   @GET
   @Path("sites/{site}")
-  public Result<? extends Record> getSitesStatsHistory() {
+  public Result<? extends Record> getSitesStatsOverTime() {
     final Table<Record> sites = this.resourcesSelection.selectSites().asTable();
     final Table<? extends Record> stats = this.statisticsSelection.selectSitesStats().asTable();
-    return this.ctx.fetch(this.historicise(DSL.select().from(sites).leftOuterJoin(stats)
+    return this.ctx.fetch(this.seriesify(DSL.select().from(sites).leftOuterJoin(stats)
         .on(stats.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(sites.field(SITES.SITE_PK))).asTable(), Fields.SITES_STATS_FIELDS));
   }
 
   @GET
   @Path("sites-groups")
-  public Result<? extends Record> getSitesGroupsStatsHistory() {
+  public Result<? extends Record> getSitesGroupsStatsOverTime() {
     if (!this.parameters.isDefault(QueryParameters.GROUP_BY_FIELD)) {
       throw new IllegalArgumentException("Statistics history generation may not be used with the 'group-by' parameter.");
     }
@@ -86,11 +86,11 @@ public class StatisticsHistoryEndpoint {
     final Table<? extends Record> sites = this.resourcesSelection.selectSites().asTable();
     try (final SelectQuery<? extends Record> stats = this.statisticsSelection.selectSitesGroupsStats()) {
       stats.addJoin(sites, JoinType.RIGHT_OUTER_JOIN, sites.field(SITES.SITE_PK).eq(Fields.unqualify(SITES_EMPLOYEES.SIEM_SITE_FK)));
-      return this.ctx.fetch(this.historicise(stats.asTable(), Fields.SITES_GROUPS_STATS_FIELDS));
+      return this.ctx.fetch(this.seriesify(stats.asTable(), Fields.SITES_GROUPS_STATS_FIELDS));
     }
   }
 
-  private SelectQuery<? extends Record> historicise(final Table<? extends Record> stats, final String[] fields) {
+  private SelectQuery<? extends Record> seriesify(final Table<? extends Record> stats, final String[] fields) {
     final Table<Record1<@NonNull Date>> dates = DSL.select(this.date).asTable();
     return DSL
         .select(dates.field(this.date))
