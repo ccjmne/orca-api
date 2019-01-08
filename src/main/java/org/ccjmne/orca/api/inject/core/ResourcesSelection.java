@@ -86,6 +86,7 @@ public class ResourcesSelection {
           throw new ForbiddenException();
         }
 
+        query.addSelect(TRAININGS_EMPLOYEES.TREM_COMMENT, TRAININGS_EMPLOYEES.TREM_OUTCOME);
         query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
                       TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(this.parameters.get(QueryParameters.SESSION)));
       }
