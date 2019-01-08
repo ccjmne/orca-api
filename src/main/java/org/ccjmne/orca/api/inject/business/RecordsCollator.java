@@ -396,8 +396,8 @@ public class RecordsCollator {
             return Optional.of(FieldCondition.on(leaf, f -> self.comparator.equals("eq") ? f.isNull() : f.isNotNull()));
           }
 
-          if (null != DSL.<Integer> val(self.value, Integer.class).getValue()) { // Can be cast as Integer
-            return Optional.of(FieldCondition.on(DSL.cast(leaf, Integer.class), f -> Filter.compare(f, self.comparator, DSL.val(self.value, Integer.class))));
+          if (null != DSL.<Float> val(self.value, Float.class).getValue()) { // Can be interpreted as Numeric
+            return Optional.of(FieldCondition.on(DSL.cast(leaf, Float.class), f -> Filter.compare(f, self.comparator, DSL.val(self.value, Float.class))));
           }
 
           return Optional.of(FieldCondition.on(leaf, f -> Filter.compare(f, self.comparator, DSL.val(self.value))));
