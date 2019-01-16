@@ -66,29 +66,27 @@ public class ResourcesSelection {
     return this.parameters.has(QueryParameters.SESSION) || (this.parameters.has(QueryParameters.EMPLOYEE) && this.restrictions.canAccessTrainings());
   }
 
+  /**
+   * Scopes the {@code EMPLOYEE} table to the ones that are available to the user.
+   *
+   * @return A {@code Select}ion of all available employees
+   */
+  public SelectQuery<Record> scopeEmployees() {
+    return this.scopeEmployeesImpl(this.scopeSites().asTable());
+  }
+
+  /**
+   * Selects employees based on the user's {@code ACCESS} level, then filters and
+   * sorts the resulting dataset leveraging {@link RecordsCollator}.
+   *
+   * @return A filtered and sorted {@code Select}ion of employees
+   */
   public SelectQuery<Record> selectEmployees() {
     final Table<Record> sites = this.selectSites().asTable();
-    try (final SelectQuery<Record> query = DSL.select().getQuery()) {
-      query.addSelect(EMPLOYEES.fields());
-      query.addSelect(JSONFields.toJson(sites.fields(SITES.SITE_PK, SITES.SITE_NAME)).as("site"));
-      query.addFrom(EMPLOYEES);
-      query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT));
-      // TODO: Use DSL.noCondition() when upgrading jOOQ
-      query.addJoin(
-                    SITES_EMPLOYEES,
-                    SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-                    SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Fields.selectUpdate(this.parameters.get(QueryParameters.DATE))));
-      query.addJoin(sites, this.includeRetiredEmployees() ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
-                    sites.field(SITES.SITE_PK).eq(SITES_EMPLOYEES.SIEM_SITE_FK));
+    try (final SelectQuery<Record> query = this.scopeEmployeesImpl(sites)) {
 
       if (this.parameters.has(QueryParameters.SESSION)) {
-        if (!this.restrictions.canAccessTrainings()) {
-          throw new ForbiddenException();
-        }
-
         query.addSelect(TRAININGS_EMPLOYEES.TREM_COMMENT, TRAININGS_EMPLOYEES.TREM_OUTCOME);
-        query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-                      TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(this.parameters.get(QueryParameters.SESSION)));
       }
 
       if (this.parameters.has(QueryParameters.EMPLOYEE)) {
@@ -99,31 +97,33 @@ public class ResourcesSelection {
     }
   }
 
+  /**
+   * Scopes the {@code SITES} table to the ones that are available to the user.
+   *
+   * @return A {@code Select}ion of all available sites
+   */
+  public SelectQuery<Record> scopeSites() {
+    final SelectQuery<Record> query = this.scopeSitesImpl();
+    if (!this.parameters.is(QueryParameters.INCLUDE_DECOMISSIONED, Boolean.TRUE)) {
+      query.addConditions(DSL.exists(DSL.selectFrom(SITES_EMPLOYEES).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK))));
+    }
+
+    return query;
+  }
+
+  /**
+   * Selects sites based on the user's {@code ACCESS} level, then filters and
+   * sorts the resulting dataset leveraging {@link RecordsCollator}.
+   *
+   * @return A filtered and sorted {@code Select}ion of sites
+   */
   public SelectQuery<Record> selectSites() {
-    try (final SelectQuery<Record> query = DSL.select().getQuery()) {
-      query.addSelect(SITES.fields());
-      query.addFrom(SITES);
-      query.addConditions(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE));
+    try (final SelectQuery<Record> query = this.scopeSitesImpl()) {
       query.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("site_employees_count"));
       query.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("site_permanent_count"));
       query.addJoin(SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)),
                     this.parameters.is(QueryParameters.INCLUDE_DECOMISSIONED, Boolean.TRUE) ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
                     SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK));
-
-      if (this.parameters.has(QueryParameters.SITE)) {
-        if (!this.restrictions.canAccessSite(this.parameters.getRaw(QueryParameters.SITE))) {
-          throw new ForbiddenException();
-        }
-
-        query.addConditions(SITES.SITE_PK.eq(this.parameters.get(QueryParameters.SITE)));
-      } else if (!this.restrictions.canAccessAllSites()) {
-        if (this.restrictions.getAccessibleSites().isEmpty()) {
-          throw new ForbiddenException();
-        }
-
-        query.addConditions(SITES.SITE_PK.in(this.restrictions.getAccessibleSites()));
-      }
-
       query.addGroupBy(SITES.fields());
 
       return this.recordsCollator.applyFAndS(DSL
@@ -136,6 +136,12 @@ public class ResourcesSelection {
     }
   }
 
+  /**
+   * Selects sessions based on the user's {@code ACCESS} level, then filters and
+   * sorts the resulting dataset leveraging {@link RecordsCollator}.
+   *
+   * @return A filtered and sorted {@code Select}ion of sessions
+   */
   public SelectQuery<Record> selectSessions() {
     if (!this.restrictions.canAccessTrainings()) {
       throw new ForbiddenException();
@@ -162,6 +168,56 @@ public class ResourcesSelection {
 
       query.addGroupBy(TRAININGS.fields());
       return this.recordsCollator.applyFAndS(query);
+    }
+  }
+
+  private SelectQuery<Record> scopeEmployeesImpl(final Table<Record> sites) {
+    try (final SelectQuery<Record> query = DSL.select().getQuery()) {
+      query.addSelect(EMPLOYEES.fields());
+      query.addSelect(JSONFields.toJson(sites.fields(SITES.SITE_PK, SITES.SITE_NAME)).as("site"));
+      query.addFrom(EMPLOYEES);
+      query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT));
+      query.addJoin(
+                    SITES_EMPLOYEES,
+                    SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
+                    SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Fields.selectUpdate(this.parameters.get(QueryParameters.DATE))));
+      query.addJoin(sites, this.includeRetiredEmployees() ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
+                    sites.field(SITES.SITE_PK).eq(SITES_EMPLOYEES.SIEM_SITE_FK));
+
+      if (this.parameters.has(QueryParameters.SESSION)) {
+        if (!this.restrictions.canAccessTrainings()) {
+          throw new ForbiddenException();
+        }
+
+        query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
+                      TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(this.parameters.get(QueryParameters.SESSION)));
+      }
+
+      return query;
+    }
+  }
+
+  private SelectQuery<Record> scopeSitesImpl() {
+    try (final SelectQuery<Record> query = DSL.select().getQuery()) {
+      query.addSelect(SITES.fields());
+      query.addFrom(SITES);
+      query.addConditions(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE));
+
+      if (this.parameters.has(QueryParameters.SITE)) {
+        if (!this.restrictions.canAccessSite(this.parameters.getRaw(QueryParameters.SITE))) {
+          throw new ForbiddenException();
+        }
+
+        query.addConditions(SITES.SITE_PK.eq(this.parameters.get(QueryParameters.SITE)));
+      } else if (!this.restrictions.canAccessAllSites()) {
+        if (this.restrictions.getAccessibleSites().isEmpty()) {
+          throw new ForbiddenException();
+        }
+
+        query.addConditions(SITES.SITE_PK.in(this.restrictions.getAccessibleSites()));
+      }
+
+      return query;
     }
   }
 }
