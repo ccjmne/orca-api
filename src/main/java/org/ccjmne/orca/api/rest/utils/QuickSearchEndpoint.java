@@ -2,8 +2,10 @@ package org.ccjmne.orca.api.rest.utils;
 
 import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
+import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -15,13 +17,15 @@ import javax.ws.rs.Path;
 
 import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.inject.core.ResourcesSelection;
+import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.Test;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Param;
 import org.jooq.Record;
 import org.jooq.Result;
-import org.jooq.Table;
+import org.jooq.Select;
+import org.jooq.SelectLimitPercentStep;
 import org.jooq.impl.DSL;
 
 import com.google.common.collect.ImmutableMap;
@@ -29,18 +33,20 @@ import com.google.common.collect.ImmutableMap;
 @Path("quick-search")
 public class QuickSearchEndpoint {
 
-  // TODO: Support "sessions" and "sites-tags" at least
-  public static final List<String> RESOURCES_TYPES = Arrays.asList("employees", "sites");// , "sessions", "sites-tags");
-  private static final int         LIMIT           = 8;
-  private static final String      FIELD_DISTANCE  = "distance";
-
   /**
    * These very specific fields are covered by <b>GiST indexes</b> in the
    * database.
    */
   private static final Map<String, Field<?>[]> FIELDS = ImmutableMap
       .of("employees", new Field<?>[] { EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_SURNAME, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_NOTES },
-          "sites", new Field<?>[] { SITES.SITE_EXTERNAL_ID, SITES.SITE_NAME, SITES.SITE_NOTES });
+          "sites", new Field<?>[] { SITES.SITE_EXTERNAL_ID, SITES.SITE_NAME, SITES.SITE_NOTES },
+          "sites-tags", new Field<?>[] { TAGS.TAGS_SHORT, TAGS.TAGS_NAME, SITES_TAGS.SITA_VALUE });
+
+  // TODO: Support "sessions"
+  public static final List<String> RESOURCES_TYPES = new ArrayList<>(FIELDS.keySet());
+
+  private static final int           LIMIT          = 8;
+  private static final Field<Double> FIELD_DISTANCE = DSL.field("distance", Double.class);
 
   private final DSLContext         ctx;
   private final ResourcesSelection resourcesSelection;
@@ -59,7 +65,7 @@ public class QuickSearchEndpoint {
   public List<Record> search() {
     return this.resourcesTypes.parallelStream()
         .flatMap(type -> this.searchImpl(type).stream())
-        .sorted(Comparator.comparing(r -> r.get(FIELD_DISTANCE, Double.class)))
+        .sorted(Comparator.comparing(r -> r.get(FIELD_DISTANCE)))
         .limit(LIMIT).collect(Collectors.toList());
   }
 
@@ -70,13 +76,17 @@ public class QuickSearchEndpoint {
   }
 
   private Result<Record> searchImpl(final String type) {
-    final Table<Record> table;
+    final Select<? extends Record> table;
     switch (type) {
       case "employees":
-        table = this.resourcesSelection.scopeEmployees().asTable();
+        table = this.resourcesSelection.scopeEmployees();
         break;
       case "sites":
-        table = this.resourcesSelection.scopeSites().asTable();
+        table = this.resourcesSelection.scopeSites();
+        break;
+      case "sites-tags":
+        table = DSL.selectDistinct(TAGS.fields()).select(SITES_TAGS.SITA_VALUE).from(TAGS).join(SITES_TAGS).on(SITES_TAGS.SITA_TAGS_FK.eq(TAGS.TAGS_PK)
+            .and(SITES_TAGS.SITA_SITE_FK.in(Fields.select(SITES.SITE_PK, this.resourcesSelection.scopeSites()))));
         break;
       default:
         throw new IllegalArgumentException(String.format("Only the following resource types are supported: %s", RESOURCES_TYPES));
@@ -88,7 +98,7 @@ public class QuickSearchEndpoint {
     return this.ctx
         .select(distance.as(FIELD_DISTANCE)).select(table.fields()).from(table)
         .where(distance.lessOrEqual(new Double(.5)))
-        .orderBy(distance).limit(8)
+        .orderBy(distance).limit(LIMIT);
         .fetch();
   }
 
