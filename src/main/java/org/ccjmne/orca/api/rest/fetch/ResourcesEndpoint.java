@@ -13,7 +13,7 @@ import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
-import org.ccjmne.orca.api.inject.business.QueryParameters;
+import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.inject.business.RecordsCollator;
 import org.ccjmne.orca.api.inject.core.ResourcesSelection;
 import org.ccjmne.orca.api.inject.core.StatisticsSelection;
@@ -42,7 +42,7 @@ public class ResourcesEndpoint {
   private final ResourcesSelection  resourcesSelection;
   private final StatisticsSelection statisticsSelection;
   private final RecordsCollator     collator;
-  private final QueryParameters     parameters;
+  private final QueryParams         parameters;
 
   @Inject
   public ResourcesEndpoint(
@@ -50,7 +50,7 @@ public class ResourcesEndpoint {
                            final ResourcesSelection resourcesSelection,
                            final StatisticsSelection statisticsSelection,
                            final RecordsCollator collator,
-                           final QueryParameters parameters) {
+                           final QueryParams parameters) {
     this.ctx = ctx;
     this.resourcesSelection = resourcesSelection;
     this.statisticsSelection = statisticsSelection;
@@ -223,7 +223,7 @@ public class ResourcesEndpoint {
   @GET
   @Path("updates/{date}")
   public Record lookupUpdate() {
-    return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_PK.eq(Fields.selectUpdate(this.parameters.get(QueryParameters.DATE)))).fetchAny();
+    return this.ctx.selectFrom(UPDATES).where(UPDATES.UPDT_PK.eq(Fields.selectUpdate(this.parameters.get(QueryParams.DATE)))).fetchAny();
   }
 
   /**
@@ -261,7 +261,7 @@ public class ResourcesEndpoint {
 
   private SelectQuery<Record> findSitesGroups() {
     final Table<? extends Record> sites = this.resourcesSelection.selectSites().asTable();
-    final Field<JsonNode> groupID = this.parameters.get(QueryParameters.GROUP_BY_FIELD).as("sgrp_value");
+    final Field<JsonNode> groupID = this.parameters.get(QueryParams.GROUP_BY_FIELD).as("sgrp_value");
     final Table<? extends Record> groups = DSL
         .select(DSL.sum(sites.field("site_employees_count", Integer.class)).as("sgrp_employees_count"))
         .select(DSL.sum(sites.field("site_permanent_count", Integer.class)).as("sgrp_permanent_count"))

@@ -12,7 +12,7 @@ import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
-import org.ccjmne.orca.api.inject.business.QueryParameters;
+import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.inject.core.ResourcesSelection;
 import org.ccjmne.orca.api.inject.core.StatisticsSelection;
 import org.ccjmne.orca.api.utils.Fields;
@@ -39,23 +39,23 @@ public class StatisticsOverTimeEndpoint {
   private static final String DATE_SERIES_FIELD_NAME = "date";
 
   private final DSLContext          ctx;
-  private final QueryParameters     parameters;
+  private final QueryParams         parameters;
   private final ResourcesSelection  resourcesSelection;
   private final StatisticsSelection statisticsSelection;
 
   private final Field<@NonNull Date> date;
 
   @Inject
-  private StatisticsOverTimeEndpoint(final DSLContext ctx, final QueryParameters parameters, final ResourcesSelection resourcesSelection) {
+  private StatisticsOverTimeEndpoint(final DSLContext ctx, final QueryParams parameters, final ResourcesSelection resourcesSelection) {
     this.ctx = ctx;
     this.parameters = parameters;
     this.resourcesSelection = resourcesSelection;
     this.statisticsSelection = new StatisticsSelection(DSL.field(DATE_SERIES_FIELD_NAME, Date.class));
     this.date = DSL
         .field("generate_series(date_trunc({2}, {0}), {1}, CONCAT('1 ', {2})::interval)::date", Date.class,
-               parameters.get(QueryParameters.FROM),
-               parameters.get(QueryParameters.TO),
-               parameters.get(QueryParameters.INTERVAL))
+               parameters.get(QueryParams.FROM),
+               parameters.get(QueryParams.TO),
+               parameters.get(QueryParams.INTERVAL))
         .as(DATE_SERIES_FIELD_NAME);
   }
 
@@ -80,7 +80,7 @@ public class StatisticsOverTimeEndpoint {
   @GET
   @Path("sites-groups")
   public Result<? extends Record> getSitesGroupsStatsOverTime() {
-    if (!this.parameters.isDefault(QueryParameters.GROUP_BY_FIELD)) {
+    if (!this.parameters.isDefault(QueryParams.GROUP_BY_FIELD)) {
       throw new IllegalArgumentException("Statistics history generation may not be used with the 'group-by' parameter.");
     }
 

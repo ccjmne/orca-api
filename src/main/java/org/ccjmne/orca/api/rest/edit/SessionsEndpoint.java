@@ -17,7 +17,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 
-import org.ccjmne.orca.api.inject.business.QueryParameters;
+import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.Constants;
@@ -30,12 +30,12 @@ import org.jooq.DSLContext;
 @Path("sessions")
 public class SessionsEndpoint {
 
-  private final DSLContext      ctx;
-  private final Restrictions    restrictions;
-  private final QueryParameters parameters;
+  private final DSLContext   ctx;
+  private final Restrictions restrictions;
+  private final QueryParams  parameters;
 
   @Inject
-  public SessionsEndpoint(final DSLContext ctx, final Restrictions restrictions, final QueryParameters parameters) {
+  public SessionsEndpoint(final DSLContext ctx, final Restrictions restrictions, final QueryParams parameters) {
     this.ctx = ctx;
     this.restrictions = restrictions;
     this.parameters = parameters;
@@ -62,8 +62,8 @@ public class SessionsEndpoint {
   @Path("{session}")
   public Boolean updateTraining(final Map<String, Object> training) {
     return Transactions.with(this.ctx, transaction -> {
-      final Boolean exists = this.deleteTrainingImpl(this.parameters.getRaw(QueryParameters.SESSION), transaction);
-      this.insertTrainingImpl(this.parameters.getRaw(QueryParameters.SESSION), training, transaction);
+      final Boolean exists = this.deleteTrainingImpl(this.parameters.getRaw(QueryParams.SESSION), transaction);
+      this.insertTrainingImpl(this.parameters.getRaw(QueryParams.SESSION), training, transaction);
       return exists;
     });
   }
@@ -72,7 +72,7 @@ public class SessionsEndpoint {
   @Path("{session}")
   public Boolean deleteTraining() {
     return Transactions.with(this.ctx, (TransactionFunction<DSLContext, Boolean>) transaction -> this
-        .deleteTrainingImpl(this.parameters.getRaw(QueryParameters.SESSION), transaction));
+        .deleteTrainingImpl(this.parameters.getRaw(QueryParams.SESSION), transaction));
   }
 
   private Boolean deleteTrainingImpl(final Integer trng_pk, final DSLContext transactionCtx) {

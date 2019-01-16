@@ -12,7 +12,7 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
 
-import org.ccjmne.orca.api.inject.business.QueryParameters;
+import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.inject.business.RecordsCollator;
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
@@ -33,12 +33,12 @@ import org.jooq.impl.DSL;
  */
 public class ResourcesSelection {
 
-  private final QueryParameters parameters;
+  private final QueryParams     parameters;
   private final Restrictions    restrictions;
   private final RecordsCollator recordsCollator;
 
   @Inject
-  public ResourcesSelection(final QueryParameters parameters, final Restrictions restrictions, final RecordsCollator recordsCollator) {
+  public ResourcesSelection(final QueryParams parameters, final Restrictions restrictions, final RecordsCollator recordsCollator) {
     this.parameters = parameters;
     this.restrictions = restrictions;
     this.recordsCollator = recordsCollator;
@@ -63,7 +63,7 @@ public class ResourcesSelection {
    * </ul>
    */
   public boolean includeRetiredEmployees() {
-    return this.parameters.has(QueryParameters.SESSION) || (this.parameters.has(QueryParameters.EMPLOYEE) && this.restrictions.canAccessTrainings());
+    return this.parameters.has(QueryParams.SESSION) || (this.parameters.has(QueryParams.EMPLOYEE) && this.restrictions.canAccessTrainings());
   }
 
   /**
@@ -85,12 +85,12 @@ public class ResourcesSelection {
     final Table<Record> sites = this.selectSites().asTable();
     try (final SelectQuery<Record> query = this.scopeEmployeesImpl(sites)) {
 
-      if (this.parameters.has(QueryParameters.SESSION)) {
+      if (this.parameters.has(QueryParams.SESSION)) {
         query.addSelect(TRAININGS_EMPLOYEES.TREM_COMMENT, TRAININGS_EMPLOYEES.TREM_OUTCOME);
       }
 
-      if (this.parameters.has(QueryParameters.EMPLOYEE)) {
-        query.addConditions(EMPLOYEES.EMPL_PK.eq(this.parameters.get(QueryParameters.EMPLOYEE)));
+      if (this.parameters.has(QueryParams.EMPLOYEE)) {
+        query.addConditions(EMPLOYEES.EMPL_PK.eq(this.parameters.get(QueryParams.EMPLOYEE)));
       }
 
       return this.recordsCollator.applyFAndS(query);
@@ -104,7 +104,7 @@ public class ResourcesSelection {
    */
   public SelectQuery<Record> scopeSites() {
     final SelectQuery<Record> query = this.scopeSitesImpl();
-    if (!this.parameters.is(QueryParameters.INCLUDE_DECOMISSIONED, Boolean.TRUE)) {
+    if (!this.parameters.is(QueryParams.INCLUDE_DECOMISSIONED, Boolean.TRUE)) {
       query.addConditions(DSL.exists(DSL.selectFrom(SITES_EMPLOYEES).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK))));
     }
 
@@ -122,7 +122,7 @@ public class ResourcesSelection {
       query.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("site_employees_count"));
       query.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("site_permanent_count"));
       query.addJoin(SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)),
-                    this.parameters.is(QueryParameters.INCLUDE_DECOMISSIONED, Boolean.TRUE) ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
+                    this.parameters.is(QueryParams.INCLUDE_DECOMISSIONED, Boolean.TRUE) ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
                     SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK));
       query.addGroupBy(SITES.fields());
 
@@ -155,14 +155,14 @@ public class ResourcesSelection {
       query.addJoin(TRAININGS_TRAINERS, JoinType.LEFT_OUTER_JOIN, TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK));
       query.addJoin(EMPLOYEES, JoinType.LEFT_OUTER_JOIN, EMPLOYEES.EMPL_PK.eq(TRAININGS_TRAINERS.TRTR_EMPL_FK));
 
-      if (this.parameters.has(QueryParameters.SESSION)) {
-        query.addConditions(TRAININGS.TRNG_PK.eq(this.parameters.get(QueryParameters.SESSION)));
+      if (this.parameters.has(QueryParams.SESSION)) {
+        query.addConditions(TRAININGS.TRNG_PK.eq(this.parameters.get(QueryParams.SESSION)));
       }
 
-      if (this.parameters.has(QueryParameters.EMPLOYEE)) {
+      if (this.parameters.has(QueryParams.EMPLOYEE)) {
         query.addSelect(TRAININGS_EMPLOYEES.fields());
         query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK)
-            .and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(this.parameters.get(QueryParameters.EMPLOYEE))));
+            .and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(this.parameters.get(QueryParams.EMPLOYEE))));
         query.addGroupBy(TRAININGS_EMPLOYEES.fields());
       }
 
@@ -180,17 +180,17 @@ public class ResourcesSelection {
       query.addJoin(
                     SITES_EMPLOYEES,
                     SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-                    SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Fields.selectUpdate(this.parameters.get(QueryParameters.DATE))));
+                    SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Fields.selectUpdate(this.parameters.get(QueryParams.DATE))));
       query.addJoin(sites, this.includeRetiredEmployees() ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
                     sites.field(SITES.SITE_PK).eq(SITES_EMPLOYEES.SIEM_SITE_FK));
 
-      if (this.parameters.has(QueryParameters.SESSION)) {
+      if (this.parameters.has(QueryParams.SESSION)) {
         if (!this.restrictions.canAccessTrainings()) {
           throw new ForbiddenException();
         }
 
         query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK),
-                      TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(this.parameters.get(QueryParameters.SESSION)));
+                      TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(this.parameters.get(QueryParams.SESSION)));
       }
 
       return query;
@@ -203,12 +203,12 @@ public class ResourcesSelection {
       query.addFrom(SITES);
       query.addConditions(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE));
 
-      if (this.parameters.has(QueryParameters.SITE)) {
-        if (!this.restrictions.canAccessSite(this.parameters.getRaw(QueryParameters.SITE))) {
+      if (this.parameters.has(QueryParams.SITE)) {
+        if (!this.restrictions.canAccessSite(this.parameters.getRaw(QueryParams.SITE))) {
           throw new ForbiddenException();
         }
 
-        query.addConditions(SITES.SITE_PK.eq(this.parameters.get(QueryParameters.SITE)));
+        query.addConditions(SITES.SITE_PK.eq(this.parameters.get(QueryParams.SITE)));
       } else if (!this.restrictions.canAccessAllSites()) {
         if (this.restrictions.getAccessibleSites().isEmpty()) {
           throw new ForbiddenException();

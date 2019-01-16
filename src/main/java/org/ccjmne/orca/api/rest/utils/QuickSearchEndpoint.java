@@ -13,7 +13,7 @@ import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
-import org.ccjmne.orca.api.inject.business.QueryParameters;
+import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.inject.core.ResourcesSelection;
 import org.ccjmne.orca.api.utils.Test;
 import org.jooq.DSLContext;
@@ -48,11 +48,11 @@ public class QuickSearchEndpoint {
   private final Param<String>      searchTerms;
 
   @Inject
-  private QuickSearchEndpoint(final DSLContext ctx, final ResourcesSelection resourcesSelection, final QueryParameters parameters) {
+  private QuickSearchEndpoint(final DSLContext ctx, final ResourcesSelection resourcesSelection, final QueryParams parameters) {
     this.ctx = ctx;
     this.resourcesSelection = resourcesSelection;
-    this.resourcesTypes = parameters.get(QueryParameters.RESOURCE_TYPE);
-    this.searchTerms = parameters.get(QueryParameters.SEARCH_TERMS);
+    this.resourcesTypes = parameters.get(QueryParams.RESOURCE_TYPE);
+    this.searchTerms = parameters.get(QueryParams.SEARCH_TERMS);
   }
 
   @GET

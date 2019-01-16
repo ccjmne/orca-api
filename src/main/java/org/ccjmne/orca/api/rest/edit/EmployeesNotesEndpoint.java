@@ -18,7 +18,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import org.ccjmne.orca.api.inject.business.QueryParameters;
+import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -36,18 +36,18 @@ public class EmployeesNotesEndpoint {
   private final Optional<Param<Integer>> certificate;
 
   @Inject
-  public EmployeesNotesEndpoint(final DSLContext ctx, final Restrictions restrictions, final QueryParameters parameters) {
+  public EmployeesNotesEndpoint(final DSLContext ctx, final Restrictions restrictions, final QueryParams parameters) {
     if (!restrictions.canManageEmployeeNotes()) {
       throw new ForbiddenException();
     }
 
-    if (!parameters.has(QueryParameters.EMPLOYEE)) {
+    if (!parameters.has(QueryParams.EMPLOYEE)) {
       throw new IllegalArgumentException("Missing 'employee' identifier.");
     }
 
-    this.employee = parameters.get(QueryParameters.EMPLOYEE);
-    this.date = parameters.get(QueryParameters.DATE);
-    this.certificate = parameters.of(QueryParameters.CERTIFICATE);
+    this.employee = parameters.get(QueryParams.EMPLOYEE);
+    this.date = parameters.get(QueryParams.DATE);
+    this.certificate = parameters.of(QueryParams.CERTIFICATE);
     this.ctx = ctx;
   }
 

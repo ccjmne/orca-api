@@ -13,7 +13,7 @@ import java.sql.Date;
 
 import javax.inject.Inject;
 
-import org.ccjmne.orca.api.inject.business.QueryParameters;
+import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Fields;
 import org.eclipse.jdt.annotation.NonNull;
@@ -55,8 +55,8 @@ public class StatisticsSelection {
   private final Field<Date> date;
 
   @Inject
-  public StatisticsSelection(final QueryParameters parameters) {
-    this.date = parameters.get(QueryParameters.DATE);
+  public StatisticsSelection(final QueryParams parameters) {
+    this.date = parameters.get(QueryParams.DATE);
   }
 
   /**

@@ -18,7 +18,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.ObjectUtils;
-import org.ccjmne.orca.api.inject.business.QueryParameters;
+import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Transactions;
@@ -29,11 +29,11 @@ import org.jooq.DSLContext;
 @Path("sites")
 public class SitesEndpoint {
 
-  private final DSLContext      ctx;
-  private final QueryParameters parameters;
+  private final DSLContext  ctx;
+  private final QueryParams parameters;
 
   @Inject
-  public SitesEndpoint(final DSLContext ctx, final Restrictions restrictions, final QueryParameters parameters) {
+  public SitesEndpoint(final DSLContext ctx, final Restrictions restrictions, final QueryParams parameters) {
     if (!restrictions.canManageSitesAndTags()) {
       throw new ForbiddenException();
     }
@@ -58,7 +58,7 @@ public class SitesEndpoint {
   @Path("{site}")
   @Consumes(MediaType.APPLICATION_JSON)
   public Boolean updateSite(final Map<String, Object> site) {
-    return this.upsertSite(this.parameters.getRaw(QueryParameters.SITE), site);
+    return this.upsertSite(this.parameters.getRaw(QueryParams.SITE), site);
   }
 
   /**
@@ -68,7 +68,7 @@ public class SitesEndpoint {
   @DELETE
   @Path("{site}")
   public Boolean deleteSite() {
-    final Integer site = this.parameters.getRaw(QueryParameters.SITE);
+    final Integer site = this.parameters.getRaw(QueryParams.SITE);
     // Database CASCADEs the deletion of linked users, if any
     // Database CASCADEs the deletion of its tags
     return Transactions.with(this.ctx, transaction -> {
