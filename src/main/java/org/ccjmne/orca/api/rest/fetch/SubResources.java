@@ -64,7 +64,7 @@ public class SubResources {
     final Table<Record3<Integer, String, Integer>> stats = DSL
         .select(SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE, DSL.count(SITES_TAGS.SITA_VALUE))
         .from(SITES_TAGS)
-        .where(SITES_TAGS.SITA_SITE_FK.in(Fields.select(SITES.SITE_PK, this.resourcesSelection.selectSites())))
+        .where(SITES_TAGS.SITA_SITE_FK.in(Fields.select(SITES.SITE_PK, this.resourcesSelection.scopeSites())))
         .groupBy(SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE)
         .asTable();
     return this.ctx

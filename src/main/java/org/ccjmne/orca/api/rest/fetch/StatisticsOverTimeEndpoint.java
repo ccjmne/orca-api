@@ -62,7 +62,7 @@ public class StatisticsOverTimeEndpoint {
   @GET
   @Path("employees/{employee}")
   public Result<? extends Record> getEmployeesStatsOverTime() {
-    final Table<Record> employees = this.resourcesSelection.selectEmployees().asTable();
+    final Table<Record> employees = this.resourcesSelection.scopeEmployees().asTable();
     final Table<? extends Record> stats = this.statisticsSelection.selectEmployeesStats().asTable();
     return this.ctx.fetch(this.seriesify(DSL.select().from(stats).leftOuterJoin(employees)
         .on(stats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK).eq(employees.field(EMPLOYEES.EMPL_PK))).asTable(), Fields.EMPLOYEES_STATS_FIELDS));
@@ -71,7 +71,7 @@ public class StatisticsOverTimeEndpoint {
   @GET
   @Path("sites/{site}")
   public Result<? extends Record> getSitesStatsOverTime() {
-    final Table<Record> sites = this.resourcesSelection.selectSites().asTable();
+    final Table<Record> sites = this.resourcesSelection.scopeSites().asTable();
     final Table<? extends Record> stats = this.statisticsSelection.selectSitesStats().asTable();
     return this.ctx.fetch(this.seriesify(DSL.select().from(sites).leftOuterJoin(stats)
         .on(stats.field(SITES_EMPLOYEES.SIEM_SITE_FK).eq(sites.field(SITES.SITE_PK))).asTable(), Fields.SITES_STATS_FIELDS));
