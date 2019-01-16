@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
+import org.ccjmne.orca.api.rest.utils.QuickSearchEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.JSONFields;
 import org.eclipse.jdt.annotation.NonNull;
@@ -39,6 +40,7 @@ public class QueryParameters {
   public static final Type<Boolean> INCLUDE_DECOMISSIONED = new Type<>("include-decommissioned", Boolean.class);
   public static final Type<String>  SEARCH_TERMS          = new Type<>("q", String.class);
 
+  public static final AllParamsType<List<String>>     RESOURCE_TYPE  = new AllParamsType<>("type", v -> v, QuickSearchEndpoint.RESOURCES_TYPES);
   public static final FirstParamType<String>          INTERVAL       = new FirstParamType<>("interval", v -> v, "month");
   public static final FirstParamType<Field<Date>>     FROM           = new FirstParamType<>("from", v -> DSL.val(v, Date.class), DSL.currentDate());
   public static final FirstParamType<Field<Date>>     TO             = new FirstParamType<>("to", v -> DSL.val(v, Date.class), DSL.currentDate());

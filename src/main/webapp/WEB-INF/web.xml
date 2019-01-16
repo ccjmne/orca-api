@@ -116,6 +116,7 @@
 			<web-resource-name>Data fetching API</web-resource-name>
 
 			<url-pattern>/statistics-over-time/*</url-pattern>
+			<url-pattern>/quick-search/*</url-pattern>
 			<url-pattern>/resources/*</url-pattern>
 			<http-method>GET</http-method>
 		</web-resource-collection>
