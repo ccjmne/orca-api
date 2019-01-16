@@ -136,7 +136,7 @@ public class ResourcesEndpoint {
    * +--------+--------------------------+-----------+
    * | Method | Path                     | Response  |
    * +--------+--------------------------+-----------+
-   * | GET    | /sites-groups            | PAGINATED |
+   * | GET    | /sites-groups            | SINGLE    |
    * +--------+--------------------------+-----------+
    * | GET    | /sites-groups/{group-by} | PAGINATED |
    * +--------+--------------------------+-----------+

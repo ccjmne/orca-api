@@ -97,9 +97,9 @@ public class StatisticsOverTimeEndpoint {
         .select(dates.field(this.date))
         .select(JSONFields.objectAgg(stats.field(CERTIFICATES.CERT_PK), stats.fields(fields)).as("stats"))
         .from(dates)
-        .leftOuterJoin(DSL.lateral(stats)).on(DSL.trueCondition()) // TODO: use DSL#noCondition when upgrading jOOQ
+        .leftOuterJoin(DSL.lateral(stats)).on(DSL.noCondition())
         .groupBy(this.date)
-        .orderBy(this.date.asc()) // TODO: should this be sorted automatically, or left to the ResourcesCollator?
+        .orderBy(this.date)
         .getQuery();
   }
 }

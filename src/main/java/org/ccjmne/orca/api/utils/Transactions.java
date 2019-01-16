@@ -11,16 +11,16 @@ public class Transactions {
 
   public static void with(final DSLContext ctx, final TransactionConsumer<DSLContext> task) {
     ctx.transaction(config -> {
-      try (final DSLContext transactionCtx = DSL.using(config)) {
-        task.accept(transactionCtx);
+      try (final DSLContext transaction = DSL.using(config)) {
+        task.accept(transaction);
       }
     });
   }
 
   public static <T> T with(final DSLContext ctx, final TransactionFunction<DSLContext, T> task) {
     return ctx.transactionResult(config -> {
-      try (final DSLContext transactionCtx = DSL.using(config)) {
-        return task.apply(transactionCtx);
+      try (final DSLContext transaction = DSL.using(config)) {
+        return task.apply(transaction);
       }
     });
   }

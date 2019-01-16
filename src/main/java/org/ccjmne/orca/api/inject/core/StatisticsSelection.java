@@ -120,8 +120,7 @@ public class StatisticsSelection {
                 SITES_EMPLOYEES.SIEM_SITE_FK,
                 eCount)
         .from(CERTIFICATES)
-        .join(SITES_EMPLOYEES).on(DSL.trueCondition())
-        // TODO: Use DSL.noCondition() when upgrading jOOQ
+        .join(SITES_EMPLOYEES).on(DSL.noCondition())
         .and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Fields.selectUpdate(this.date)))
         .groupBy(CERTIFICATES.CERT_PK, SITES_EMPLOYEES.SIEM_SITE_FK)
         .asTable();

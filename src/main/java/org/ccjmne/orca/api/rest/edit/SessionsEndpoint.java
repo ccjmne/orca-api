@@ -91,6 +91,7 @@ public class SessionsEndpoint {
   }
 
   @SuppressWarnings("unchecked")
+  // TODO: Bulk insert trainers and trainees
   private Integer insertTrainingImpl(final Integer trng_pk, final Map<String, Object> map, final DSLContext transactionContext) throws ParseException {
     if (!this.restrictions.getManageableTypes().contains(map.get(TRAININGS.TRNG_TRTY_FK.getName()))) {
       throw new ForbiddenException();
