@@ -137,6 +137,34 @@ public class ResourcesSelection {
   }
 
   /**
+   * Scopes the {@code SESSIONS} table to the ones that are available to the user.
+   *
+   * @return A {@code Select}ion of all available sessions
+   */
+  public SelectQuery<Record> scopeSessions() {
+    if (!this.restrictions.canAccessTrainings()) {
+      throw new ForbiddenException();
+    }
+
+    try (final SelectQuery<Record> query = DSL.select().getQuery()) {
+      query.addSelect(TRAININGS.fields());
+      query.addFrom(TRAININGS);
+
+      if (this.parameters.has(QueryParams.SESSION)) {
+        query.addConditions(TRAININGS.TRNG_PK.eq(this.parameters.get(QueryParams.SESSION)));
+      }
+
+      if (this.parameters.has(QueryParams.EMPLOYEE)) {
+        query.addSelect(TRAININGS_EMPLOYEES.fields());
+        query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK)
+            .and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(this.parameters.get(QueryParams.EMPLOYEE))));
+      }
+
+      return query;
+    }
+  }
+
+  /**
    * Selects sessions based on the user's {@code ACCESS} level, then filters and
    * sorts the resulting dataset leveraging {@link RecordsCollator}.
    *
@@ -147,26 +175,16 @@ public class ResourcesSelection {
       throw new ForbiddenException();
     }
 
-    try (final SelectQuery<Record> query = DSL.select().getQuery()) {
-      query.addSelect(TRAININGS.fields());
+    try (final SelectQuery<Record> query = this.scopeSessions()) {
       query.addSelect(JSONFields
           .arrayAgg(EMPLOYEES.fields(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_GENDER, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_SURNAME)).as("trainers"));
-      query.addFrom(TRAININGS);
       query.addJoin(TRAININGS_TRAINERS, JoinType.LEFT_OUTER_JOIN, TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK));
       query.addJoin(EMPLOYEES, JoinType.LEFT_OUTER_JOIN, EMPLOYEES.EMPL_PK.eq(TRAININGS_TRAINERS.TRTR_EMPL_FK));
-
-      if (this.parameters.has(QueryParams.SESSION)) {
-        query.addConditions(TRAININGS.TRNG_PK.eq(this.parameters.get(QueryParams.SESSION)));
-      }
-
+      query.addGroupBy(TRAININGS.fields());
       if (this.parameters.has(QueryParams.EMPLOYEE)) {
-        query.addSelect(TRAININGS_EMPLOYEES.fields());
-        query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK)
-            .and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(this.parameters.get(QueryParams.EMPLOYEE))));
         query.addGroupBy(TRAININGS_EMPLOYEES.fields());
       }
 
-      query.addGroupBy(TRAININGS.fields());
       return this.recordsCollator.applyFAndS(query);
     }
   }
