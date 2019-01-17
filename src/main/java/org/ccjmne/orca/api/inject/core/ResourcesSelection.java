@@ -89,10 +89,6 @@ public class ResourcesSelection {
         query.addSelect(TRAININGS_EMPLOYEES.TREM_COMMENT, TRAININGS_EMPLOYEES.TREM_OUTCOME);
       }
 
-      if (this.parameters.has(QueryParams.EMPLOYEE)) {
-        query.addConditions(EMPLOYEES.EMPL_PK.eq(this.parameters.get(QueryParams.EMPLOYEE)));
-      }
-
       return this.recordsCollator.applyFAndS(query);
     }
   }
@@ -201,6 +197,10 @@ public class ResourcesSelection {
                     SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Fields.selectUpdate(this.parameters.get(QueryParams.DATE))));
       query.addJoin(sites, this.includeRetiredEmployees() ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
                     sites.field(SITES.SITE_PK).eq(SITES_EMPLOYEES.SIEM_SITE_FK));
+
+      if (this.parameters.has(QueryParams.EMPLOYEE)) {
+        query.addConditions(EMPLOYEES.EMPL_PK.eq(this.parameters.get(QueryParams.EMPLOYEE)));
+      }
 
       if (this.parameters.has(QueryParams.SESSION)) {
         if (!this.restrictions.canAccessTrainings()) {
