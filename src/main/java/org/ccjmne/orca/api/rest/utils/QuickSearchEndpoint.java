@@ -44,7 +44,7 @@ public class QuickSearchEndpoint {
   private static final Map<String, Field<?>[]> FIELDS = ImmutableMap
       .of("employees", new Field<?>[] { EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_SURNAME, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_NOTES },
           "sites", new Field<?>[] { SITES.SITE_EXTERNAL_ID, SITES.SITE_NAME, SITES.SITE_NOTES },
-          "sites-tags", new Field<?>[] { TAGS.TAGS_SHORT, TAGS.TAGS_NAME, SITES_TAGS.SITA_VALUE },
+          "sites-groups", new Field<?>[] { TAGS.TAGS_SHORT, TAGS.TAGS_NAME, SITES_TAGS.SITA_VALUE },
           "sessions", new Field<?>[] { TRAININGTYPES.TRTY_NAME, FIELD_DATE_DISPLAY });
 
   public static final List<String> RESOURCES_TYPES = new ArrayList<>(FIELDS.keySet());
@@ -85,7 +85,7 @@ public class QuickSearchEndpoint {
       case "sites":
         table = this.resourcesSelection.scopeSites().asTable();
         break;
-      case "sites-tags":
+      case "sites-groups":
         table = DSL.selectDistinct(TAGS.fields()).select(SITES_TAGS.SITA_VALUE).from(TAGS).join(SITES_TAGS).on(SITES_TAGS.SITA_TAGS_FK.eq(TAGS.TAGS_PK)
             .and(SITES_TAGS.SITA_SITE_FK.in(Fields.select(SITES.SITE_PK, this.resourcesSelection.scopeSites())))).asTable();
         break;
