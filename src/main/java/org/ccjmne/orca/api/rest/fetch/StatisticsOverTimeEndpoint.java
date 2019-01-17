@@ -5,6 +5,7 @@ import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES;
 import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
 import java.sql.Date;
 
@@ -27,6 +28,8 @@ import org.jooq.Result;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
+
+import jersey.repackaged.com.google.common.base.Objects;
 
 /**
  * Compute statistics for core resources at multiple points in time.
@@ -64,7 +67,7 @@ public class StatisticsOverTimeEndpoint {
   public Result<? extends Record> getEmployeesStatsOverTime() {
     final Table<Record> employees = this.resourcesSelection.scopeEmployees().asTable();
     final Table<? extends Record> stats = this.statisticsSelection.selectEmployeesStats().asTable();
-    return this.ctx.fetch(this.seriesify(DSL.select().from(stats).leftOuterJoin(employees)
+    return this.ctx.fetch(this.seriesify(DSL.select().from(employees).leftOuterJoin(stats)
         .on(stats.field(TRAININGS_EMPLOYEES.TREM_EMPL_FK).eq(employees.field(EMPLOYEES.EMPL_PK))).asTable(), Fields.EMPLOYEES_STATS_FIELDS));
   }
 
@@ -95,7 +98,9 @@ public class StatisticsOverTimeEndpoint {
     final Table<Record1<@NonNull Date>> dates = DSL.select(this.date).asTable();
     return DSL
         .select(dates.field(this.date))
-        .select(JSONFields.objectAgg(stats.field(CERTIFICATES.CERT_PK), stats.fields(fields)).as("stats"))
+        .select(JSONFields
+            .objectAgg(Objects.firstNonNull(stats.field(CERTIFICATES.CERT_PK), stats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)), stats.fields(fields))
+            .as("stats"))
         .from(dates)
         .leftOuterJoin(DSL.lateral(stats)).on(DSL.noCondition())
         .groupBy(this.date)
