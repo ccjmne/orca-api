@@ -173,7 +173,8 @@ public class ResourcesSelection {
 
     try (final SelectQuery<Record> query = this.scopeSessions()) {
       query.addSelect(JSONFields
-          .arrayAgg(EMPLOYEES.fields(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_GENDER, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_SURNAME)).as("trainers"));
+          .arrayAgg(EMPLOYEES.fields(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_GENDER, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_SURNAME))
+          .as("trainers"));
       query.addJoin(TRAININGS_TRAINERS, JoinType.LEFT_OUTER_JOIN, TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK));
       query.addJoin(EMPLOYEES, JoinType.LEFT_OUTER_JOIN, EMPLOYEES.EMPL_PK.eq(TRAININGS_TRAINERS.TRTR_EMPL_FK));
       query.addGroupBy(TRAININGS.fields());
@@ -188,7 +189,7 @@ public class ResourcesSelection {
   private SelectQuery<Record> scopeEmployeesImpl(final Table<Record> sites) {
     try (final SelectQuery<Record> query = DSL.select().getQuery()) {
       query.addSelect(EMPLOYEES.fields());
-      query.addSelect(JSONFields.toJson(sites.fields(SITES.SITE_PK, SITES.SITE_NAME)).as("site"));
+      query.addSelect(JSONFields.toJson(sites.fields(SITES.SITE_PK, SITES.SITE_EXTERNAL_ID, SITES.SITE_NAME)).as("site"));
       query.addFrom(EMPLOYEES);
       query.addConditions(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT));
       query.addJoin(
