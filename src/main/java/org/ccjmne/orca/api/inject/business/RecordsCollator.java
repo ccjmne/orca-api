@@ -1,18 +1,15 @@
 package org.ccjmne.orca.api.inject.business;
 
 import java.sql.Date;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -38,7 +35,10 @@ import org.jooq.impl.DSL;
 import org.jooq.tools.Convert;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Maps;
 
 /**
  * Provides filtering, sorting and pagination methods to be applied to any
@@ -53,12 +53,15 @@ public class RecordsCollator {
   private static final String PARAMETER_NAME_PAGE_SIZE   = "page-size";
   private static final String PARAMETER_NAME_PAGE_OFFSET = "page-offset";
 
-  private static final Pattern SORT_ENTRY   = Pattern.compile("^sort\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?<direction>.*)$");
-  private static final Pattern FILTER_ENTRY = Pattern
+  private static final Pattern SORT_ENTRY    = Pattern.compile("^sort\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?<direction>.*)$");
+  private static final Pattern FILTER_ENTRY  = Pattern
       .compile("^filter\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?:(?<comparator>lt|le|eq|ge|gt|ne):)?(?<value>.*)$");
+  private static final Pattern CONNECT_ENTRY = Pattern.compile("^connect\\[(?<field>[^]]+)\\]=(?<connector>AND|OR)$", Pattern.CASE_INSENSITIVE);
 
   private final List<? extends Sort>   orderBy;
   private final List<? extends Filter> filterWhere;
+
+  private final Map<String, Function<? super Collection<Condition>, ? extends Condition>> connectors;
 
   private final int limit;
   private final int offset;
@@ -85,6 +88,11 @@ public class RecordsCollator {
         .filter(Matcher::matches)
         .map(m -> new Filter(m.group("field"), m.group("path"), m.group("comparator"), m.group("value")))
         .collect(Collectors.toList());
+    this.connectors = uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
+        .map(CONNECT_ENTRY::matcher)
+        .filter(Matcher::matches)
+        .collect(Collectors.<Matcher, String, Function<? super Collection<Condition>, ? extends Condition>> toMap(m -> m
+            .group("field"), m -> "AND".equalsIgnoreCase(m.group("connector")) ? DSL::and : DSL::or));
   }
 
   /**
@@ -279,16 +287,23 @@ public class RecordsCollator {
    * For internal use. Attempts to {@code FILTER} directly on the
    * <strong>supplied</strong> query.<br />
    * <br />
-   * Combines all filter {@link Condition}s for each {@link Field} with
-   * {@link DSL#or(Condition...)}, then applies all of these in an
-   * {@link DSL#and(Condition...)} fashion.
+   * Applies all filter {@link Condition}s for each {@link Field} connected with
+   * either:
+   * <ul>
+   * <li>{@link DSL#or(Condition...)} iff there is a query parameter such as
+   * {@code connect[<field>]=OR}, or:</li>
+   * <li>{@link DSL#and(Condition...)} otherwise</li>
+   * </ul>
    */
-  // TODO: Support AND-type joining
   private <T extends Record> SelectQuery<T> applyFilteringImpl(final SelectQuery<T> query) {
-    query.addConditions(this.filterWhere.stream()
-        .map(Filter.toCondition(Arrays.asList(query.fields())))
-        .filter(Optional::isPresent).map(Optional::get)
-        .collect(FieldCondition.JOIN_SAME_FIELDS_WITH_OR).values());
+    query.addConditions(Maps
+        .transformEntries(
+                          this.filterWhere.stream()
+                              .map(Filter.toCondition(Arrays.asList(query.fields())))
+                              .filter(Optional::isPresent).map(Optional::get)
+                              .collect(Collectors.groupingBy(FieldCondition::getName)),
+                          (f, conditions) -> this.connectors.getOrDefault(f, DSL::and).apply(Collections2.transform(conditions, FieldCondition::getCondition)))
+        .values());
     return query;
   }
 
@@ -331,7 +346,7 @@ public class RecordsCollator {
      * <ul>
      * <li>the {@link Condition} on a
      * <code>{@link Field}<{@link String}></code> is set up to perform a
-     * <em>case-insensitive</em> sort, which wouldn't be possible with a
+     * <em>case-insensitive</em> filtering, which wouldn't be possible with a
      * {@link Condition} on a <code>{@link Field}<{@link Integer}></code>
      * </li>
      * <li>the {@link Condition} on a
@@ -358,54 +373,60 @@ public class RecordsCollator {
      * @return A {@link Function} to be used with
      *         {@link Stream#map(Function)}
      */
+    @SuppressWarnings("null")
     public static Function<? super Filter, Optional<? extends FieldCondition<?>>> toCondition(final List<Field<?>> availableFields) {
-      return self -> {
+      return ((Function<? super Filter, FieldCondition<?>>) self -> {
         final Optional<Field<?>> found = availableFields.stream().filter(f -> f.getName().equals(self.field)).findFirst();
         if (!found.isPresent()) {
-          return Optional.empty();
+          return null;
+        }
+
+        // Handle eq:null and ne:null for shallow Fields
+        if ((self.path.length == 0) && Constants.FILTER_VALUE_NULL.equals(self.value)) {
+          return FieldCondition.on(DSL.field(self.field), f -> self.comparator.equals("eq") ? f.isNull() : f.isNotNull());
         }
 
         // If String, perform non-accented, case-insensitive partial match search
         if (String.class.equals(found.get().getType())) {
-          return Optional.of(FieldCondition.on(Fields.unaccent(DSL.field(self.field, String.class)),
-                                               f -> f.containsIgnoreCase(Fields.unaccent(DSL.val(self.value)))));
+          return FieldCondition.on(Fields.unaccent(DSL.field(self.field, String.class)), f -> f.containsIgnoreCase(Fields.unaccent(DSL.val(self.value))));
         }
 
         // If Number-like, parse it first
         if (Number.class.isAssignableFrom(found.get().getType())) {
-          return Optional.of(FieldCondition.on(DSL.field(self.field, Double.class),
-                                               f -> Filter.compare(f, self.comparator, DSL.val(self.value, Double.class))));
+          return FieldCondition.on(DSL.field(self.field, Double.class), f -> Filter.compare(f, self.comparator, DSL.val(self.value, Double.class)));
         }
 
         // It Date, parse first
         if (Date.class.equals(found.get().getType())) {
-          return Optional.of(FieldCondition.on(DSL.field(self.field, Date.class), f -> Filter.compare(f, self.comparator, DSL.val(self.value, Date.class))));
+          return FieldCondition.on(DSL.field(self.field, Date.class), f -> Filter.compare(f, self.comparator, DSL.val(self.value, Date.class)));
         }
 
         // If Boolean, interpret things like:
         // 1, 0, yes, no, Y, N, true, false, on, off, enabled, and: disabled
         if (Boolean.class.equals(found.get().getType())) {
-          return Optional.of(FieldCondition.on(DSL.field(self.field, Boolean.class), f -> f.eq(Convert.convert(self.value, Boolean.class))));
+          return FieldCondition.on(DSL.field(self.field, Boolean.class), f -> f.eq(Convert.convert(self.value, Boolean.class)));
         }
 
         if (JsonNode.class.equals(found.get().getType())) {
-          // If JsonNode, handle eq:null and ne:null
-          // TODO: maybe also handle these for any field type
-          final Field<String> leaf = DSL.field("{0} #>> {1}", String.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path));
-          if (Constants.FILTER_VALUE_NULL.equals(self.value)) {
-            return Optional.of(FieldCondition.on(leaf, f -> self.comparator.equals("eq") ? f.isNull() : f.isNotNull()));
-          }
+          return ((Supplier<FieldCondition<?>>) () -> {
+            final Field<String> leaf = DSL.field("{0} #>> {1}", String.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path));
 
-          if (null != DSL.<Float> val(self.value, Float.class).getValue()) { // Can be interpreted as Numeric
-            return Optional.of(FieldCondition.on(DSL.cast(leaf, Float.class), f -> Filter.compare(f, self.comparator, DSL.val(self.value, Float.class))));
-          }
+            // Handle eq:null and ne:null
+            if (Constants.FILTER_VALUE_NULL.equals(self.value)) {
+              return FieldCondition.on(leaf, f -> self.comparator.equals("eq") ? f.isNull() : f.isNotNull());
+            }
 
-          return Optional.of(FieldCondition.on(leaf, f -> Filter.compare(f, self.comparator, DSL.val(self.value))));
+            if (null != DSL.<Float> val(self.value, Float.class).getValue()) { // Can be interpreted as Numeric
+              return FieldCondition.on(DSL.cast(leaf, Float.class), f -> Filter.compare(f, self.comparator, DSL.val(self.value, Float.class)));
+            }
+
+            return FieldCondition.on(leaf, f -> Filter.compare(f, self.comparator, DSL.val(self.value)));
+          }).get().as(String.format("%s.%s", self.field, Joiner.on(".").join(self.path)));
         }
 
         // Default: regular comparison
-        return Optional.of(FieldCondition.on(DSL.field(self.field), f -> Filter.compare(f, self.comparator, DSL.field(self.value))));
-      };
+        return FieldCondition.on(DSL.field(self.field), f -> Filter.compare(f, self.comparator, DSL.field(self.value)));
+      }).andThen(Optional::ofNullable);
     }
 
     private static <T> Condition compare(final Field<T> field, final String comparator, final Field<T> value) {
@@ -480,8 +501,7 @@ public class RecordsCollator {
         }
 
         if (JsonNode.class.equals(found.get().getType())) {
-          return Optional
-              .of(self.asSortField.apply(DSL.field("{0} #> {1}", JsonNode.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path))));
+          return Optional.of(self.asSortField.apply(DSL.field("{0} #> {1}", JsonNode.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path))));
         }
 
         return Optional.of(self.asSortField.apply(DSL.field(self.field)));
@@ -489,18 +509,13 @@ public class RecordsCollator {
     }
   }
 
-  // TODO: Document a little bit more, maybe
   private static class FieldCondition<T> {
 
-    protected static final Collector<FieldCondition<?>, ?, Map<Field<?>, Condition>> JOIN_SAME_FIELDS_WITH_OR = Collectors
-        .groupingBy(FieldCondition::getField, Collector.<FieldCondition<?>, FieldCondition<?>, Condition> of(FieldCondition::new, FieldCondition::accept,
-                                                                                                             FieldCondition::combine, FieldCondition::joinOr));
-
-    private final Optional<Field<T>> field;
-    private final List<Condition>    conditions;
+    private final String    name;
+    private final Condition condition;
 
     /**
-     * Instantiate a new {@code FieldCondition}. For example:
+     * Instantiates a new {@code FieldCondition}. For example:
      *
      * <pre>
      * final {@code Field<Integer>} field = DSL.field("my_int", Integer.class);
@@ -509,67 +524,32 @@ public class RecordsCollator {
      * </pre>
      */
     protected static <T> FieldCondition<T> on(@NonNull final Field<T> field, final Function<? super Field<T>, ? extends Condition> getCondition) {
-      return new FieldCondition<>(field, getCondition.apply(field));
-    }
-
-    private FieldCondition(final Field<T> field, final Condition condition) {
-      this.field = Optional.ofNullable(field);
-      this.conditions = Collections.singletonList(condition);
+      return new FieldCondition<>(field.getName(), getCondition.apply(field));
     }
 
     /**
-     * Used as an accumulator to collect multiple {@code FieldConditions} and join
-     * them with {@link DSL#or(Condition...)}
-     */
-    private FieldCondition() {
-      this.field = Optional.empty();
-      this.conditions = new ArrayList<>();
-    }
-
-    /**
-     * A {@link BinaryOperator}{@code <FieldCondition>}}.
-     * Combines two {@code FieldCondition}s within {@code this}.
+     * Defines a normalised name for 'function' {@code Field}s (typically: the
+     * fields drilling into a {@code JsonNode} with a specific {@code path}).
      *
-     * @param other
-     *          The other {@code FieldCondition} to combine with {@code this}
-     * @return {@code this} {@code FieldCondition}, mutated appropriately.
+     * @param normalised
+     *          The new name to be used
+     * @return A copy of {@code this}, with the specified {@code normalised} name
      */
-    private FieldCondition<?> combine(final FieldCondition<?> other) {
-      this.conditions.addAll(other.conditions);
-      return this;
+    protected FieldCondition<T> as(final String normalised) {
+      return new FieldCondition<>(normalised, this.condition);
     }
 
-    /**
-     * A {@link BiConsumer}{@code<FieldCondition, FieldCondition>}.
-     * Add the {@code other} {@code FieldCondition} to {@code acc}.
-     *
-     * @param acc
-     *          The accumulating {@code FieldCondition}.
-     * @param other
-     *          The other {@code FieldCondition} to combine with {@code acc}
-     */
-    private static void accept(final FieldCondition<?> acc, final FieldCondition<?> other) {
-      acc.conditions.addAll(other.conditions);
+    private FieldCondition(final String name, final Condition condition) {
+      this.name = name;
+      this.condition = condition;
     }
 
-    private Field<T> getField() {
-      return this.field.get();
+    protected String getName() {
+      return this.name;
     }
 
-    /**
-     * @return A new {@link Condition} combining the accumulated ones with
-     *         {@link DSL#or(Condition...)}.
-     */
-    private Condition joinOr() {
-      return DSL.or(this.conditions);
-    }
-
-    /**
-     * @return A new {@link Condition} combining the accumulated ones with
-     *         {@link DSL#and(Condition...)}.
-     */
-    private Condition joinAnd() {
-      return DSL.and(this.conditions);
+    protected Condition getCondition() {
+      return this.condition;
     }
   }
 }
