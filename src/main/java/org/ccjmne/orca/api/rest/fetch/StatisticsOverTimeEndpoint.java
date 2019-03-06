@@ -8,6 +8,8 @@ import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
 import java.sql.Date;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -39,7 +41,8 @@ import jersey.repackaged.com.google.common.base.Objects;
 @Path("statistics-over-time")
 public class StatisticsOverTimeEndpoint {
 
-  private static final String DATE_SERIES_FIELD_NAME = "date";
+  private static final String       DATE_SERIES_FIELD_NAME = "date";
+  private static final List<String> VALID_INTERVALS        = Arrays.asList("day", "week", "month", "year");
 
   private final DSLContext          ctx;
   private final QueryParams         parameters;
@@ -50,6 +53,10 @@ public class StatisticsOverTimeEndpoint {
 
   @Inject
   private StatisticsOverTimeEndpoint(final DSLContext ctx, final QueryParams parameters, final ResourcesSelection resourcesSelection) {
+    if (!VALID_INTERVALS.contains(parameters.get(QueryParams.INTERVAL))) {
+      throw new IllegalArgumentException(String.format("'interval' can only be one of: %s", VALID_INTERVALS));
+    }
+
     this.ctx = ctx;
     this.parameters = parameters;
     this.resourcesSelection = resourcesSelection;
