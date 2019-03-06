@@ -86,7 +86,7 @@ public class ResourcesEndpoint {
   @GET
   @Path("employees/{employee}")
   public Record lookupEmployee() {
-    return this.ctx.fetchOne(this.findEmployees());
+    return this.ctx.fetchSingle(this.findEmployees());
   }
 
   @GET
@@ -125,7 +125,7 @@ public class ResourcesEndpoint {
   @GET
   @Path("sites/{site}")
   public Record lookupSite() {
-    return this.ctx.fetchOne(this.findSites());
+    return this.ctx.fetchSingle(this.findSites());
   }
 
   /**
@@ -136,7 +136,7 @@ public class ResourcesEndpoint {
    * +--------+--------------------------+-----------+
    * | Method | Path                     | Response  |
    * +--------+--------------------------+-----------+
-   * | GET    | /sites-groups            | SINGLE    |
+   * | GET    | /sites-groups            | PAGINATED |
    * +--------+--------------------------+-----------+
    * | GET    | /sites-groups/{group-by} | PAGINATED |
    * +--------+--------------------------+-----------+
@@ -181,7 +181,7 @@ public class ResourcesEndpoint {
   @GET
   @Path("sessions/{session}")
   public Record lookupSession() {
-    return this.ctx.fetchOne(this.collator.applyFAndS(this.findSessions()));
+    return this.ctx.fetchSingle(this.findSessions());
   }
 
   @GET
