@@ -388,7 +388,8 @@ public class RecordsCollator {
 
         // If String, perform non-accented, case-insensitive partial match search
         if (String.class.equals(found.get().getType())) {
-          return FieldCondition.on(Fields.unaccent(DSL.field(self.field, String.class)), f -> f.containsIgnoreCase(Fields.unaccent(DSL.val(self.value))));
+          return FieldCondition.on(Fields.unaccent(DSL.field(self.field, String.class)), f -> f.containsIgnoreCase(Fields.unaccent(DSL.val(self.value))))
+              .as(self.field);
         }
 
         // If Number-like, parse it first
@@ -528,8 +529,14 @@ public class RecordsCollator {
     }
 
     /**
-     * Defines a normalised name for 'function' {@code Field}s (typically: the
-     * fields drilling into a {@code JsonNode} with a specific {@code path}).
+     * Defines a normalised name for 'function' {@code Field}s.<br />
+     * <br/>
+     * Typically used for:
+     * <ul>
+     * <li>fields drilling into a {@code JsonNode} with a specific {@code path}</li>
+     * <li>fields that are encapsulated in a function, like
+     * {@code unaccent(<field>)}</li>
+     * </ul>
      *
      * @param normalised
      *          The new name to be used
