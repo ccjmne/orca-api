@@ -1,11 +1,13 @@
 package org.ccjmne.orca.api.inject.business;
 
 import java.sql.Date;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -23,6 +25,7 @@ import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.JSONFields;
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.Nullable;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Record;
@@ -53,13 +56,15 @@ public class RecordsCollator {
   private static final String PARAMETER_NAME_PAGE_SIZE   = "page-size";
   private static final String PARAMETER_NAME_PAGE_OFFSET = "page-offset";
 
-  private static final Pattern SORT_ENTRY    = Pattern.compile("^sort\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?<direction>.*)$");
-  private static final Pattern FILTER_ENTRY  = Pattern
-      .compile("^filter\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?:(?<comparator>lt|le|eq|ge|gt|ne):)?(?<value>.*)$");
-  private static final Pattern CONNECT_ENTRY = Pattern.compile("^connect\\[(?<field>[^]]+)\\]=(?<connector>AND|OR)$", Pattern.CASE_INSENSITIVE);
+  private static final Pattern SORT_ENTRY       = Pattern.compile("^sort\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?<direction>.*)$");
+  private static final Pattern FILTER_ENTRY     = Pattern
+      .compile("^filter\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?!(or|and):)(?:(?<comparator>lt|le|eq|ge|gt|ne):)?(?<value>.*)$");
+  private static final Pattern FILTER_CONNECTED = Pattern
+      .compile("^filter\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?:(?<connect>and|or):)(?<values>.*)$");
+  private static final Pattern CONNECT_ENTRY    = Pattern.compile("^connect\\[(?<field>[^]]+)\\]=(?<connector>AND|OR)$", Pattern.CASE_INSENSITIVE);
 
-  private final List<? extends Sort>   orderBy;
-  private final List<? extends Filter> filterWhere;
+  private final List<? extends Sort>         orderBy;
+  private final List<? extends FilterConfig> filterWhere;
 
   private final Map<String, Function<? super Collection<Condition>, ? extends Condition>> connectors;
 
@@ -83,10 +88,16 @@ public class RecordsCollator {
         .filter(Matcher::matches)
         .map(m -> new Sort(m.group("field"), m.group("path"), m.group("direction")))
         .collect(Collectors.toList());
-    this.filterWhere = uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
-        .map(FILTER_ENTRY::matcher)
-        .filter(Matcher::matches)
-        .map(m -> new Filter(m.group("field"), m.group("path"), m.group("comparator"), m.group("value")))
+    this.filterWhere = Stream
+        .concat(
+                uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
+                    .map(FILTER_CONNECTED::matcher)
+                    .filter(Matcher::matches)
+                    .map(m -> new FilterConnected(m.group("field"), m.group("path"), m.group("connect"), m.group("values"))),
+                uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
+                    .map(FILTER_ENTRY::matcher)
+                    .filter(Matcher::matches)
+                    .map(m -> new FilterSingle(m.group("field"), m.group("path"), m.group("comparator"), m.group("value"))))
         .collect(Collectors.toList());
     this.connectors = uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
         .map(CONNECT_ENTRY::matcher)
@@ -299,7 +310,7 @@ public class RecordsCollator {
     query.addConditions(Maps
         .transformEntries(
                           this.filterWhere.stream()
-                              .map(Filter.toCondition(Arrays.asList(query.fields())))
+                              .map(FilterConfig.toCondition(Arrays.asList(query.fields())))
                               .filter(Optional::isPresent).map(Optional::get)
                               .collect(Collectors.groupingBy(FieldCondition::getName)),
                           (f, conditions) -> this.connectors.getOrDefault(f, DSL::and).apply(Collections2.transform(conditions, FieldCondition::getCondition)))
@@ -322,22 +333,12 @@ public class RecordsCollator {
     return query;
   }
 
-  private static class Filter {
+  private interface FilterConfig {
 
-    private final String   field;
-    private final String   value;
-    private final String   comparator;
-    private final String[] path;
-
-    protected Filter(final String field, final String path, final String comparator, final String value) {
-      this.field = field;
-      this.path = path.isEmpty() ? new String[0] : path.substring(1).split("\\.");
-      this.comparator = MoreObjects.firstNonNull(comparator, "");
-      this.value = value;
-    }
+    public abstract @Nullable Optional<? extends FieldCondition<?>> getFieldCondition(final List<Field<?>> availableFields);
 
     /**
-     * Computes a mapping {@link Function} that transforms {@link Filter}
+     * Computes a mapping {@link Function} that transforms {@link FilterConfig}
      * instances into <code>{@link Optional}<{@link FieldCondition}></code>s,
      * using a list of typed {@link Field}s references to generate
      * type-specific {@link Condition}s.<br />
@@ -351,20 +352,20 @@ public class RecordsCollator {
      * </li>
      * <li>the {@link Condition} on a
      * <code>{@link Field}<{@link Integer}></code> is set up to accept
-     * values like <code>/(lt|le|eq|ge|gt)(\d*\.)?\d+/</code> and actually
+     * values like <code>/(ne|lt|le|eq|ge|gt)(\d*\.)?\d+/</code> and actually
      * perform a <em>mathematical comparison</em>, which wouldn't be
      * possible with a {@link Condition} on a
-     * <code>{@link Field}<{@link Integer}></code></li>
+     * <code>{@link Field}<{@link String}></code></li>
      * </ul>
      * <br />
-     * This method is meant to be used with{@link Stream#map(Function)}, in
+     * This method is meant to be used with {@link Stream#map(Function)}, in
      * a stream chain as follows:
      *
      * <pre>
      * stream
-     * 		.map({@link Filter#toCondition(List)})
-     * 		.filter(Optional::isPresent)
-     * 		.map(Optional::get);
+     *    .map({@link FilterConfig#toCondition(List)})
+     *    .filter(Optional::isPresent)
+     *    .map(Optional::get);
      * </pre>
      *
      * @param availableFields
@@ -373,61 +374,104 @@ public class RecordsCollator {
      * @return A {@link Function} to be used with
      *         {@link Stream#map(Function)}
      */
-    @SuppressWarnings("null")
-    public static Function<? super Filter, Optional<? extends FieldCondition<?>>> toCondition(final List<Field<?>> availableFields) {
-      return ((Function<? super Filter, FieldCondition<?>>) self -> {
-        final Optional<Field<?>> found = availableFields.stream().filter(f -> f.getName().equals(self.field)).findFirst();
+    public static Function<FilterConfig, Optional<? extends FieldCondition<?>>> toCondition(final List<Field<?>> availableFields) {
+      return ((Function<FilterConfig, Optional<? extends FieldCondition<?>>>) self -> self.getFieldCondition(availableFields));
+    }
+  }
+
+  private static class FilterConnected implements FilterConfig {
+
+    private static final Pattern PATTERN_VALUES = Pattern.compile("(?:(?<comparator>lt|le|eq|ge|gt|ne):)?(?<value>[^|]+)");
+
+    private final List<FilterSingle>        filters = new ArrayList<>();
+    private final BinaryOperator<Condition> connect;
+
+    protected FilterConnected(final String field, final String path, final String connect, final String values) {
+      this.connect = "AND".equalsIgnoreCase(connect) ? DSL::and : DSL::or;
+      final Matcher m = PATTERN_VALUES.matcher(values);
+      while (m.find()) {
+        this.filters.add(new FilterSingle(field, path, m.group("comparator"), m.group("value")));
+      }
+    }
+
+    @Override
+    public @Nullable Optional<? extends FieldCondition<?>> getFieldCondition(final List<Field<?>> availableFields) {
+      return this.filters.stream()
+          .map(FilterConfig.toCondition(availableFields))
+          .filter(Optional::isPresent).map(Optional::get)
+          .reduce(FieldCondition.connect(this.connect));
+    }
+  }
+
+  private static class FilterSingle implements FilterConfig {
+
+    private final String   field;
+    private final String   value;
+    private final String   comparator;
+    private final String[] path;
+
+    protected FilterSingle(final String field, final String path, final String comparator, final String value) {
+      this.field = field;
+      this.path = path.isEmpty() ? new String[0] : path.substring(1).split("\\.");
+      this.comparator = MoreObjects.firstNonNull(comparator, "");
+      this.value = value;
+    }
+
+    @Override
+    public @Nullable Optional<? extends FieldCondition<?>> getFieldCondition(final List<Field<?>> availableFields) {
+      return Optional.ofNullable(((Supplier<FieldCondition<?>>) () -> {
+        final Optional<Field<?>> found = availableFields.stream().filter(f -> f.getName().equals(this.field)).findFirst();
         if (!found.isPresent()) {
           return null;
         }
 
         // Handle eq:null and ne:null for shallow Fields
-        if ((self.path.length == 0) && Constants.FILTER_VALUE_NULL.equals(self.value)) {
-          return FieldCondition.on(DSL.field(self.field), f -> self.comparator.equals("eq") ? f.isNull() : f.isNotNull());
+        if ((this.path.length == 0) && Constants.FILTER_VALUE_NULL.equals(this.value)) {
+          return FieldCondition.on(DSL.field(this.field, found.get().getType()), f -> this.comparator.equals("eq") ? f.isNull() : f.isNotNull());
         }
 
         // If String, perform non-accented, case-insensitive partial match search
         if (String.class.equals(found.get().getType())) {
-          return FieldCondition.on(Fields.unaccent(DSL.field(self.field, String.class)), f -> f.containsIgnoreCase(Fields.unaccent(DSL.val(self.value))))
-              .as(self.field);
+          return FieldCondition.on(Fields.unaccent(DSL.field(this.field, String.class)), f -> f.containsIgnoreCase(Fields.unaccent(DSL.val(this.value))))
+              .as(this.field);
         }
 
         // If Number-like, parse it first
         if (Number.class.isAssignableFrom(found.get().getType())) {
-          return FieldCondition.on(DSL.field(self.field, Double.class), f -> Filter.compare(f, self.comparator, DSL.val(self.value, Double.class)));
+          return FieldCondition.on(DSL.field(this.field, Double.class), f -> FilterSingle.compare(f, this.comparator, DSL.val(this.value, Double.class)));
         }
 
         // It Date, parse first
         if (Date.class.equals(found.get().getType())) {
-          return FieldCondition.on(DSL.field(self.field, Date.class), f -> Filter.compare(f, self.comparator, DSL.val(self.value, Date.class)));
+          return FieldCondition.on(DSL.field(this.field, Date.class), f -> FilterSingle.compare(f, this.comparator, DSL.val(this.value, Date.class)));
         }
 
         // If Boolean, interpret things like:
         // 1, 0, yes, no, Y, N, true, false, on, off, enabled, and: disabled
         if (Boolean.class.equals(found.get().getType())) {
-          return FieldCondition.on(DSL.field(self.field, Boolean.class), f -> f.eq(Convert.convert(self.value, Boolean.class)));
+          return FieldCondition.on(DSL.field(this.field, Boolean.class), f -> f.eq(Convert.convert(this.value, Boolean.class)));
         }
 
         if (JsonNode.class.equals(found.get().getType())) {
           return ((Supplier<FieldCondition<?>>) () -> {
-            final Field<String> leaf = DSL.field("{0} #>> {1}", String.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path));
+            final Field<String> leaf = DSL.field("{0} #>> {1}", String.class, DSL.field(this.field, JsonNode.class), DSL.array(this.path));
 
             // Handle eq:null and ne:null
-            if (Constants.FILTER_VALUE_NULL.equals(self.value)) {
-              return FieldCondition.on(leaf, f -> self.comparator.equals("eq") ? f.isNull() : f.isNotNull());
+            if (Constants.FILTER_VALUE_NULL.equals(this.value)) {
+              return FieldCondition.on(leaf, f -> this.comparator.equals("eq") ? f.isNull() : f.isNotNull());
             }
 
-            if (null != DSL.<Float> val(self.value, Float.class).getValue()) { // Can be interpreted as Numeric
-              return FieldCondition.on(DSL.cast(leaf, Float.class), f -> Filter.compare(f, self.comparator, DSL.val(self.value, Float.class)));
+            if (null != DSL.<Float> val(this.value, Float.class).getValue()) { // Can be interpreted as Numeric
+              return FieldCondition.on(DSL.cast(leaf, Float.class), f -> FilterSingle.compare(f, this.comparator, DSL.val(this.value, Float.class)));
             }
 
-            return FieldCondition.on(leaf, f -> Filter.compare(f, self.comparator, DSL.val(self.value)));
-          }).get().as(String.format("%s.%s", self.field, Joiner.on(".").join(self.path)));
+            return FieldCondition.on(leaf, f -> FilterSingle.compare(f, this.comparator, DSL.val(this.value)));
+          }).get().as(String.format("%s.%s", this.field, Joiner.on(".").join(this.path)));
         }
 
         // Default: regular comparison
-        return FieldCondition.on(DSL.field(self.field), f -> Filter.compare(f, self.comparator, DSL.field(self.value)));
-      }).andThen(Optional::ofNullable);
+        return FieldCondition.on(DSL.field(this.field), f -> FilterSingle.compare(f, this.comparator, DSL.field(this.value)));
+      }).get());
     }
 
     private static <T> Condition compare(final Field<T> field, final String comparator, final Field<T> value) {
@@ -549,6 +593,30 @@ public class RecordsCollator {
     private FieldCondition(final String name, final Condition condition) {
       this.name = name;
       this.condition = condition;
+    }
+
+    /**
+     * Computes a {@code BinaryOperator<FieldCondition>} that connects two
+     * {@code FieldCondition}s using the specified {@code Condition} reducing
+     * operation.
+     *
+     * @apiNote The {@code FieldCondition}s' names should be
+     *          <strong>identical</strong>.
+     *
+     * @param connector
+     *          The {@link BinaryOperator} connecting the underlying
+     *          {@code Condition}s.
+     * @return A new {@code BinaryOperator} able to connect {@code FieldCondition}s
+     *         together
+     */
+    protected static BinaryOperator<FieldCondition<?>> connect(final BinaryOperator<Condition> connector) {
+      return (a, b) -> {
+        if (!a.name.equalsIgnoreCase(b.name)) {
+          throw new IllegalArgumentException(String.format("Conditions on fields '%s' and '%s' shouldn't be connected", a.name, b.name));
+        }
+
+        return new FieldCondition<>(a.name, connector.apply(a.condition, b.condition));
+      };
     }
 
     protected String getName() {
