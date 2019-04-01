@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -24,7 +23,6 @@ import org.apache.http.client.utils.URLEncodedUtils;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.JSONFields;
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jooq.Condition;
 import org.jooq.Field;
@@ -38,9 +36,9 @@ import org.jooq.impl.DSL;
 import org.jooq.tools.Convert;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 /**
@@ -56,11 +54,10 @@ public class RecordsCollator {
   private static final String PARAMETER_NAME_PAGE_SIZE   = "page-size";
   private static final String PARAMETER_NAME_PAGE_OFFSET = "page-offset";
 
-  private static final Pattern SORT_ENTRY       = Pattern.compile("^sort\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?<direction>.*)$");
+  private static final Pattern SORT_ENTRY       = Pattern.compile("^sort\\[(?<field>[^]]+)\\]=(?<direction>.*)$");
   private static final Pattern FILTER_ENTRY     = Pattern
-      .compile("^filter\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?!(or|and):)(?:(?<comparator>lt|le|eq|ge|gt|ne):)?(?<value>.*)$");
-  private static final Pattern FILTER_CONNECTED = Pattern
-      .compile("^filter\\[(?<field>[^].]+)(?<path>(?:\\.[^]]+)*)\\]=(?:(?<connect>and|or):)(?<values>.*)$");
+      .compile("^filter\\[(?<field>[^]]+)\\]=(?!(or|and):)(?:(?<comparator>lt|le|eq|ge|gt|ne):)?(?<value>.*)$");
+  private static final Pattern FILTER_CONNECTED = Pattern.compile("^filter\\[(?<field>[^]]+)\\]=(?:(?<connect>and|or):)(?<values>.*)$");
   private static final Pattern CONNECT_ENTRY    = Pattern.compile("^connect\\[(?<field>[^]]+)\\]=(?<connector>AND|OR)$", Pattern.CASE_INSENSITIVE);
 
   private final List<? extends Sort>         orderBy;
@@ -86,18 +83,18 @@ public class RecordsCollator {
     this.orderBy = URLEncodedUtils.parse(uriInfo.getRequestUri(), "UTF-8").stream().map(p -> String.format("%s=%s", p.getName(), p.getValue()))
         .map(SORT_ENTRY::matcher)
         .filter(Matcher::matches)
-        .map(m -> new Sort(m.group("field"), m.group("path"), m.group("direction")))
+        .map(m -> new Sort(new ParsedField(m.group("field")), m.group("direction")))
         .collect(Collectors.toList());
     this.filterWhere = Stream
         .concat(
                 uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
                     .map(FILTER_CONNECTED::matcher)
                     .filter(Matcher::matches)
-                    .map(m -> new FilterConnected(m.group("field"), m.group("path"), m.group("connect"), m.group("values"))),
+                    .map(m -> new FilterConnected(new ParsedField(m.group("field")), m.group("connect"), m.group("values"))),
                 uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
                     .map(FILTER_ENTRY::matcher)
                     .filter(Matcher::matches)
-                    .map(m -> new FilterSingle(m.group("field"), m.group("path"), m.group("comparator"), m.group("value"))))
+                    .map(m -> new FilterSingle(new ParsedField(m.group("field")), m.group("comparator"), m.group("value"))))
         .collect(Collectors.toList());
     this.connectors = uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
         .map(CONNECT_ENTRY::matcher)
@@ -386,11 +383,11 @@ public class RecordsCollator {
     private final List<FilterSingle>        filters = new ArrayList<>();
     private final BinaryOperator<Condition> connect;
 
-    protected FilterConnected(final String field, final String path, final String connect, final String values) {
+    protected FilterConnected(final ParsedField field, final String connect, final String values) {
       this.connect = "AND".equalsIgnoreCase(connect) ? DSL::and : DSL::or;
       final Matcher m = PATTERN_VALUES.matcher(values);
       while (m.find()) {
-        this.filters.add(new FilterSingle(field, path, m.group("comparator"), m.group("value")));
+        this.filters.add(new FilterSingle(field, m.group("comparator"), m.group("value")));
       }
     }
 
@@ -405,104 +402,78 @@ public class RecordsCollator {
 
   private static class FilterSingle implements FilterConfig {
 
-    private final String   field;
-    private final String   value;
-    private final String   comparator;
-    private final String[] path;
+    private final ParsedField field;
+    private final String      value;
+    private final String      comparator;
 
-    protected FilterSingle(final String field, final String path, final String comparator, final String value) {
+    protected FilterSingle(final ParsedField field, final String comparator, final String value) {
       this.field = field;
-      this.path = path.isEmpty() ? new String[0] : path.substring(1).split("\\.");
       this.comparator = MoreObjects.firstNonNull(comparator, "");
       this.value = value;
     }
 
     @Override
     public @Nullable Optional<? extends FieldCondition<?>> getFieldCondition(final List<Field<?>> availableFields) {
-      return Optional.ofNullable(((Supplier<FieldCondition<?>>) () -> {
-        final Optional<Field<?>> found = availableFields.stream().filter(f -> f.getName().equals(this.field)).findFirst();
-        if (!found.isPresent()) {
-          return null;
-        }
+      final Optional<Field<?>> preprocessed = this.field.preprocessFor(availableFields);
+      if (!preprocessed.isPresent()) {
+        return Optional.empty();
+      }
 
-        // Handle eq:null and ne:null for shallow Fields
-        if ((this.path.length == 0) && Constants.FILTER_VALUE_NULL.equals(this.value)) {
-          return FieldCondition.on(DSL.field(this.field, found.get().getType()), f -> this.comparator.equals("eq") ? f.isNull() : f.isNotNull());
-        }
-
-        // If String, perform non-accented, case-insensitive partial match search
-        if (String.class.equals(found.get().getType())) {
-          return FieldCondition.on(Fields.unaccent(DSL.field(this.field, String.class)), f -> f.containsIgnoreCase(Fields.unaccent(DSL.val(this.value))))
-              .as(this.field);
-        }
-
-        // If Number-like, parse it first
-        if (Number.class.isAssignableFrom(found.get().getType())) {
-          return FieldCondition.on(DSL.field(this.field, Double.class), f -> FilterSingle.compare(f, this.comparator, DSL.val(this.value, Double.class)));
-        }
-
-        // It Date, parse first
-        if (Date.class.equals(found.get().getType())) {
-          return FieldCondition.on(DSL.field(this.field, Date.class), f -> FilterSingle.compare(f, this.comparator, DSL.val(this.value, Date.class)));
+      final Class<?> type = preprocessed.get().getType();
+      return Optional.ofNullable(FieldCondition.on(preprocessed.get(), f -> {
+        // Handle eq:null and ne:null
+        if (Constants.FILTER_VALUE_NULL.equals(this.value)) {
+          return "ne".equals(this.comparator) ? f.isNotNull() : f.isNull();
         }
 
         // If Boolean, interpret things like:
-        // 1, 0, yes, no, Y, N, true, false, on, off, enabled, and: disabled
-        if (Boolean.class.equals(found.get().getType())) {
-          return FieldCondition.on(DSL.field(this.field, Boolean.class), f -> f.eq(Convert.convert(this.value, Boolean.class)));
+        // 1, 0, yes, no, Y, N, true, false, on, off, enabled, and disabled
+        if (Boolean.class.equals(type)) {
+          return f.eq(Convert.convert(this.value, Boolean.class));
         }
 
-        if (JsonNode.class.equals(found.get().getType())) {
-          return ((Supplier<FieldCondition<?>>) () -> {
-            final Field<String> leaf = DSL.field("{0} #>> {1}", String.class, DSL.field(this.field, JsonNode.class), DSL.array(this.path));
-
-            // Handle eq:null and ne:null
-            if (Constants.FILTER_VALUE_NULL.equals(this.value)) {
-              return FieldCondition.on(leaf, f -> this.comparator.equals("eq") ? f.isNull() : f.isNotNull());
-            }
-
-            if (null != DSL.<Float> val(this.value, Float.class).getValue()) { // Can be interpreted as Numeric
-              return FieldCondition.on(DSL.cast(leaf, Float.class), f -> FilterSingle.compare(f, this.comparator, DSL.val(this.value, Float.class)));
-            }
-
-            return FieldCondition.on(leaf, f -> FilterSingle.compare(f, this.comparator, DSL.val(this.value)));
-          }).get().as(String.format("%s.%s", this.field, Joiner.on(".").join(this.path)));
+        // If String, perform non-accented, case-insensitive partial match search
+        if (String.class.equals(type)) {
+          return f.containsIgnoreCase(Fields.unaccent(DSL.val(this.value, String.class)));
         }
 
-        // Default: regular comparison
-        return FieldCondition.on(DSL.field(this.field), f -> FilterSingle.compare(f, this.comparator, DSL.field(this.value)));
-      }).get());
+        // If Number-like, Date or anything else, parse value as well as possible
+        return FilterSingle.compare(f, this.comparator, DSL.val(this.value, type));
+      }).as(this.field.getFullName()));
     }
 
-    private static <T> Condition compare(final Field<T> field, final String comparator, final Field<T> value) {
+    /**
+     * Be <strong>sure</strong> both supplied {@code field} and {@code value}
+     * actually <strong>are</strong> of compatible types!
+     */
+    @SuppressWarnings("unchecked")
+    private static <T> Condition compare(final Field<?> field, final String comparator, final Field<T> value) {
       switch (comparator) {
         case "ne":
-          return field.ne(value);
+          return ((Field<T>) field).ne(value);
         case "lt":
-          return field.lt(value);
+          return ((Field<T>) field).lt(value);
         case "le":
-          return field.le(value);
+          return ((Field<T>) field).le(value);
         case "ge":
-          return field.ge(value);
+          return ((Field<T>) field).ge(value);
         case "gt":
-          return field.gt(value);
+          return ((Field<T>) field).gt(value);
         case "eq":
         default:
-          return field.eq(value);
+          return ((Field<T>) field).eq(value);
       }
     }
   }
 
   private static class Sort {
 
-    private final String   field;
-    private final String[] path;
+    private final ParsedField field;
 
     private final Function<? super Field<?>, ? extends SortField<?>> asSortField;
 
-    protected Sort(final String field, final String path, final String direction) {
+    protected Sort(final ParsedField field, final String direction) {
       this.field = field;
-      this.path = path.isEmpty() ? new String[0] : path.substring(1).split("\\.");
       this.asSortField = f -> (Constants.SORT_DIRECTION_DESC.equalsIgnoreCase(direction) ? f.desc() : f.asc()).nullsLast();
     }
 
@@ -536,20 +507,8 @@ public class RecordsCollator {
     @SuppressWarnings("null")
     public static Function<? super Sort, ? extends Optional<SortField<?>>> toSortField(final List<Field<?>> availableFields) {
       return self -> {
-        final Optional<Field<?>> found = availableFields.stream().filter(f -> f.getName().equals(self.field)).findFirst();
-        if (!found.isPresent()) {
-          return Optional.empty();
-        }
-
-        if (String.class.equals(found.get().getType())) {
-          return Optional.of(self.asSortField.apply(Fields.unaccent(DSL.field(self.field, String.class))));
-        }
-
-        if (JsonNode.class.equals(found.get().getType())) {
-          return Optional.of(self.asSortField.apply(DSL.field("{0} #> {1}", JsonNode.class, DSL.field(self.field, JsonNode.class), DSL.array(self.path))));
-        }
-
-        return Optional.of(self.asSortField.apply(DSL.field(self.field)));
+        final Optional<Field<?>> preprocessed = self.field.preprocessFor(availableFields);
+        return preprocessed.isPresent() ? Optional.of(self.asSortField.apply(preprocessed.get())) : Optional.empty();
       };
     }
   }
@@ -567,9 +526,13 @@ public class RecordsCollator {
      * final {@code FieldCondition<Integer>} fieldCondition = FieldCondition
      *     .on(field, f -> f.isNotNull());
      * </pre>
+     *
+     * Be <strong>sure</strong> that both supplied {@code field} and
+     * {@code getCondition} actually <strong>are</strong> of compatible types!
      */
-    protected static <T> FieldCondition<T> on(@NonNull final Field<T> field, final Function<? super Field<T>, ? extends Condition> getCondition) {
-      return new FieldCondition<>(field.getName(), getCondition.apply(field));
+    @SuppressWarnings("unchecked")
+    protected static <T> FieldCondition<T> on(final Field<?> field, final Function<? super Field<T>, ? extends Condition> getCondition) {
+      return new FieldCondition<>(field.getName(), getCondition.apply((Field<T>) field));
     }
 
     /**
@@ -625,6 +588,73 @@ public class RecordsCollator {
 
     protected Condition getCondition() {
       return this.condition;
+    }
+  }
+
+  private static class ParsedField {
+
+    private final static Pattern FIELD_PARSER = Pattern.compile("^(?:(?<preprocess>[^:]+):)?(?<name>[^.]+)(?:\\.(?<path>.+))?$");
+
+    private static final Map<String, Function<? super Field<?>, ? extends Field<?>>> PREPROCESSORS = ImmutableMap
+        .of("string", field -> Fields.unaccent(DSL.cast(field, String.class)),
+            "date", field -> DSL.cast(field, Date.class),
+            "number", field -> DSL.cast(field, Double.class));
+
+    private final String           name;
+    private final String           fullName;
+    private final Optional<String> path;
+    private final Optional<String> type;
+
+    protected ParsedField(final String field) {
+      final Matcher matcher = ParsedField.FIELD_PARSER.matcher(field);
+      if (!matcher.matches()) {
+        throw new IllegalArgumentException(String.format("Invalid field format: '%s'", field));
+      }
+
+      this.name = matcher.group("name");
+      this.path = Optional.ofNullable(matcher.group("path"));
+      this.type = Optional.ofNullable(matcher.group("preprocess"));
+      this.fullName = this.path.isPresent() ? String.format("%s.%s", this.name, this.path.get()) : this.name;
+    }
+
+    // May be of use to allow connecting w/ 'OR' two filters like:
+    // filter[empl_stats.1.expiry] and filter[empl_stats.1.status]
+    protected String getName() {
+      return this.name;
+    }
+
+    protected String getFullName() {
+      return this.fullName;
+    }
+
+    @SuppressWarnings("null")
+    protected Optional<Field<?>> preprocessFor(final List<Field<?>> availableFields) {
+      final Optional<Field<?>> found = availableFields.stream().filter(f -> f.getName().equals(this.name)).findFirst();
+      if (!found.isPresent()) {
+        return Optional.empty();
+      }
+
+      final Class<?> matchedType = found.get().getType();
+      final String availableType = Number.class.isAssignableFrom(matchedType) ? "number" : matchedType.getSimpleName().toLowerCase();
+      if (!this.path.isPresent()) {
+        return Optional.of(PREPROCESSORS.getOrDefault(availableType, f -> f).apply(DSL.field(this.name, matchedType)));
+      }
+
+      if (!JsonNode.class.equals(matchedType)) {
+        throw new IllegalArgumentException(String
+            .format("Couldn't access property '%s' on field '%s' of type '%s'", this.path.get(), this.name, matchedType));
+      }
+
+      final Field<Object> leaf = DSL.field("{0} #>> {1}", Object.class, DSL.field(this.name, JsonNode.class), DSL.array(this.path.get().split("\\.")));
+      if (!this.type.isPresent()) {
+        return Optional.of(leaf);
+      }
+
+      if (!PREPROCESSORS.containsKey(this.type.get())) {
+        throw new IllegalArgumentException(String.format("Invalid field type: '%s', should be one of: %s", this.type.get(), PREPROCESSORS.keySet()));
+      }
+
+      return Optional.of(PREPROCESSORS.get(this.type.get()).apply(leaf));
     }
   }
 }
