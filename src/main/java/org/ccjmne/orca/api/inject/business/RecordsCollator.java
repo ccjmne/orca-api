@@ -54,11 +54,9 @@ public class RecordsCollator {
   private static final String PARAMETER_NAME_PAGE_SIZE   = "page-size";
   private static final String PARAMETER_NAME_PAGE_OFFSET = "page-offset";
 
-  private static final Pattern SORT_ENTRY       = Pattern.compile("^sort\\[(?<field>[^]]+)\\]=(?<direction>.*)$");
-  private static final Pattern FILTER_ENTRY     = Pattern
-      .compile("^filter\\[(?<field>[^]]+)\\]=(?!(or|and):)(?:(?<comparator>lt|le|eq|ge|gt|ne):)?(?<value>.*)$");
-  private static final Pattern FILTER_CONNECTED = Pattern.compile("^filter\\[(?<field>[^]]+)\\]=(?:(?<connect>and|or):)(?<values>.*)$");
-  private static final Pattern CONNECT_ENTRY    = Pattern.compile("^connect\\[(?<field>[^]]+)\\]=(?<connector>AND|OR)$", Pattern.CASE_INSENSITIVE);
+  private static final Pattern SORT_ENTRY    = Pattern.compile("^sort\\[(?<field>[^]]+)\\]=(?<direction>.*)$", Pattern.CASE_INSENSITIVE);
+  private static final Pattern FILTER_ENTRY  = Pattern.compile("^filter\\[(?<field>[^]]+)\\]=(?:(?<connect>and|or):)?(?<values>.*)$", Pattern.CASE_INSENSITIVE);
+  private static final Pattern CONNECT_ENTRY = Pattern.compile("^connect\\[(?<field>[^]]+)\\]=(?<connector>and|or)$", Pattern.CASE_INSENSITIVE);
 
   private final List<? extends Sort>         orderBy;
   private final List<? extends FilterConfig> filterWhere;
@@ -85,22 +83,16 @@ public class RecordsCollator {
         .filter(Matcher::matches)
         .map(m -> new Sort(new ParsedField(m.group("field")), m.group("direction")))
         .collect(Collectors.toList());
-    this.filterWhere = Stream
-        .concat(
-                uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
-                    .map(FILTER_CONNECTED::matcher)
-                    .filter(Matcher::matches)
-                    .map(m -> new FilterConnected(new ParsedField(m.group("field")), m.group("connect"), m.group("values"))),
-                uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
-                    .map(FILTER_ENTRY::matcher)
-                    .filter(Matcher::matches)
-                    .map(m -> new FilterSingle(new ParsedField(m.group("field")), m.group("comparator"), m.group("value"))))
+    this.filterWhere = uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
+        .map(FILTER_ENTRY::matcher)
+        .filter(Matcher::matches)
+        .map(m -> new FilterConnected(new ParsedField(m.group("field")), m.group("connect"), m.group("values")))
         .collect(Collectors.toList());
     this.connectors = uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
         .map(CONNECT_ENTRY::matcher)
         .filter(Matcher::matches)
         .collect(Collectors.<Matcher, String, Function<? super Collection<Condition>, ? extends Condition>> toMap(m -> m
-            .group("field"), m -> "AND".equalsIgnoreCase(m.group("connector")) ? DSL::and : DSL::or));
+            .group("field"), m -> "and".equalsIgnoreCase(m.group("connector")) ? DSL::and : DSL::or));
   }
 
   /**
@@ -378,13 +370,13 @@ public class RecordsCollator {
 
   private static class FilterConnected implements FilterConfig {
 
-    private static final Pattern PATTERN_VALUES = Pattern.compile("(?:(?<comparator>lt|le|eq|ge|gt|ne):)?(?<value>[^|]+)");
+    private static final Pattern PATTERN_VALUES = Pattern.compile("(?:(?<comparator>lt|le|eq|ge|gt|ne):)?(?<value>[^|]+)", Pattern.CASE_INSENSITIVE);
 
     private final List<FilterSingle>        filters = new ArrayList<>();
     private final BinaryOperator<Condition> connect;
 
     protected FilterConnected(final ParsedField field, final String connect, final String values) {
-      this.connect = "AND".equalsIgnoreCase(connect) ? DSL::and : DSL::or;
+      this.connect = "and".equalsIgnoreCase(connect) ? DSL::and : DSL::or;
       final Matcher m = PATTERN_VALUES.matcher(values);
       while (m.find()) {
         this.filters.add(new FilterSingle(field, m.group("comparator"), m.group("value")));
@@ -427,7 +419,7 @@ public class RecordsCollator {
         }
 
         // If Boolean, interpret things like:
-        // 1, 0, yes, no, Y, N, true, false, on, off, enabled, and disabled
+        // 1, 0, yes, no, Y, N, true, false, on, off, enabled and disabled
         if (Boolean.class.equals(type)) {
           return f.eq(Convert.convert(this.value, Boolean.class));
         }
@@ -641,8 +633,7 @@ public class RecordsCollator {
       }
 
       if (!JsonNode.class.equals(matchedType)) {
-        throw new IllegalArgumentException(String
-            .format("Couldn't access property '%s' on field '%s' of type '%s'", this.path.get(), this.name, matchedType));
+        throw new IllegalArgumentException(String.format("Couldn't access property '%s' on field '%s' of type '%s'", this.path.get(), this.name, matchedType));
       }
 
       final Field<Object> leaf = DSL.field("{0} #>> {1}", Object.class, DSL.field(this.name, JsonNode.class), DSL.array(this.path.get().split("\\.")));
