@@ -431,7 +431,7 @@ public class RecordsCollator {
 
         // If Number-like, Date or anything else, parse value as well as possible
         return FilterSingle.compare(f, this.comparator, DSL.val(this.value, type));
-      }).as(this.field.getFullName()));
+      }).as(this.field.getName()));
     }
 
     /**
@@ -609,12 +609,15 @@ public class RecordsCollator {
       this.fullName = this.path.isPresent() ? String.format("%s.%s", this.name, this.path.get()) : this.name;
     }
 
-    // May be of use to allow connecting w/ 'OR' two filters like:
-    // filter[empl_stats.1.expiry] and filter[empl_stats.1.status]
     protected String getName() {
       return this.name;
     }
 
+    /**
+     * May be of use eventually, to allow customising the connection between
+     * multiple conditions on a single fully-qualified {@code jsonb} field leaf.
+     */
+    @SuppressWarnings("unused")
     protected String getFullName() {
       return this.fullName;
     }
