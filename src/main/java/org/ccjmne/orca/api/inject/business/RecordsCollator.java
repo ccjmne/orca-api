@@ -3,6 +3,7 @@ package org.ccjmne.orca.api.inject.business;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -19,7 +20,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.http.client.utils.URLEncodedUtils;
-import org.ccjmne.orca.api.inject.business.RecordsCollator.ParsedField.PreprocessedField;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.JSONFields;
@@ -61,7 +61,7 @@ public class RecordsCollator {
   private final List<? extends Sort>         orderBy;
   private final List<? extends FilterConfig> filterWhere;
 
-  private final Map<String, BinaryOperator<Condition>> connectors;
+  private final Map<String, Function<? super Collection<Condition>, ? extends Condition>> connectors;
 
   private final int limit;
   private final int offset;
@@ -91,7 +91,7 @@ public class RecordsCollator {
     this.connectors = uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
         .map(CONNECT_ENTRY::matcher)
         .filter(Matcher::matches)
-        .collect(Collectors.<Matcher, String, BinaryOperator<Condition>> toMap(m -> m
+        .collect(Collectors.<Matcher, String, Function<? super Collection<Condition>, ? extends Condition>> toMap(m -> m
             .group("field"), m -> "and".equalsIgnoreCase(m.group("connector")) ? DSL::and : DSL::or));
   }
 
@@ -287,25 +287,23 @@ public class RecordsCollator {
    * For internal use. Attempts to {@code FILTER} directly on the
    * <strong>supplied</strong> query.<br />
    * <br />
-   * Applies all filter {@link Condition}s for each configured
-   * {@link PreProcessedField} connected according to:
-   * <ol>
-   * <li>the query parameter matching {@code connect[field.getFullName()]}<br />
-   * (defaulting to {@link DSL#or(Condition...)}), then</li>
-   * <li>the query parameter matching {@code connect[field.getName]}<br />
-   * (defaulting to {@link DSL#or(Condition...)}), then</li>
-   * <li>{@link DSL#and(Condition...)}</li>
-   * </ol>
+   * Applies all filter {@link Condition}s for each {@link Field} connected with
+   * either:
+   * <ul>
+   * <li>{@link DSL#or(Condition...)} iff there is a query parameter such as
+   * {@code connect[<field>]=OR}, or:</li>
+   * <li>{@link DSL#and(Condition...)} otherwise</li>
+   * </ul>
    */
   private <T extends Record> SelectQuery<T> applyFilteringImpl(final SelectQuery<T> query) {
-    query.addConditions(Collections2.transform(Maps
-        .transformEntries(Maps
-            .transformEntries(this.filterWhere.stream().map(FilterConfig.toCondition(Arrays.asList(query.fields()))).filter(Optional::isPresent)
-                .map(Optional::get).collect(Collectors.groupingBy(FieldCondition::getFullName)),
-                              (name, conditions) -> conditions.stream().reduce(FieldCondition.connect(this.connectors.getOrDefault(name, DSL::and))).get())
-            .values().stream().collect(Collectors.groupingBy(FieldCondition::getName)),
-                          (name, conditions) -> conditions.stream().reduce(FieldCondition.connect(this.connectors.getOrDefault(name, DSL::and))).get())
-        .values(), FieldCondition::getCondition));
+    query.addConditions(Maps
+        .transformEntries(
+                          this.filterWhere.stream()
+                              .map(FilterConfig.toCondition(Arrays.asList(query.fields())))
+                              .filter(Optional::isPresent).map(Optional::get)
+                              .collect(Collectors.groupingBy(FieldCondition::getName)),
+                          (f, conditions) -> this.connectors.getOrDefault(f, DSL::and).apply(Collections2.transform(conditions, FieldCondition::getCondition)))
+        .values());
     return query;
   }
 
@@ -407,14 +405,13 @@ public class RecordsCollator {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public @Nullable Optional<? extends FieldCondition<?>> getFieldCondition(final List<Field<?>> availableFields) {
-      final Optional<PreprocessedField<?>> preprocessed = this.field.preprocessFor(availableFields);
+      final Optional<Field<?>> preprocessed = this.field.preprocessFor(availableFields);
       if (!preprocessed.isPresent()) {
         return Optional.empty();
       }
 
-      final Class<?> type = preprocessed.get().getField().getType();
+      final Class<?> type = preprocessed.get().getType();
       return Optional.ofNullable(FieldCondition.on(preprocessed.get(), f -> {
         // Handle eq:null and ne:null
         if (Constants.FILTER_VALUE_NULL.equals(this.value)) {
@@ -424,20 +421,17 @@ public class RecordsCollator {
         // If Boolean, interpret things like:
         // 1, 0, yes, no, Y, N, true, false, on, off, enabled and disabled
         if (Boolean.class.equals(type)) {
-          return ((Field<Boolean>) f).eq(Convert.convert(this.value, Boolean.class));
+          return f.eq(Convert.convert(this.value, Boolean.class));
         }
 
         // If String, perform non-accented, case-insensitive partial match search
         if (String.class.equals(type)) {
-          return ((Field<String>) f).containsIgnoreCase(Fields.unaccent(DSL.val(this.value, String.class)));
+          return f.containsIgnoreCase(Fields.unaccent(DSL.val(this.value, String.class)));
         }
-
-        // TODO: handle RELATIVE dates (e.g.: '+1 month') using QueryParams#DATE as
-        // reference point
 
         // If Number-like, Date or anything else, parse value as well as possible
         return FilterSingle.compare(f, this.comparator, DSL.val(this.value, type));
-      }));
+      }).as(this.field.getFullName()));
     }
 
     /**
@@ -505,16 +499,16 @@ public class RecordsCollator {
     @SuppressWarnings("null")
     public static Function<? super Sort, ? extends Optional<SortField<?>>> toSortField(final List<Field<?>> availableFields) {
       return self -> {
-        final Optional<PreprocessedField<?>> preprocessed = self.field.preprocessFor(availableFields);
-        return preprocessed.isPresent() ? Optional.of(self.asSortField.apply(preprocessed.get().getField())) : Optional.empty();
+        final Optional<Field<?>> preprocessed = self.field.preprocessFor(availableFields);
+        return preprocessed.isPresent() ? Optional.of(self.asSortField.apply(preprocessed.get())) : Optional.empty();
       };
     }
   }
 
   private static class FieldCondition<T> {
 
-    private final PreprocessedField<T> field;
-    private final Condition            condition;
+    private final String    name;
+    private final Condition condition;
 
     /**
      * Instantiates a new {@code FieldCondition}. For example:
@@ -528,12 +522,31 @@ public class RecordsCollator {
      * Be <strong>sure</strong> that both supplied {@code field} and
      * {@code getCondition} actually <strong>are</strong> of compatible types!
      */
-    protected static <T> FieldCondition<T> on(final PreprocessedField<T> field, final Function<? super Field<T>, ? extends Condition> getCondition) {
-      return new FieldCondition<>(field, getCondition.apply(field.getField()));
+    @SuppressWarnings("unchecked")
+    protected static <T> FieldCondition<T> on(final Field<?> field, final Function<? super Field<T>, ? extends Condition> getCondition) {
+      return new FieldCondition<>(field.getName(), getCondition.apply((Field<T>) field));
     }
 
-    private FieldCondition(final PreprocessedField<T> field, final Condition condition) {
-      this.field = field;
+    /**
+     * Defines a normalised name for 'function' {@code Field}s.<br />
+     * <br/>
+     * Typically used for:
+     * <ul>
+     * <li>fields drilling into a {@code JsonNode} with a specific {@code path}</li>
+     * <li>fields that are encapsulated in a function, like
+     * {@code unaccent(<field>)}</li>
+     * </ul>
+     *
+     * @param normalised
+     *          The new name to be used
+     * @return A copy of {@code this}, with the specified {@code normalised} name
+     */
+    protected FieldCondition<T> as(final String normalised) {
+      return new FieldCondition<>(normalised, this.condition);
+    }
+
+    private FieldCondition(final String name, final Condition condition) {
+      this.name = name;
       this.condition = condition;
     }
 
@@ -553,31 +566,16 @@ public class RecordsCollator {
      */
     protected static BinaryOperator<FieldCondition<?>> connect(final BinaryOperator<Condition> connector) {
       return (a, b) -> {
-        if (!a.getName().equalsIgnoreCase(b.getName())) {
-          throw new IllegalArgumentException(String.format("Conditions on fields '%s' and '%s' shouldn't be connected", a.getName(), b.getName()));
+        if (!a.name.equalsIgnoreCase(b.name)) {
+          throw new IllegalArgumentException(String.format("Conditions on fields '%s' and '%s' shouldn't be connected", a.name, b.name));
         }
 
-        return new FieldCondition<>(a.field, connector.apply(a.condition, b.condition));
+        return new FieldCondition<>(a.name, connector.apply(a.condition, b.condition));
       };
     }
 
-    /**
-     * The name identifying a top-level field.<br />
-     * In case of a {@code JsonNode} field, obtain the value identifying its leaf
-     * with {@link FieldCondition#getFullName()}.
-     */
     protected String getName() {
-      return this.field.getName();
-    }
-
-    /**
-     * The fully-qualified name of the underlying field, identifying
-     * {@code JsonNode} leaves.
-     * For other types of fields, it is identical to
-     * {@link FieldCondition#getName()}.
-     */
-    protected String getFullName() {
-      return this.field.getFullName();
+      return this.name;
     }
 
     protected Condition getCondition() {
@@ -585,7 +583,7 @@ public class RecordsCollator {
     }
   }
 
-  protected static class ParsedField {
+  private static class ParsedField {
 
     private final static Pattern FIELD_PARSER = Pattern.compile("^(?:(?<preprocess>[^:]+):)?(?<name>[^.]+)(?:\\.(?<path>.+))?$");
 
@@ -594,8 +592,8 @@ public class RecordsCollator {
             "date", field -> DSL.cast(field, Date.class),
             "number", field -> DSL.cast(field, Double.class));
 
-    protected final String         name;
-    protected final String         fullName;
+    private final String           name;
+    private final String           fullName;
     private final Optional<String> path;
     private final Optional<String> type;
 
@@ -611,8 +609,18 @@ public class RecordsCollator {
       this.fullName = this.path.isPresent() ? String.format("%s.%s", this.name, this.path.get()) : this.name;
     }
 
+    // May be of use to allow connecting w/ 'OR' two filters like:
+    // filter[empl_stats.1.expiry] and filter[empl_stats.1.status]
+    protected String getName() {
+      return this.name;
+    }
+
+    protected String getFullName() {
+      return this.fullName;
+    }
+
     @SuppressWarnings("null")
-    protected Optional<PreprocessedField<?>> preprocessFor(final List<Field<?>> availableFields) {
+    protected Optional<Field<?>> preprocessFor(final List<Field<?>> availableFields) {
       final Optional<Field<?>> found = availableFields.stream().filter(f -> f.getName().equals(this.name)).findFirst();
       if (!found.isPresent()) {
         return Optional.empty();
@@ -621,8 +629,7 @@ public class RecordsCollator {
       final Class<?> matchedType = found.get().getType();
       final String availableType = Number.class.isAssignableFrom(matchedType) ? "number" : matchedType.getSimpleName().toLowerCase();
       if (!this.path.isPresent()) {
-        return Optional.of(new PreprocessedField<>(PREPROCESSORS.getOrDefault(availableType, f -> f)
-            .apply(DSL.field(this.name, matchedType))));
+        return Optional.of(PREPROCESSORS.getOrDefault(availableType, f -> f).apply(DSL.field(this.name, matchedType)));
       }
 
       if (!JsonNode.class.equals(matchedType)) {
@@ -631,47 +638,14 @@ public class RecordsCollator {
 
       final Field<Object> leaf = DSL.field("{0} #>> {1}", Object.class, DSL.field(this.name, JsonNode.class), DSL.array(this.path.get().split("\\.")));
       if (!this.type.isPresent()) {
-        return Optional.of(new PreprocessedField<>(leaf));
+        return Optional.of(leaf);
       }
 
       if (!PREPROCESSORS.containsKey(this.type.get())) {
         throw new IllegalArgumentException(String.format("Invalid field type: '%s', should be one of: %s", this.type.get(), PREPROCESSORS.keySet()));
       }
 
-      return Optional.of(new PreprocessedField<>(PREPROCESSORS.get(this.type.get()).apply(leaf)));
-    }
-
-    protected class PreprocessedField<T> {
-
-      private final Field<T> field;
-
-      @SuppressWarnings("unchecked")
-      protected PreprocessedField(final Field<?> field) {
-        this.field = (Field<T>) field;
-      }
-
-      protected Field<T> getField() {
-        return this.field;
-      }
-
-      /**
-       * The name identifying a top-level field.<br />
-       * In case of a {@code JsonNode} field, obtain the value identifying its leaf
-       * with {@link PreprocessedField#getFullName()}.
-       */
-      protected String getName() {
-        return ParsedField.this.name;
-      }
-
-      /**
-       * The fully-qualified name of the field, identifying {@code JsonNode}
-       * leaves.
-       * For other types of fields, it is identical to
-       * {@link PreprocessedField#getName()}.
-       */
-      protected String getFullName() {
-        return ParsedField.this.fullName;
-      }
+      return Optional.of(PREPROCESSORS.get(this.type.get()).apply(leaf));
     }
   }
 }
