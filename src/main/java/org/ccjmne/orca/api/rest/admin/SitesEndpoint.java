@@ -17,7 +17,6 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.lang3.ObjectUtils;
 import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
@@ -25,6 +24,8 @@ import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.classes.Sequences;
 import org.ccjmne.orca.jooq.classes.tables.records.SitesTagsRecord;
 import org.jooq.DSLContext;
+
+import com.google.common.base.MoreObjects;
 
 @Path("sites")
 public class SitesEndpoint {
@@ -90,7 +91,7 @@ public class SitesEndpoint {
   private Boolean upsertSite(final Integer site_pk, final Map<String, Object> site) {
     return Transactions.with(this.ctx, transaction -> {
       @SuppressWarnings("unchecked")
-      final Map<String, Object> tags = ObjectUtils.defaultIfNull((Map<String, Object>) site.remove("site_tags"), Collections.emptyMap());
+      final Map<String, Object> tags = MoreObjects.firstNonNull((Map<String, Object>) site.remove("site_tags"), Collections.emptyMap());
       final boolean exists = transaction.fetchExists(SITES, SITES.SITE_PK.eq(site_pk));
       if (exists) {
         transaction.update(SITES).set(site).where(SITES.SITE_PK.eq(site_pk)).execute();

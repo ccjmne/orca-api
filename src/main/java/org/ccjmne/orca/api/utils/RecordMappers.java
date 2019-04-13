@@ -13,11 +13,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.ObjectUtils;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.RecordMapper;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -125,7 +125,7 @@ public class RecordMappers {
       @SuppressWarnings("unchecked")
       public Map<K, V> map(final Record record) {
         final Map<K, V> res = new HashMap<>();
-        final K[] keys = (K[]) ObjectUtils.defaultIfNull(record.get(key), new Object[] {});
+        final K[] keys = (K[]) MoreObjects.firstNonNull(record.get(key), new Object[] {});
         for (int i = 0; i < keys.length; i++) {
           if (keys[i] == null) {
             continue;

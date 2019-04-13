@@ -81,19 +81,6 @@
 		</auth-constraint>
 	</security-constraint>
 
-	<security-constraint>
-		<web-resource-collection>
-			<web-resource-name>PDF reports generation API</web-resource-name>
-
-			<url-pattern>/reports/*</url-pattern>
-			<http-method>POST</http-method>
-		</web-resource-collection>
-		<auth-constraint>
-			<description>Any authenticated user can access this API</description>
-			<role-name>*</role-name>
-		</auth-constraint>
-	</security-constraint>
-
 
 
 	<security-constraint>
