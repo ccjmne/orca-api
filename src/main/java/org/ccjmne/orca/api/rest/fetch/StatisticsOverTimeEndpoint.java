@@ -31,7 +31,7 @@ import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 
-import jersey.repackaged.com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 
 /**
  * Compute statistics for core resources at multiple points in time.
@@ -106,7 +106,7 @@ public class StatisticsOverTimeEndpoint {
     return DSL
         .select(dates.field(this.date))
         .select(JSONFields
-            .objectAgg(Objects.firstNonNull(stats.field(CERTIFICATES.CERT_PK), stats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)), stats.fields(fields))
+            .objectAgg(MoreObjects.firstNonNull(stats.field(CERTIFICATES.CERT_PK), stats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK)), stats.fields(fields))
             .as("stats"))
         .from(dates)
         .leftOuterJoin(DSL.lateral(stats)).on(DSL.noCondition())
