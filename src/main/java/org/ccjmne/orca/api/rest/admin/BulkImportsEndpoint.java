@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -38,20 +38,16 @@ import org.jooq.Table;
 import org.jooq.TableRecord;
 import org.jooq.impl.DSL;
 
-import com.google.common.collect.ImmutableList;
-
 @Path("bulk-import")
 public class BulkImportsEndpoint {
 
   private final DSLContext ctx;
 
   /**
-   * Used to determine which parameters are to be considered as tags. Matches
-   * unsigned Base10 integer values.<br />
-   * Pattern: <code>^\d+$</code>
+   * Used to parse entries that match sites tags<br />
+   * Pattern: <code>^site_tags[\d+]=.+$</code>
    */
-  // TODO: delete when updating BulkImportsEndpoint
-  public static final Predicate<String> IS_TAG_KEY = Pattern.compile("^\\d+$").asPredicate();
+  private static final Pattern PARSE_TAGS = Pattern.compile("^site_tags\\[(?<tag>\\d+)\\]=(?<value>.+)$");
 
   @Inject
   public BulkImportsEndpoint(final DSLContext ctx, final Restrictions restrictions) {
@@ -66,20 +62,20 @@ public class BulkImportsEndpoint {
   @Path("employees")
   @SuppressWarnings("unchecked")
   public void bulkImportEmployees(final List<Map<String, String>> employees) {
-    Transactions.with(this.ctx, transactionCtx -> {
+    Transactions.with(this.ctx, transaction -> {
       // 1. 'UPSERT' employees
       final Map<Boolean, List<@NonNull EmployeesRecord>> records = employees.stream().map(BulkImportsEndpoint.as(EmployeesRecord.class))
           .peek(BulkImportsEndpoint.setExistsFlag(EMPLOYEES.EMPL_PK, EMPLOYEES.EMPL_EXTERNAL_ID,
-                                                transactionCtx.select(EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_PK).from(EMPLOYEES)
-                                                    .where(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT))
-                                                    .fetchMap(EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_PK)))
+                                                  transaction.select(EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_PK).from(EMPLOYEES)
+                                                      .where(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT))
+                                                      .fetchMap(EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_PK)))
           .collect(Collectors.partitioningBy(r -> r.changed(EMPLOYEES.EMPL_PK)));
-      transactionCtx.batchUpdate(records.get(Boolean.TRUE)).execute();
-      transactionCtx.batchInsert(records.get(Boolean.FALSE)).execute();
+      transaction.batchUpdate(records.get(Boolean.TRUE)).execute();
+      transaction.batchInsert(records.get(Boolean.FALSE)).execute();
 
       // 2. INSERT newer update -- no more than ONE per day
-      transactionCtx.delete(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.currentDate())).execute();
-      final Integer update = transactionCtx.insertInto(UPDATES).set(UPDATES.UPDT_DATE, DSL.currentDate()).returning(UPDATES.UPDT_PK).fetchOne()
+      transaction.delete(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.currentDate())).execute();
+      final Integer update = transaction.insertInto(UPDATES).set(UPDATES.UPDT_DATE, DSL.currentDate()).returning(UPDATES.UPDT_PK).fetchOne()
           .getValue(UPDATES.UPDT_PK);
 
       // 3. INSERT sites-employees for newer update
@@ -88,7 +84,7 @@ public class BulkImportsEndpoint {
               .<String, String> row(e.get(EMPLOYEES.EMPL_EXTERNAL_ID.getName()), e.get(SITES.SITE_EXTERNAL_ID.getName())))
               .toArray(Row2[]::new))
           .asTable("unused", "employee", "site");
-      transactionCtx.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_UPDT_FK)
+      transaction.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_UPDT_FK)
           .select(DSL.select(EMPLOYEES.EMPL_PK, SITES.SITE_PK, DSL.value(update))
               .from(allocations
                   .join(EMPLOYEES).on(EMPLOYEES.EMPL_EXTERNAL_ID.eq(allocations.field("employee", String.class)))
@@ -99,21 +95,21 @@ public class BulkImportsEndpoint {
       try (final Select<Record1<Integer>> active = DSL.selectDistinct(EMPLOYEES.EMPL_PK).from(EMPLOYEES)
           .join(SITES_EMPLOYEES).on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(EMPLOYEES.EMPL_PK))
           .where(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(update)).and(SITES_EMPLOYEES.SIEM_SITE_FK.ne(Constants.DECOMMISSIONED_SITE))) {
-        transactionCtx.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_UPDT_FK)
+        transaction.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_EMPL_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_UPDT_FK)
             .select(DSL.select(EMPLOYEES.EMPL_PK, DSL.val(Constants.DECOMMISSIONED_SITE), DSL.val(update))
                 .from(EMPLOYEES)
                 .where(EMPLOYEES.EMPL_PK.notIn(active)))
             .execute();
 
         // 5. DELETE corresponding users
-        transactionCtx
+        transaction
             .deleteFrom(USERS)
             .where(USERS.USER_TYPE.eq(Constants.USERTYPE_EMPLOYEE))
             .and(USERS.USER_EMPL_FK.notIn(active))
             .and(USERS.USER_ID.ne(Constants.USER_ROOT))
             .execute();
 
-        transactionCtx
+        transaction
             .deleteFrom(USERS)
             .where(USERS.USER_TYPE.eq(Constants.USERTYPE_SITE))
             .and(USERS.USER_SITE_FK.notIn(DSL
@@ -125,51 +121,50 @@ public class BulkImportsEndpoint {
 
   @POST
   @Path("sites")
-  @SuppressWarnings("unchecked")
   public void bulkImportSites(final List<Map<String, String>> sites) {
-    Transactions.with(this.ctx, transactionCtx -> {
+    Transactions.with(this.ctx, transaction -> {
       // 1. 'UPSERT' sites
       final Map<Boolean, List<SitesRecord>> records = sites.stream().map(BulkImportsEndpoint.as(SitesRecord.class))
           .peek(BulkImportsEndpoint.setExistsFlag(SITES.SITE_PK, SITES.SITE_EXTERNAL_ID,
-                                                transactionCtx.select(SITES.SITE_EXTERNAL_ID, SITES.SITE_PK).from(SITES)
-                                                    .where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE))
-                                                    .fetchMap(SITES.SITE_EXTERNAL_ID, SITES.SITE_PK)))
+                                                  transaction.select(SITES.SITE_EXTERNAL_ID, SITES.SITE_PK).from(SITES)
+                                                      .where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE))
+                                                      .fetchMap(SITES.SITE_EXTERNAL_ID, SITES.SITE_PK)))
           .collect(Collectors.partitioningBy(r -> r.changed(SITES.SITE_PK)));
-      transactionCtx.batchUpdate(records.get(Boolean.TRUE)).execute();
-      transactionCtx.batchInsert(records.get(Boolean.FALSE)).execute();
+      transaction.batchUpdate(records.get(Boolean.TRUE)).execute();
+      transaction.batchInsert(records.get(Boolean.FALSE)).execute();
 
       // 2. DELETE obsolete sites
       try (final Select<Record1<Integer>> delete = DSL.select(SITES.SITE_PK).from(SITES)
           .where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE))
           .and(SITES.SITE_EXTERNAL_ID.notIn(sites.stream().map(s -> s.get(SITES.SITE_EXTERNAL_ID.getName())).collect(Collectors.toSet())))) {
         // matching SITES_EMPLOYEES records link to DECOMMISSIONED_SITE
-        transactionCtx.update(SITES_EMPLOYEES).set(SITES_EMPLOYEES.SIEM_SITE_FK, Constants.DECOMMISSIONED_SITE)
+        transaction.update(SITES_EMPLOYEES).set(SITES_EMPLOYEES.SIEM_SITE_FK, Constants.DECOMMISSIONED_SITE)
             .where(SITES_EMPLOYEES.SIEM_SITE_FK.in(delete)).execute();
-        transactionCtx.deleteFrom(SITES).where(SITES.SITE_PK.in(delete)).execute();
+        transaction.deleteFrom(SITES).where(SITES.SITE_PK.in(delete)).execute();
       }
 
       // 3. TRUNCATE and INSERT tags
-      // TODO: Should expect the tags to be aggregated under a "site_tags" key
-      transactionCtx.truncate(SITES_TAGS).restartIdentity().execute();
-      final Table<Record3<String, Integer, String>> tags = DSL.<String, Integer, String> values(sites.stream().flatMap(s -> s.entrySet().stream()
-          .filter(e -> IS_TAG_KEY.test(e.getKey()))
-          .peek(e -> {
+      transaction.truncate(SITES_TAGS).restartIdentity().execute();
+      final Row3<String, Integer, String>[] tags = sites.stream().flatMap(s -> s.entrySet().stream()
+          .map(e -> String.format("%s=%s", e.getKey(), e.getValue())).map(PARSE_TAGS::matcher).filter(Matcher::matches)
+          .peek(m -> {
             // TODO: Prevent insertion of non-boolean values for
             // 'b'-type tags
-            if (Constants.TAGS_VALUE_NONE.equals(e.getValue()) || Constants.TAGS_VALUE_UNIVERSAL.equals(e.getValue())) {
+            if (Constants.TAGS_VALUE_NONE.equals(m.group("value")) || Constants.TAGS_VALUE_UNIVERSAL.equals(m.group("value"))) {
               throw new IllegalArgumentException(String
-                  .format("Invalid tag value: '%s' for site: %s", e.getValue(), s.get(SITES.SITE_EXTERNAL_ID.getName())));
+                  .format("Invalid tag value: '%s' for site: %s", m.group("value"), s.get(SITES.SITE_EXTERNAL_ID.getName())));
             }
           })
-          .reduce(ImmutableList.<Row3<String, Integer, String>> builder(),
-                  (l, e) -> l.add(DSL.row(s.get(SITES.SITE_EXTERNAL_ID.getName()), Integer.valueOf(e.getKey()), e.getValue())),
-                  (l, l2) -> l.addAll(l2.build()))
-          .build().stream()).toArray(Row3[]::new)).asTable("unused", "site", "tag", "value");
-      transactionCtx
-          .insertInto(SITES_TAGS, SITES_TAGS.SITA_SITE_FK, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE)
-          .select(DSL.select(SITES.SITE_PK, tags.field("tag", Integer.class), tags.field("value", String.class))
-              .from(tags).join(SITES).on(SITES.SITE_EXTERNAL_ID.eq(tags.field("site", String.class))))
-          .execute();
+          .map(m -> DSL.row(s.get(SITES.SITE_EXTERNAL_ID.getName()), Integer.valueOf(m.group("tag")), m.group("value")))).toArray(Row3[]::new);
+
+      if (tags.length > 0) {
+        final Table<Record3<String, Integer, String>> tagsTable = DSL.<String, Integer, String> values(tags).asTable("unused", "site", "tag", "value");
+        transaction
+            .insertInto(SITES_TAGS, SITES_TAGS.SITA_SITE_FK, SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE)
+            .select(DSL.select(SITES.SITE_PK, tagsTable.field("tag", Integer.class), tagsTable.field("value", String.class))
+                .from(tagsTable).join(SITES).on(SITES.SITE_EXTERNAL_ID.eq(tagsTable.field("site", String.class))))
+            .execute();
+      }
     });
   }
 
