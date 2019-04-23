@@ -91,8 +91,8 @@ public class RecordsCollator {
     this.connectors = uriInfo.getQueryParameters().entrySet().stream().flatMap(e -> e.getValue().stream().map(v -> String.format("%s=%s", e.getKey(), v)))
         .map(CONNECT_ENTRY::matcher)
         .filter(Matcher::matches)
-        .collect(Collectors.<Matcher, String, Function<? super Collection<Condition>, ? extends Condition>> toMap(m -> m
-            .group("field"), m -> "and".equalsIgnoreCase(m.group("connector")) ? DSL::and : DSL::or));
+        .collect(Collectors.<Matcher, String, Function<? super Collection<Condition>, ? extends Condition>> toMap(m -> new ParsedField(m.group("field"))
+            .getName(), m -> "and".equalsIgnoreCase(m.group("connector")) ? DSL::and : DSL::or));
   }
 
   /**
