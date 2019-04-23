@@ -82,8 +82,7 @@ public class ResourcesSelection {
    * @return A filtered and sorted {@code Select}ion of employees
    */
   public SelectQuery<Record> selectEmployees() {
-    final Table<Record> sites = this.selectSites().asTable();
-    try (final SelectQuery<Record> query = this.scopeEmployeesImpl(sites)) {
+    try (final SelectQuery<Record> query = this.scopeEmployeesImpl(this.selectSites().asTable())) {
 
       if (this.parameters.has(QueryParams.SESSION)) {
         query.addSelect(TRAININGS_EMPLOYEES.TREM_COMMENT, TRAININGS_EMPLOYEES.TREM_OUTCOME);
@@ -203,6 +202,14 @@ public class ResourcesSelection {
         query.addConditions(EMPLOYEES.EMPL_PK.eq(this.parameters.get(QueryParams.EMPLOYEE)));
       }
 
+      if (this.parameters.is(QueryParams.FILTER_BY_SESSIONS, Boolean.TRUE)) {
+        if (!this.restrictions.canAccessTrainings()) {
+          throw new ForbiddenException();
+        }
+
+        query.addConditions(DSL.exists(DSL.selectFrom(TRAININGS_EMPLOYEES.join(TRAININGS).on(TRAININGS.TRNG_PK.eq(TRAININGS_EMPLOYEES.TREM_TRNG_FK)))
+            .where(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK))));
+      }
       if (this.parameters.has(QueryParams.SESSION)) {
         if (!this.restrictions.canAccessTrainings()) {
           throw new ForbiddenException();

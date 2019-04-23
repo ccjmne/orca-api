@@ -38,6 +38,7 @@ public class QueryParams {
   public static final FieldType<Integer> SESSION               = new FieldType<>("session", Integer.class);
   public static final FieldType<Integer> CERTIFICATE           = new FieldType<>("certificate", Integer.class);
   public static final FieldType<Boolean> INCLUDE_DECOMISSIONED = new FieldType<>("include-decommissioned", Boolean.class);
+  public static final FieldType<Boolean> FILTER_BY_SESSIONS    = new FieldType<>("filter-by-sessions", Boolean.class);
   public static final FieldType<String>  SEARCH_TERMS          = new FieldType<>("q", String.class);
 
   public static final AllParamsType<List<String>>     RESOURCE_TYPE  = new AllParamsType<>("type", v -> v, QuickSearchEndpoint.RESOURCES_TYPES);
