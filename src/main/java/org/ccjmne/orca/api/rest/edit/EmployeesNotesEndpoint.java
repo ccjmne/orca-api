@@ -61,9 +61,9 @@ public class EmployeesNotesEndpoint {
   @GET
   @Path("{employee}/voidings")
   @Produces(MediaType.APPLICATION_JSON)
-  public Map<Integer, ? extends Record> listEmployeesVoidings() {
+  public Map<Integer, ? extends Record> listVoidings() {
     return this.ctx
-        .select(EMPLOYEES_VOIDINGS.EMVO_DATE, EMPLOYEES_VOIDINGS.EMVO_REASON).from(EMPLOYEES_VOIDINGS)
+        .select(EMPLOYEES_VOIDINGS.EMVO_CERT_FK, EMPLOYEES_VOIDINGS.EMVO_DATE, EMPLOYEES_VOIDINGS.EMVO_REASON).from(EMPLOYEES_VOIDINGS)
         .where(EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(this.employee))
         .fetchMap(EMPLOYEES_VOIDINGS.EMVO_CERT_FK);
   }
