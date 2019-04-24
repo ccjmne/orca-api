@@ -145,6 +145,11 @@ public class ResourcesSelection {
       query.addSelect(TRAININGS.fields());
       query.addFrom(TRAININGS);
 
+      if (!this.parameters.isDefault(QueryParams.FROM) || !this.parameters.isDefault(QueryParams.TO)) {
+        query.addConditions(DSL.row(TRAININGS.TRNG_START, TRAININGS.TRNG_DATE)
+            .overlaps(this.parameters.get(QueryParams.FROM), this.parameters.get(QueryParams.TO)));
+      }
+
       if (this.parameters.has(QueryParams.SESSION)) {
         query.addConditions(TRAININGS.TRNG_PK.eq(this.parameters.get(QueryParams.SESSION)));
       }
