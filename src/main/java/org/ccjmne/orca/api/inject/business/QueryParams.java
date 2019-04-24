@@ -107,6 +107,11 @@ public class QueryParams {
     return (T) this.types.getOrDefault(type, type.orElse);
   }
 
+  @SuppressWarnings("unchecked") // always safe
+  public <U, T> T get(final DependentType<U, T> type) {
+    return ((Function<? super U, ? extends T>) this.types.getOrDefault(type, type.orElse)).apply(this.get(type.getDependency()));
+  }
+
   public <T> T getRaw(final FieldType<T> type) {
     return this.get(type).getValue();
   }
@@ -121,7 +126,7 @@ public class QueryParams {
    * @param <U>
    *          For internal use only.
    * @param <T>
-   *          The coerced value for this {@code CustomType}
+   *          The class of this {@code Type}'s coerced values
    * @see FirstParamType
    * @see AllParamsType
    */
@@ -154,7 +159,7 @@ public class QueryParams {
    * {@code List<String>}.
    *
    * @param <T>
-   *          The coerced value for this {@code CustomType}
+   *          The class of this {@code Type}'s coerced values
    */
   private static class AllParamsType<T> extends Type<List<String>, T> {
 
@@ -172,7 +177,7 @@ public class QueryParams {
    * A {@link Type} that only considers the first matching query parameter.
    *
    * @param <T>
-   *          The coerced value for this {@code CustomType}
+   *          The class of this {@code Type}'s coerced values
    */
   private static class FirstParamType<T> extends Type<String, T> {
 
@@ -197,6 +202,42 @@ public class QueryParams {
 
     protected FieldType(final String name, final Class<T> type) {
       super(name, v -> DSL.val(v, type), null);
+    }
+  }
+
+  /**
+   * A {@link FirstParamType} that may depend on the value of another
+   * {@link Field} of a certain type and provides no default value.
+   *
+   * @param <T>
+   *          The type of the {@code Field} to coerce parameters as
+   */
+  /**
+   * A {@link FirstParamType} that may depend on the value of another {@link Type}
+   * to be virtually injected by the overloaded
+   * {@link QueryParams#get(DependentType)}.
+   *
+   * @param <U>
+   *          This {@code Type} dependency's coercion class
+   * @param <T>
+   *          The class of this {@code Type}'s coerced values
+   *
+   */
+  private static class DependentType<U, T> extends FirstParamType<Function<? super U, ? extends T>> {
+
+    private final Type<?, ? extends U> dependency;
+
+    protected DependentType(
+                            final String name,
+                            final Type<?, ? extends U> dependency,
+                            final Function<String, Function<? super U, ? extends T>> coercer,
+                            final @Nullable Function<? super U, ? extends T> orElse) {
+      super(name, coercer, orElse);
+      this.dependency = dependency;
+    }
+
+    protected Type<?, ? extends U> getDependency() {
+      return this.dependency;
     }
   }
 }
