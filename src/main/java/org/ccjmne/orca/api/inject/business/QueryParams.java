@@ -43,7 +43,8 @@ public class QueryParams {
   public static final FieldType<String>  SEARCH_TERMS          = new FieldType<>("q", String.class);
 
   public static final AllParamsType<List<String>>     RESOURCE_TYPE  = new AllParamsType<>("type", v -> v, QuickSearchEndpoint.RESOURCES_TYPES);
-  public static final FirstParamType<String>          INTERVAL       = new FirstParamType<>("interval", v -> v, "month");
+  public static final FirstParamType<Field<Date>>     INTERVAL       = new FirstParamType<>("interval", v -> DSL
+      .field("{0}::interval", Date.class, v), DSL.field("'1 month'::interval", Date.class));
   public static final FirstParamType<Field<Date>>     DATE           = new FirstParamType<>("date", v -> DSL.val(v, Date.class), DSL.currentDate());
   public static final FirstParamType<Field<JsonNode>> GROUP_BY_FIELD = new FirstParamType<>("group-by", v -> DSL
       .field("site_tags -> {0}", JSONFields.JSON_TYPE, v), JSONFields.toJson(DSL.cast(Constants.TAGS_VALUE_UNIVERSAL, SQLDataType.VARCHAR)));
