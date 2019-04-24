@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -43,11 +44,15 @@ public class QueryParams {
 
   public static final AllParamsType<List<String>>     RESOURCE_TYPE  = new AllParamsType<>("type", v -> v, QuickSearchEndpoint.RESOURCES_TYPES);
   public static final FirstParamType<String>          INTERVAL       = new FirstParamType<>("interval", v -> v, "month");
-  public static final FirstParamType<Field<Date>>     FROM           = new FirstParamType<>("from", v -> DSL.val(v, Date.class), DSL.currentDate());
-  public static final FirstParamType<Field<Date>>     TO             = new FirstParamType<>("to", v -> DSL.val(v, Date.class), DSL.currentDate());
   public static final FirstParamType<Field<Date>>     DATE           = new FirstParamType<>("date", v -> DSL.val(v, Date.class), DSL.currentDate());
   public static final FirstParamType<Field<JsonNode>> GROUP_BY_FIELD = new FirstParamType<>("group-by", v -> DSL
       .field("site_tags -> {0}", JSONFields.JSON_TYPE, v), JSONFields.toJson(DSL.cast(Constants.TAGS_VALUE_UNIVERSAL, SQLDataType.VARCHAR)));
+
+  public static final DependentType<Field<Date>, Field<Date>> FROM = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate, d -> d);
+  public static final DependentType<Field<Date>, Field<Date>> TO   = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate, d -> d);
+
+  private static final Pattern IS_INFINITY_DATE = Pattern.compile("^[+-]?infinity$");
+  private static final Pattern IS_RELATIVE_DATE = Pattern.compile("^[+-]");
 
   private final Map<Type<?, ?>, Object> types;
 
@@ -239,5 +244,26 @@ public class QueryParams {
     protected Type<?, ? extends U> getDependency() {
       return this.dependency;
     }
+  }
+
+  /**
+   * Used to parse either:
+   * <ul>
+   * <li>an absolute date (e.g.: {@code "2019-01-01"}), or</li>
+   * <li>an interval relative to a reference (e.g.: {@code "+1 month"}), or</li>
+   * <li>{@code /^[+-]?infinity$/}, to represent the unbounded end of a range</li>
+   * </ul>
+   */
+  private static Function<? super Field<Date>, ? extends Field<Date>> parseDate(final String dateStr) {
+    if (IS_INFINITY_DATE.matcher(dateStr).matches()) {
+      // Can't parse "infinity"-type dates w/ DSL#val
+      return unused -> DSL.field("{0}::date", Date.class, dateStr);
+    }
+
+    if (IS_RELATIVE_DATE.matcher(dateStr).find(0)) {
+      return reference -> reference.plus(DSL.field("{0}::interval", Date.class, dateStr));
+    }
+
+    return unused -> DSL.val(dateStr, Date.class);
   }
 }
