@@ -74,7 +74,7 @@ public class Fields {
    * @return A new {@code VARCHAR}-type {@code Field}, formatted as our API
    *         formats {@link Date}s
    */
-  public static Field<String> formatDate(final Field<java.sql.Date> field) {
+  public static Field<String> formatDate(final Field<Date> field) {
     return DSL
         .when(field.eq(DSL.inline(Constants.DATE_INFINITY)), Constants.DATE_INFINITY_LITERAL)
         .otherwise(DSL.field("to_char({0}, {1})", String.class, field, APIDateFormat.FORMAT));

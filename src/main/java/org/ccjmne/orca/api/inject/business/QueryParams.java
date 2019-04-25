@@ -42,15 +42,14 @@ public class QueryParams {
   public static final FieldType<Boolean> FILTER_BY_SESSIONS    = new FieldType<>("filter-by-sessions", Boolean.class);
   public static final FieldType<String>  SEARCH_TERMS          = new FieldType<>("q", String.class);
 
-  public static final AllParamsType<List<String>>     RESOURCE_TYPE  = new AllParamsType<>("type", v -> v, QuickSearchEndpoint.RESOURCES_TYPES);
-  public static final FirstParamType<Field<Date>>     INTERVAL       = new FirstParamType<>("interval", v -> DSL
+  public static final AllParamsType<List<String>>             RESOURCE_TYPE  = new AllParamsType<>("type", v -> v, QuickSearchEndpoint.RESOURCES_TYPES);
+  public static final FirstParamType<Field<Date>>             DATE           = new FirstParamType<>("date", v -> DSL.val(v, Date.class), DSL.currentDate());
+  public static final DependentType<Field<Date>, Field<Date>> FROM           = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate, d -> d);
+  public static final DependentType<Field<Date>, Field<Date>> TO             = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate, d -> d);
+  public static final FirstParamType<Field<Date>>             INTERVAL       = new FirstParamType<>("interval", v -> DSL
       .field("{0}::interval", Date.class, v), DSL.field("'1 month'::interval", Date.class));
-  public static final FirstParamType<Field<Date>>     DATE           = new FirstParamType<>("date", v -> DSL.val(v, Date.class), DSL.currentDate());
-  public static final FirstParamType<Field<JsonNode>> GROUP_BY_FIELD = new FirstParamType<>("group-by", v -> DSL
+  public static final FirstParamType<Field<JsonNode>>         GROUP_BY_FIELD = new FirstParamType<>("group-by", v -> DSL
       .field("site_tags -> {0}", JSONFields.JSON_TYPE, v), JSONFields.toJson(DSL.cast(Constants.TAGS_VALUE_UNIVERSAL, SQLDataType.VARCHAR)));
-
-  public static final DependentType<Field<Date>, Field<Date>> FROM = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate, d -> d);
-  public static final DependentType<Field<Date>, Field<Date>> TO   = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate, d -> d);
 
   private static final Pattern IS_INFINITY_DATE = Pattern.compile("^[+-]?infinity$");
   private static final Pattern IS_RELATIVE_DATE = Pattern.compile("^[+-]");
@@ -72,7 +71,7 @@ public class QueryParams {
   public QueryParams(@Context final UriInfo uriInfo) {
     this.types = Stream.concat(uriInfo.getQueryParameters().entrySet().stream(), uriInfo.getPathParameters().entrySet().stream())
         .map(Type::mapper).filter(Optional::isPresent).map(Optional::get)
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (prev, next) -> next));
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   public <T> Optional<T> of(final Type<?, T> type) {
@@ -98,7 +97,7 @@ public class QueryParams {
 
   /**
    * Is {@code true} when the given {@code type} does have a default value that
-   * either matches or wasn't overridden by the query parameters.
+   * wasn't overridden by the query parameters.
    */
   public <T> boolean isDefault(final Type<?, T> type) {
     return (type.orElse != null) && !this.types.containsKey(type);
