@@ -153,6 +153,7 @@ public class ResourcesSelection {
         query.addSelect(TRAININGS_EMPLOYEES.fields());
         query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK)
             .and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(this.parameters.get(QueryParams.EMPLOYEE))));
+        query.addGroupBy(TRAININGS_EMPLOYEES.fields());
       }
 
       return query;
@@ -177,8 +178,6 @@ public class ResourcesSelection {
       query.addJoin(TRAININGS_TRAINERS, JoinType.LEFT_OUTER_JOIN, TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK));
       query.addJoin(EMPLOYEES, JoinType.LEFT_OUTER_JOIN, EMPLOYEES.EMPL_PK.eq(TRAININGS_TRAINERS.TRTR_EMPL_FK));
       query.addGroupBy(TRAININGS.fields());
-      if (this.parameters.has(QueryParams.EMPLOYEE)) {
-        query.addGroupBy(TRAININGS_EMPLOYEES.fields());
       if (this.parameters.has(QueryParams.TRAINER)) {
         query.addConditions(DSL.exists(DSL.selectFrom(TRAININGS_TRAINERS).where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK)
             .and(TRAININGS_TRAINERS.TRTR_EMPL_FK.eq(this.parameters.get(QueryParams.TRAINER))))));

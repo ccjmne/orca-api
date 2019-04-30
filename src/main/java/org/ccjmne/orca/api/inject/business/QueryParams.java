@@ -147,8 +147,9 @@ public class QueryParams {
     protected Type(final String name, final Function<? super U, ? extends T> coercer, @Nullable final T orElse) {
       this.coercer = coercer;
       this.orElse = orElse;
-      // TODO: throw if replacing existing entry
-      TYPES.put(name, this);
+      if (TYPES.put(name, this) != null) {
+        throw new IllegalArgumentException(String.format("Duplicate type '%s'", name));
+      }
     }
 
     protected static <U, T> Optional<Map.Entry<Type<U, T>, T>> mapper(final Map.Entry<String, List<String>> source) {
