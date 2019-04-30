@@ -19,8 +19,6 @@ import org.ccjmne.orca.api.utils.Fields;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Field;
 import org.jooq.Record;
-import org.jooq.Record1;
-import org.jooq.Row1;
 import org.jooq.Select;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
@@ -29,11 +27,6 @@ import org.jooq.types.DayToSecond;
 import org.jooq.types.YearToMonth;
 
 public class StatisticsSelection {
-
-  @SuppressWarnings("unchecked")
-  private static final Table<Record1<String>> OUTCOMES_TABLE = DSL
-      .values(Constants.EMPLOYEES_OUTCOMES.stream().map(DSL::row).toArray(Row1[]::new))
-      .asTable("employees_outcomes", "outcome");
 
   private static final Integer DURATION_INFINITE = Integer.valueOf(0);
 
@@ -201,11 +194,7 @@ public class StatisticsSelection {
   }
 
   public Select<? extends Record> selectSessionsStats() {
-    final Field<@NonNull String> outcome = OUTCOMES_TABLE.field("outcome", String.class);
-    return DSL
-        .select(TRAININGS_EMPLOYEES.TREM_TRNG_FK, outcome, DSL.count().as("count"))
-        .from(OUTCOMES_TABLE)
-        .leftOuterJoin(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(outcome))
-        .groupBy(TRAININGS_EMPLOYEES.TREM_TRNG_FK, outcome).getQuery();
+    return DSL.select(TRAININGS_EMPLOYEES.TREM_TRNG_FK, TRAININGS_EMPLOYEES.TREM_OUTCOME, DSL.count().as("count"))
+        .from(TRAININGS_EMPLOYEES).groupBy(TRAININGS_EMPLOYEES.TREM_TRNG_FK, TRAININGS_EMPLOYEES.TREM_OUTCOME);
   }
 }

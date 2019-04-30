@@ -17,12 +17,16 @@ import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.inject.business.RecordsCollator;
 import org.ccjmne.orca.api.inject.core.ResourcesSelection;
 import org.ccjmne.orca.api.inject.core.StatisticsSelection;
+import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.JSONFields;
+import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.JoinType;
 import org.jooq.Record;
+import org.jooq.Record1;
+import org.jooq.Row1;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
@@ -37,6 +41,11 @@ import com.fasterxml.jackson.databind.JsonNode;
  */
 @Path("resources")
 public class ResourcesEndpoint {
+
+  @SuppressWarnings("unchecked")
+  private static final Table<Record1<String>> OUTCOMES_TABLE = DSL
+      .values(Constants.EMPLOYEES_OUTCOMES.stream().map(DSL::row).toArray(Row1[]::new))
+      .asTable("employees_outcomes", "outcome");
 
   private final DSLContext          ctx;
   private final ResourcesSelection  resourcesSelection;
@@ -290,13 +299,16 @@ public class ResourcesEndpoint {
     final Table<Record> sessions = this.resourcesSelection.selectSessions().asTable();
     final Table<? extends Record> stats = this.statisticsSelection.selectSessionsStats().asTable();
 
+    final Field<@NonNull String> outcome = OUTCOMES_TABLE.field(0, String.class);
     return this.collator.applyFAndS(DSL
         .select(sessions.fields())
-        .select(JSONFields.objectAgg(stats.field("outcome"), stats.field("count")).as("stats"))
+        .select(JSONFields.objectAgg(outcome, DSL.coalesce(stats.field("count"), DSL.zero())).as("stats"))
         .select(DSL.sum(stats.field("count", Integer.class)).as("trainees_count"))
         .from(sessions)
+        .join(OUTCOMES_TABLE).on(DSL.noCondition())
         .leftOuterJoin(stats)
         .on(stats.field(TRAININGS_EMPLOYEES.TREM_TRNG_FK).eq(sessions.field(TRAININGS.TRNG_PK)))
+        .and(stats.field(TRAININGS_EMPLOYEES.TREM_OUTCOME).eq(outcome))
         .groupBy(sessions.fields()));
   }
 }
