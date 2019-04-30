@@ -51,7 +51,7 @@ public class QueryParams {
   public static final FirstParamType<Field<JsonNode>>         GROUP_BY_FIELD = new FirstParamType<>("group-by", v -> DSL
       .field("site_tags -> {0}", JSONFields.JSON_TYPE, v), JSONFields.toJson(DSL.cast(Constants.TAGS_VALUE_UNIVERSAL, SQLDataType.VARCHAR)));
 
-  private static final Pattern IS_INFINITY_DATE = Pattern.compile("^[+-]?infinity$");
+  private static final Pattern IS_INFINITY_DATE = Pattern.compile("^-?infinity$");
   private static final Pattern IS_RELATIVE_DATE = Pattern.compile("^[+-]");
 
   private final Map<Type<?, ?>, Object> types;
@@ -251,7 +251,7 @@ public class QueryParams {
    * <ul>
    * <li>an absolute date (e.g.: {@code "2019-01-01"}), or</li>
    * <li>an interval relative to a reference (e.g.: {@code "+1 month"}), or</li>
-   * <li>{@code /^[+-]?infinity$/}, to represent the unbounded end of a range</li>
+   * <li>{@code /^-?infinity$/}, to represent the unbounded end of a range</li>
    * </ul>
    */
   private static Function<? super Field<Date>, ? extends Field<Date>> parseDate(final String dateStr) {
