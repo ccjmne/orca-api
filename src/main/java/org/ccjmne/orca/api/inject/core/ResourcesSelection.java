@@ -145,11 +145,6 @@ public class ResourcesSelection {
       query.addSelect(TRAININGS.fields());
       query.addFrom(TRAININGS);
 
-      if (!this.parameters.isDefault(QueryParams.FROM) || !this.parameters.isDefault(QueryParams.TO)) {
-        query.addConditions(DSL.row(TRAININGS.TRNG_START, TRAININGS.TRNG_DATE)
-            .overlaps(this.parameters.get(QueryParams.FROM), this.parameters.get(QueryParams.TO)));
-      }
-
       if (this.parameters.has(QueryParams.SESSION)) {
         query.addConditions(TRAININGS.TRNG_PK.eq(this.parameters.get(QueryParams.SESSION)));
       }
@@ -184,6 +179,14 @@ public class ResourcesSelection {
       query.addGroupBy(TRAININGS.fields());
       if (this.parameters.has(QueryParams.EMPLOYEE)) {
         query.addGroupBy(TRAININGS_EMPLOYEES.fields());
+      if (this.parameters.has(QueryParams.TRAINER)) {
+        query.addConditions(DSL.exists(DSL.selectFrom(TRAININGS_TRAINERS).where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK)
+            .and(TRAININGS_TRAINERS.TRTR_EMPL_FK.eq(this.parameters.get(QueryParams.TRAINER))))));
+      }
+
+      if (!this.parameters.isDefault(QueryParams.FROM) || !this.parameters.isDefault(QueryParams.TO)) {
+        query.addConditions(DSL.row(TRAININGS.TRNG_START, TRAININGS.TRNG_DATE)
+            .overlaps(this.parameters.get(QueryParams.FROM), this.parameters.get(QueryParams.TO)));
       }
 
       return this.recordsCollator.applyFAndS(query);

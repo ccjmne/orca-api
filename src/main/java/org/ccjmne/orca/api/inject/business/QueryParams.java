@@ -37,6 +37,7 @@ public class QueryParams {
   public static final FieldType<Integer> EMPLOYEE              = new FieldType<>("employee", Integer.class);
   public static final FieldType<Integer> SITE                  = new FieldType<>("site", Integer.class);
   public static final FieldType<Integer> SESSION               = new FieldType<>("session", Integer.class);
+  public static final FieldType<Integer> TRAINER               = new FieldType<>("trainer", Integer.class);
   public static final FieldType<Integer> CERTIFICATE           = new FieldType<>("certificate", Integer.class);
   public static final FieldType<Boolean> INCLUDE_DECOMISSIONED = new FieldType<>("include-decommissioned", Boolean.class);
   public static final FieldType<Boolean> FILTER_BY_SESSIONS    = new FieldType<>("filter-by-sessions", Boolean.class);
