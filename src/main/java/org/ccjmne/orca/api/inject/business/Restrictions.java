@@ -31,6 +31,7 @@ public class Restrictions {
 
   private final DSLContext ctx;
 
+  private final String        userId;
   private final boolean       accessTrainings;
   private final boolean       accessAllSites;
   private final boolean       manageEmployeeNotes;
@@ -52,6 +53,7 @@ public class Restrictions {
 
   private Restrictions(final String user_id, final DSLContext ctx) {
     this.ctx = ctx;
+    this.userId = user_id;
     final Map<String, UsersRolesRecord> roles = ctx.selectFrom(USERS_ROLES).where(USERS_ROLES.USER_ID.eq(user_id)).fetchMap(USERS_ROLES.USRO_TYPE);
     this.manageOwnAccount = roles.containsKey(Constants.ROLE_USER);
     if (roles.containsKey(Constants.ROLE_ADMIN)) {
@@ -106,6 +108,10 @@ public class Restrictions {
     return this.ctx.selectFrom(TRAINERPROFILES_TRAININGTYPES)
         .where(TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK.eq(role.getUsroTrprFk()))
         .fetch(TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK);
+  }
+
+  public String getUserId() {
+    return this.userId;
   }
 
   /**
