@@ -1,6 +1,6 @@
 package org.ccjmne.orca.api.demo;
 
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 
 import java.sql.Date;
 import java.text.Normalizer;
@@ -13,10 +13,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.jooq.classes.tables.Employees;
-import org.ccjmne.orca.jooq.classes.tables.Sites;
-import org.ccjmne.orca.jooq.classes.tables.records.EmployeesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.SitesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.Employees;
+import org.ccjmne.orca.jooq.codegen.tables.Sites;
+import org.ccjmne.orca.jooq.codegen.tables.records.EmployeesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.SitesRecord;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Record4;

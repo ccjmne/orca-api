@@ -1,11 +1,11 @@
 package org.ccjmne.orca.api.demo;
 
-import static org.ccjmne.orca.jooq.classes.Tables.CLIENT;
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES;
-import static org.ccjmne.orca.jooq.classes.Tables.USERS;
-import static org.ccjmne.orca.jooq.classes.Tables.USERS_ROLES;
+import static org.ccjmne.orca.jooq.codegen.Tables.CLIENT;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAINERPROFILES;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS_ROLES;
 
 import java.util.Date;
 

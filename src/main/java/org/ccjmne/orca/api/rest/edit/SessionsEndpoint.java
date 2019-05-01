@@ -1,8 +1,8 @@
 package org.ccjmne.orca.api.rest.edit;
 
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_TRAINERS;
 
 import java.text.ParseException;
 import java.util.Collections;
@@ -23,8 +23,8 @@ import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.api.utils.Transactions.TransactionFunction;
-import org.ccjmne.orca.jooq.classes.Sequences;
-import org.ccjmne.orca.jooq.classes.tables.records.TrainingsRecord;
+import org.ccjmne.orca.jooq.codegen.Sequences;
+import org.ccjmne.orca.jooq.codegen.tables.records.TrainingsRecord;
 import org.jooq.DSLContext;
 
 @Path("sessions")

@@ -1,11 +1,11 @@
 package org.ccjmne.orca.api.rest.admin;
 
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
-import static org.ccjmne.orca.jooq.classes.Tables.USERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
 import java.util.List;
 import java.util.Map;
@@ -23,8 +23,8 @@ import javax.ws.rs.Path;
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Transactions;
-import org.ccjmne.orca.jooq.classes.tables.records.EmployeesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.SitesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.EmployeesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.SitesRecord;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.DSLContext;
 import org.jooq.Field;

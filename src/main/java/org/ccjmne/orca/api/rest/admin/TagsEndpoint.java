@@ -1,6 +1,6 @@
 package org.ccjmne.orca.api.rest.admin;
 
-import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
 
 import java.util.Map;
 
@@ -17,7 +17,7 @@ import javax.ws.rs.core.MediaType;
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.Transactions;
-import org.ccjmne.orca.jooq.classes.Sequences;
+import org.ccjmne.orca.jooq.codegen.Sequences;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Row2;

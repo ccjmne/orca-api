@@ -1,6 +1,6 @@
 package org.ccjmne.orca.api.rest.utils;
 
-import static org.ccjmne.orca.jooq.classes.Tables.CONFIGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.CONFIGS;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -19,8 +19,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.utils.Transactions;
-import org.ccjmne.orca.jooq.classes.Sequences;
-import org.ccjmne.orca.jooq.classes.tables.records.ConfigsRecord;
+import org.ccjmne.orca.jooq.codegen.Sequences;
+import org.ccjmne.orca.jooq.codegen.tables.records.ConfigsRecord;
 import org.jooq.DSLContext;
 import org.jooq.Result;
 import org.jooq.SelectQuery;

@@ -1,16 +1,16 @@
 package org.ccjmne.orca.api.demo;
 
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_TRAINERS;
 
 import java.sql.Date;
 import java.util.Arrays;
 
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.jooq.classes.tables.records.TrainingsEmployeesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.TrainingsRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.TrainingsEmployeesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.TrainingsRecord;
 import org.jooq.DSLContext;
 import org.jooq.Insert;
 import org.jooq.Record4;

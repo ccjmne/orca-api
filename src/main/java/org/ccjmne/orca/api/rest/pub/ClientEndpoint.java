@@ -1,6 +1,6 @@
 package org.ccjmne.orca.api.rest.pub;
 
-import static org.ccjmne.orca.jooq.classes.Tables.CLIENT;
+import static org.ccjmne.orca.jooq.codegen.Tables.CLIENT;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -26,7 +26,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.inject.business.Restrictions;
-import org.ccjmne.orca.jooq.classes.tables.records.ClientRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.ClientRecord;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.jooq.DSLContext;

@@ -1,9 +1,9 @@
 package org.ccjmne.orca.api.rest.admin;
 
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
-import static org.ccjmne.orca.jooq.classes.Tables.USERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
 import java.text.ParseException;
 import java.util.HashMap;
@@ -23,8 +23,8 @@ import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Transactions;
-import org.ccjmne.orca.jooq.classes.Sequences;
-import org.ccjmne.orca.jooq.classes.tables.records.SitesEmployeesRecord;
+import org.ccjmne.orca.jooq.codegen.Sequences;
+import org.ccjmne.orca.jooq.codegen.tables.records.SitesEmployeesRecord;
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep3;
 import org.jooq.TableField;

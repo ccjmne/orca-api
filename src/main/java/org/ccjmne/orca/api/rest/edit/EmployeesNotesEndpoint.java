@@ -1,7 +1,7 @@
 package org.ccjmne.orca.api.rest.edit;
 
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_VOIDINGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES_VOIDINGS;
 
 import java.sql.Date;
 import java.util.Map;

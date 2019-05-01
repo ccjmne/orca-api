@@ -1,14 +1,14 @@
 package org.ccjmne.orca.api.utils;
 
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
-import static org.ccjmne.orca.jooq.classes.Tables.USERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
 import java.sql.Date;
 import java.util.Arrays;
 
-import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.UpdatesRecord;
 import org.jooq.Field;
 import org.jooq.Query;
 import org.jooq.Record;
