@@ -25,6 +25,48 @@ public class JSONFields {
   public static final DataType<JsonNode> JSON_TYPE = SQLDataType.VARCHAR.asConvertedDataType(new PostgresJSONJacksonJsonNodeConverter());
 
   /**
+   * Get JSON object field by key (operator: {@code ->}).
+   * 
+   * @param field
+   *          The {@code json} (or {@code jsonb} field
+   * @param key
+   *          The key to select the value of
+   * @return A new {@code Field<JsonNode>} that uses the {@code ->} SQL json(b)
+   *         operator to select a JSON object field by key
+   */
+  public static Field<JsonNode> getByKey(final Field<JsonNode> field, final String key) {
+    return DSL.field("COALESCE({0} -> {1}, '{}'::jsonb)", JSON_TYPE, field, key);
+  }
+
+  /**
+   * Set JSON object value at key (function: {@code jsonb_set}).
+   * 
+   * @param field
+   *          The JSON field to be updated
+   * @param key
+   *          The key to be assigned the specified {@code value}
+   * @param value
+   *          The value to set for the given {@code key}
+   * @return A new {@code Field<JsonNode>} with the updated key-value pair
+   */
+  public static Field<JsonNode> setByKey(Field<JsonNode> field, final String key, final JsonNode value) {
+    return DSL.field("jsonb_set({0}, {1}, {2})", JSON_TYPE, field, DSL.array(key), DSL.val(value, JSON_TYPE));
+  }
+
+  /**
+   * Delete JSON object value at key (operator: {@code #-}).
+   * 
+   * @param field
+   *          The JSON field to be updated
+   * @param key
+   *          The key to be deleted from the specified {@code field}
+   * @return A new {@code Field<JsonNode>} stripped of the specified key
+   */
+  public static Field<JsonNode> deleteByKey(Field<JsonNode> field, final String key) {
+    return DSL.field("{0} #- {1}", JSON_TYPE, field, DSL.array(key));
+  }
+
+  /**
    * Builds a {@link JsonNode} for each {@link Record} from the {@code fields}
    * argument, and <strong>aggregates</strong> these into a single
    * {@link JsonNode}, keyed by the {@code key} argument.<br />
