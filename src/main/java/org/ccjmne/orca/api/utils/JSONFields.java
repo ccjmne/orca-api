@@ -1,8 +1,6 @@
 package org.ccjmne.orca.api.utils;
 
-import java.io.IOException;
-
-import org.jooq.Converter;
+import org.ccjmne.orca.jooq.PostgresJSONJacksonJsonNodeConverter;
 import org.jooq.DataType;
 import org.jooq.Field;
 import org.jooq.Record;
@@ -11,8 +9,6 @@ import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.NullNode;
 
 /**
  * A collection of jOOQ fields and query parts that leverage PostgreSQL' JSON
@@ -158,43 +154,5 @@ public class JSONFields {
    */
   public static final Field<JsonNode> toJson(final Field<?> field) {
     return DSL.field("to_jsonb({0})", JSON_TYPE, field);
-  }
-
-  @SuppressWarnings("serial")
-  private static class PostgresJSONJacksonJsonNodeConverter implements Converter<Object, JsonNode> {
-
-    private final ObjectMapper mapper;
-
-    protected PostgresJSONJacksonJsonNodeConverter() {
-      this.mapper = new ObjectMapper(); // TODO: Use CustomObjectMapper?
-    }
-
-    @Override
-    public JsonNode from(final Object t) {
-      try {
-        return t == null ? NullNode.instance : this.mapper.readTree(t.toString());
-      } catch (final IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    @Override
-    public Object to(final JsonNode u) {
-      try {
-        return (u == null) || u.equals(NullNode.instance) ? null : this.mapper.writeValueAsString(u);
-      } catch (final IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    @Override
-    public Class<Object> fromType() {
-      return Object.class;
-    }
-
-    @Override
-    public Class<JsonNode> toType() {
-      return JsonNode.class;
-    }
   }
 }
