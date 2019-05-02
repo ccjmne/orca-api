@@ -28,7 +28,7 @@ public class PostgresDSLContext extends DefaultDSLContext {
                                                       System.getProperty("db_port", "5432"),
                                                       System.getProperty("db_name", "postgres"));
 
-  private static final CustomHikariSettings HIKARI_SETTINGS = new CustomHikariSettings();
+  private static final CustomJooqSettings JOOQ_SETTINGS = new CustomJooqSettings();
 
   private static HikariDataSource DATA_SOURCE;
   static {
@@ -51,12 +51,12 @@ public class PostgresDSLContext extends DefaultDSLContext {
   }
 
   public PostgresDSLContext() {
-    super(DATA_SOURCE, SQLDialect.POSTGRES, HIKARI_SETTINGS);
+    super(DATA_SOURCE, SQLDialect.POSTGRES, JOOQ_SETTINGS);
   }
 
-  private static class CustomHikariSettings extends Settings {
+  private static class CustomJooqSettings extends Settings {
 
-    public CustomHikariSettings() {
+    public CustomJooqSettings() {
       super.setExecuteLogging(DEBUG);
       super.setRenderKeywordStyle(RenderKeywordStyle.UPPER);
       super.setRenderNameStyle(RenderNameStyle.AS_IS);
