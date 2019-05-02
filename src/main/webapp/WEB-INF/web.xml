@@ -26,6 +26,7 @@
 			<web-resource-name>Basic account access + unrestricted resources</web-resource-name>
 
 			<url-pattern>/account/*</url-pattern>
+			<url-pattern>/account/config</url-pattern>
 			<url-pattern>/sub-resources/*</url-pattern>
 			<http-method>GET</http-method>
 		</web-resource-collection>
@@ -37,11 +38,12 @@
 
 	<security-constraint>
 		<web-resource-collection>
-			<web-resource-name>Account's relevant certificates API</web-resource-name>
+			<web-resource-name>User config management API</web-resource-name>
 
-			<url-pattern>/account/observed-certificates</url-pattern>
+			<url-pattern>/account/config/*</url-pattern>
 			<http-method>GET</http-method>
 			<http-method>PUT</http-method>
+			<http-method>DELETE</http-method>
 		</web-resource-collection>
 		<auth-constraint>
 			<description>Any authenticated user can access this API</description>
@@ -144,7 +146,7 @@
 			<url-pattern>/employees-notes/*</url-pattern>
 			<url-pattern>/sites/*</url-pattern>
 			<url-pattern>/tags/*</url-pattern>
-			<url-pattern>/update/*</url-pattern>
+			<url-pattern>/update/*</url-pattern><!-- should be deleted? -->
 			<url-pattern>/users-admin/*</url-pattern>
 
 			<http-method>GET</http-method><!-- specific to users-admin and employees-notes -->

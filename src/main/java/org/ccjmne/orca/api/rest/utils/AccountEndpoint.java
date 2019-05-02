@@ -11,6 +11,7 @@ import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
@@ -21,11 +22,15 @@ import javax.ws.rs.core.MediaType;
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.rest.admin.UsersEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.JSONFields;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Row1;
 import org.jooq.impl.DSL;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 @Path("account")
 public class AccountEndpoint {
@@ -89,15 +94,47 @@ public class AccountEndpoint {
   }
 
   @GET
+  @Path("config")
+  public JsonNode getUserConfig() {
+    return this.ctx.select(USERS.USER_CONFIG).from(USERS).where(USERS.USER_ID.eq(this.userId)).fetchOne(USERS.USER_CONFIG);
+  }
+
+  @GET
+  @Path("config/{key}")
+  public JsonNode getConfigEntry(@PathParam("key") final String key) {
+    final Field<JsonNode> field = JSONFields.getByKey(USERS.USER_CONFIG, key);
+    return this.ctx.select(field).from(USERS).where(USERS.USER_ID.eq(this.userId)).fetchOne(field);
+  }
+
+  @PUT
+  @Path("config/{key}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public void setConfigEntry(@PathParam("key") final String key, final JsonNode value) {
+    this.ctx.update(USERS).set(USERS.USER_CONFIG, JSONFields.setByKey(USERS.USER_CONFIG, key, value))
+        .where(USERS.USER_ID.eq(this.userId)).execute();
+  }
+
+  @DELETE
+  @Path("config/{key}")
+  public void removeConfigEntry(@PathParam("key") final String key) {
+    this.ctx.update(USERS).set(USERS.USER_CONFIG, JSONFields.deleteByKey(USERS.USER_CONFIG, key))
+        .where(USERS.USER_ID.eq(this.userId)).execute();
+  }
+
+  // TODO: DELETE, use getConfigEntry instead
+  @GET
   @Path("observed-certificates")
+  @Deprecated
   public List<Integer> getRelevantCertificates() {
     return this.ctx.selectFrom(USERS_CERTIFICATES)
         .where(USERS_CERTIFICATES.USCE_USER_FK.eq(this.userId))
         .fetch(USERS_CERTIFICATES.USCE_CERT_FK);
   }
 
+  // TODO: DELETE, use setConfigEntry instead
   @PUT
   @Path("observed-certificates")
+  @Deprecated
   @SuppressWarnings("unchecked")
   public void setRelevantCertificates(final List<Integer> certificates) {
     Transactions.with(this.ctx, transactionCtx -> {
