@@ -38,6 +38,9 @@ public class StatisticsSelection {
       .when(EMPLOYEES_VOIDINGS.EMVO_DATE.le(StatisticsSelection.MAX_EXPIRY), EMPLOYEES_VOIDINGS.EMVO_DATE.sub(new DayToSecond(1)))
       .otherwise(StatisticsSelection.MAX_EXPIRY);
 
+  // TODO: Add special status for explicitly VOIDED aptitudes
+  // TODO: The number of months under which an aptitude is to be renewed soon
+  // should be configurable per aptitude
   private static Field<String> fieldValidity(final Field<Date> date) {
     return DSL
         .when(StatisticsSelection.EXPIRY.ge(date.plus(new YearToMonth(0, 6))), Constants.STATUS_SUCCESS)
