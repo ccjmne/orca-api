@@ -93,32 +93,68 @@ public class AccountEndpoint {
     UsersEndpoint.changeIdImpl(this.userId, newId, this.ctx);
   }
 
+  /**
+   * Retrieve all the entries for this user's configuration, aggregated into a
+   * JSON object.
+   *
+   * @return a JSON object containing all config's entries
+   */
   @GET
   @Path("config")
   public JsonNode getUserConfig() {
     return this.ctx.select(USERS.USER_CONFIG).from(USERS).where(USERS.USER_ID.eq(this.userId)).fetchOne(USERS.USER_CONFIG);
   }
 
+  /**
+   * Access the user configuration entry for the specific {@code key}.<br />
+   * Its contents can be any valid JSON node: an object, an array, or even a mere
+   * leaf value such as a boolean, string or number.
+   *
+   * @param key
+   *          The unique identifier for this config entry
+   * @return The configuration value as a JsonNode.
+   */
   @GET
   @Path("config/{key}")
   public JsonNode getConfigEntry(@PathParam("key") final String key) {
-    final Field<JsonNode> field = JSONFields.getByKey(USERS.USER_CONFIG, key);
-    return this.ctx.select(field).from(USERS).where(USERS.USER_ID.eq(this.userId)).fetchOne(field);
+    final Field<JsonNode> entry = JSONFields.getByKey(USERS.USER_CONFIG, key);
+    return this.ctx.select(entry).from(USERS).where(USERS.USER_ID.eq(this.userId)).fetchOne(entry);
   }
 
+  /**
+   * Create or update this user's configuration entry for the specified
+   * {@code key}.<br />
+   * Its contents can be any valid JSON node: an object, an array, or even a mere
+   * leaf value such as a boolean, string or number.
+   *
+   * @param key
+   *          The unique identifier for this config entry
+   * @param value
+   *          Any valid JSON content
+   * @return The new value as stored
+   */
   @PUT
   @Path("config/{key}")
   @Consumes(MediaType.APPLICATION_JSON)
-  public void setConfigEntry(@PathParam("key") final String key, final JsonNode value) {
-    this.ctx.update(USERS).set(USERS.USER_CONFIG, JSONFields.setByKey(USERS.USER_CONFIG, key, value))
-        .where(USERS.USER_ID.eq(this.userId)).execute();
+  public JsonNode setConfigEntry(@PathParam("key") final String key, final JsonNode value) {
+    final Field<JsonNode> entry = JSONFields.getByKey(USERS.USER_CONFIG, key);
+    return this.ctx.update(USERS).set(USERS.USER_CONFIG, JSONFields.setByKey(USERS.USER_CONFIG, key, value))
+        .where(USERS.USER_ID.eq(this.userId)).returningResult(entry).fetchOne().getValue(entry);
   }
 
+  /**
+   * Delete this user's configuration entry for the specified {@code key}.<br />
+   *
+   * @param key
+   *          The unique identifier for this config entry
+   * @return The new value as stored (i.e.: {@code null})
+   */
   @DELETE
   @Path("config/{key}")
-  public void removeConfigEntry(@PathParam("key") final String key) {
-    this.ctx.update(USERS).set(USERS.USER_CONFIG, JSONFields.deleteByKey(USERS.USER_CONFIG, key))
-        .where(USERS.USER_ID.eq(this.userId)).execute();
+  public JsonNode removeConfigEntry(@PathParam("key") final String key) {
+    final Field<JsonNode> entry = JSONFields.getByKey(USERS.USER_CONFIG, key);
+    return this.ctx.update(USERS).set(USERS.USER_CONFIG, JSONFields.deleteByKey(USERS.USER_CONFIG, key))
+        .where(USERS.USER_ID.eq(this.userId)).returningResult(entry).fetchOne().getValue(entry);
   }
 
   // TODO: DELETE, use getConfigEntry instead
