@@ -213,13 +213,6 @@ public class QueryParams {
   }
 
   /**
-   * A {@link FirstParamType} that may depend on the value of another
-   * {@link Field} of a certain type and provides no default value.
-   *
-   * @param <T>
-   *          The type of the {@code Field} to coerce parameters as
-   */
-  /**
    * A {@link FirstParamType} that may depend on the value of another {@link Type}
    * to be virtually injected by the overloaded
    * {@link QueryParams#get(DependentType)}.

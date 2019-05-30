@@ -158,6 +158,9 @@ public class AccountEndpoint {
   }
 
   // TODO: DELETE, use getConfigEntry instead
+  /**
+   * Use {@link AccountEndpoint#getConfigEntry(String)} instead.
+   */
   @GET
   @Path("observed-certificates")
   @Deprecated
@@ -168,6 +171,9 @@ public class AccountEndpoint {
   }
 
   // TODO: DELETE, use setConfigEntry instead
+  /**
+   * Use {@link AccountEndpoint#setConfigEntry(String, JsonNode)} instead.
+   */
   @PUT
   @Path("observed-certificates")
   @Deprecated

@@ -221,7 +221,7 @@ public class RecordsCollator {
    * Ideally <strong>only applied onto the outermost query</strong> that
    * actually gets returned to the client.<br />
    * Sorting the results of a sub-query used internally serves no purpose (see
-   * {@link #applySorting(SelectQuery)}.
+   * {@link #applySorting(SelectQuery)}).
    *
    * @param query
    *          The {@link SelectQuery} to which filtering and sorting should
