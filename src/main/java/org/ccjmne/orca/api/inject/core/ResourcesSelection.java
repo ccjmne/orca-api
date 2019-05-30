@@ -88,7 +88,7 @@ public class ResourcesSelection {
         query.addSelect(TRAININGS_EMPLOYEES.TREM_COMMENT, TRAININGS_EMPLOYEES.TREM_OUTCOME);
       }
 
-      return this.recordsCollator.applyFAndS(query);
+      return this.recordsCollator.applyFiltering(query);
     }
   }
 
@@ -121,7 +121,7 @@ public class ResourcesSelection {
                     SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK));
       query.addGroupBy(SITES.fields());
 
-      return this.recordsCollator.applyFAndS(DSL
+      return this.recordsCollator.applyFiltering(DSL
           .select(query.fields())
           .select(JSONFields.objectAgg(SITES_TAGS.SITA_TAGS_FK, Fields.TAG_VALUE_COERCED).as("site_tags"))
           .from(query)
@@ -188,7 +188,7 @@ public class ResourcesSelection {
             .overlaps(this.parameters.get(QueryParams.FROM), this.parameters.get(QueryParams.TO)));
       }
 
-      return this.recordsCollator.applyFAndS(query);
+      return this.recordsCollator.applyFiltering(query);
     }
   }
 
