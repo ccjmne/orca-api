@@ -31,7 +31,7 @@ public class JSONFields {
    *         operator to select a JSON object field by key
    */
   public static Field<JsonNode> getByKey(final Field<JsonNode> field, final String key) {
-    return DSL.field("COALESCE({0} -> {1}, '{}'::jsonb)", JSON_TYPE, field, key);
+    return DSL.field("{0} -> {1}", JSON_TYPE, field, key);
   }
 
   /**
