@@ -97,45 +97,57 @@ public class RecordsCollator {
 
   /**
    * Applicable at <strong>any depth of (sub-)query</strong>.<br />
+   * <br />
+   * Creates a <strong>new</strong> query: see
+   * {@link RecordsCollator#applyFAndS(SelectQuery)}.
    *
    * @param query
    *          The {@link SelectQuery} to which sorting should be applied
-   * @return The original query, for method chaining purposes
+   * @return A new, filtered and sorted {@code SelectQuery}
    */
   public <T extends Record> SelectQuery<T> applyFiltering(final SelectQuery<T> query) {
-    return this.applyFiltering(DSL.selectFrom(query.asTable()));
+    return this.applyFilteringImpl(DSL.selectFrom(query.asTable()).getQuery());
   }
 
   /**
-   * Overload of {@link #applyFiltering(SelectQuery)}.
+   * Overload of {@link #applyFiltering(SelectQuery)}.<br />
+   * <br />
+   * Creates a <strong>new</strong> query: see
+   * {@link RecordsCollator#applyFAndS(SelectQuery)}.
    *
    * @param select
    *          The {@link Select} whose underlying query to collate
-   * @return The underlying query, for method chaining purposes
+   * @return A new, filtered and sorted {@code SelectQuery}
    */
   public <T extends Record> SelectQuery<T> applyFiltering(final SelectFinalStep<T> select) {
-    return this.applyFilteringImpl(select.getQuery());
+    return this.applyFiltering(select.getQuery());
   }
 
   /**
    * Ideally <strong>only applied onto the outermost query</strong> that
    * actually gets returned to the client.<br />
-   * Sorting the results of a sub-query used internally serves no purpose.
+   * Sorting the results of a sub-query used internally serves no purpose.<br />
+   * <br />
+   * Creates a <strong>new</strong> query: see
+   * {@link RecordsCollator#applyFAndS(SelectQuery)}.
    *
    * @param query
    *          The {@link SelectQuery} to which sorting should be applied
-   * @return The original query, for method chaining purposes
+   * @return A new, filtered and sorted {@code SelectQuery}
    */
   public <T extends Record> SelectQuery<T> applySorting(final SelectQuery<T> query) {
     return this.applySortingImpl(DSL.selectFrom(query.asTable()).getQuery());
   }
 
   /**
-   * Overload of {@link #applySorting(SelectQuery)}.
+   * Overload of {@link #applySorting(SelectQuery)}.<br />
+   * <br />
+   * Creates a <strong>new</strong> query: see
+   * {@link RecordsCollator#applyFAndS(SelectQuery)}.
    *
    * @param select
    *          The {@link Select} whose underlying query to collate
-   * @return The underlying query, for method chaining purposes
+   * @return A new, filtered and sorted {@code SelectQuery}
    */
   public <T extends Record> SelectQuery<T> applySorting(final SelectFinalStep<T> select) {
     return this.applySorting(select.getQuery());
