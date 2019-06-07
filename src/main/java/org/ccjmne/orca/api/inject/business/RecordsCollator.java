@@ -92,7 +92,7 @@ public class RecordsCollator {
         .map(CONNECT_ENTRY::matcher)
         .filter(Matcher::matches)
         .collect(Collectors.<Matcher, String, Function<? super Collection<Condition>, ? extends Condition>> toMap(m -> new ParsedField(m.group("field"))
-            .getName(), m -> "and".equalsIgnoreCase(m.group("connector")) ? DSL::and : DSL::or));
+            .getName(), m -> "and".equalsIgnoreCase(m.group("connector")) ? DSL::and : DSL::or, (first, second) -> second));
   }
 
   /**
