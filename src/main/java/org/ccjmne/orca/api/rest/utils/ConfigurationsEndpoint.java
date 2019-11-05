@@ -2,7 +2,6 @@ package org.ccjmne.orca.api.rest.utils;
 
 import static org.ccjmne.orca.jooq.codegen.Tables.CONFIGS;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -22,11 +21,11 @@ import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.codegen.Sequences;
 import org.ccjmne.orca.jooq.codegen.tables.records.ConfigsRecord;
 import org.jooq.DSLContext;
+import org.jooq.JSONB;
 import org.jooq.Result;
 import org.jooq.SelectQuery;
 import org.jooq.impl.DSL;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Path("configs")
@@ -69,9 +68,9 @@ public class ConfigurationsEndpoint {
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public Integer createConfig(@QueryParam("type") final String type, @QueryParam("name") final String name, final String requestBody) {
+  public Integer createConfig(@QueryParam("type") final String type, @QueryParam("name") final String name, final JSONB config) {
     final Integer key = new Integer(this.ctx.nextval(Sequences.CONFIGS_CONF_PK_SEQ).intValue());
-    this.updateConfig(key, type, name, requestBody);
+    this.updateConfig(key, type, name, config);
     return key;
   }
 
@@ -82,28 +81,23 @@ public class ConfigurationsEndpoint {
                               @PathParam("conf_pk") final Integer key,
                               @QueryParam("type") final String type,
                               @QueryParam("name") final String name,
-                              final String requestBody) {
+                              final JSONB config) {
     if ((type == null) || (name == null) || name.trim().isEmpty() || !AVAILABLE_TYPES.contains(type)) {
       throw new IllegalArgumentException(String.format("Configuration type and name must be provided, and type be one of: %s", AVAILABLE_TYPES));
     }
 
     return Transactions.with(this.ctx, transactionCtx -> {
-      try {
-        final String trimmed = name.trim();
-        final String minified = this.mapper.readValue(requestBody, JsonNode.class).toString();
-        if (transactionCtx.fetchExists(CONFIGS, CONFIGS.CONF_TYPE.eq(type).and(CONFIGS.CONF_NAME.equalIgnoreCase(trimmed)).and(CONFIGS.CONF_PK.ne(key)))) {
-          throw new IllegalArgumentException(String.format("A configuration item named '%s' already exists for the type '%s'.", trimmed, type));
-        }
-
-        final boolean exists = 1 == transactionCtx.deleteFrom(CONFIGS).where(CONFIGS.CONF_PK.eq(key)).execute();
-        transactionCtx.insertInto(CONFIGS, CONFIGS.CONF_PK, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME, CONFIGS.CONF_DATA)
-            .values(key, type, trimmed, minified)
-            .execute();
-
-        return Boolean.valueOf(exists);
-      } catch (final IOException e) {
-        throw new IllegalArgumentException("Configuration must be a valid JSON object.");
+      final String trimmed = name.trim();
+      if (transactionCtx.fetchExists(CONFIGS, CONFIGS.CONF_TYPE.eq(type).and(CONFIGS.CONF_NAME.equalIgnoreCase(trimmed)).and(CONFIGS.CONF_PK.ne(key)))) {
+        throw new IllegalArgumentException(String.format("A configuration item named '%s' already exists for the type '%s'.", trimmed, type));
       }
+
+      final boolean exists = 1 == transactionCtx.deleteFrom(CONFIGS).where(CONFIGS.CONF_PK.eq(key)).execute();
+      transactionCtx.insertInto(CONFIGS, CONFIGS.CONF_PK, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME, CONFIGS.CONF_DATA)
+          .values(key, type, trimmed, config)
+          .execute();
+
+      return Boolean.valueOf(exists);
     });
   }
 

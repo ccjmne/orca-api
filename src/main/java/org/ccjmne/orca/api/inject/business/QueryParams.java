@@ -19,15 +19,14 @@ import javax.ws.rs.core.UriInfo;
 import org.ccjmne.orca.api.rest.utils.QuickSearchEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Fields;
-import org.ccjmne.orca.api.utils.JSONFields;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jooq.Field;
+import org.jooq.JSONB;
 import org.jooq.Param;
 import org.jooq.impl.DSL;
-import org.jooq.impl.SQLDataType;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 
 /**
  * Provides tools to extract arguments from the current
@@ -52,8 +51,8 @@ public class QueryParams {
                                                                                                   d -> Fields.DATE_INFINITY);
   public static final FirstParamType<Field<Date>>             INTERVAL      = new FirstParamType<>("interval", v -> DSL
       .field("{0}::interval", Date.class, v), DSL.field("'1 month'::interval", Date.class));
-  public static final FirstParamType<Field<JsonNode>>         GROUP_BY      = new FirstParamType<>("group-by", v -> DSL
-      .field("site_tags -> {0}", JSONFields.JSON_TYPE, v), JSONFields.toJson(DSL.val(Constants.TAGS_VALUE_UNIVERSAL, SQLDataType.VARCHAR)));
+  public static final FirstParamType<Field<JSONB>>            GROUP_BY      = new FirstParamType<>("group-by", v -> DSL
+      .field("site_tags -> {0}", JSONB.class, v), DSL.val(JSONB.valueOf(new TextNode(Constants.TAGS_VALUE_UNIVERSAL).toString())));
 
   private static final Pattern IS_INFINITY_DATE = Pattern.compile("^-?infinity$");
   private static final Pattern IS_RELATIVE_DATE = Pattern.compile("^[+-]");
