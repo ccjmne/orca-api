@@ -14,6 +14,7 @@ import java.util.Collections;
 import org.ccjmne.orca.api.utils.Constants;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.JSONB;
 import org.jooq.impl.DSL;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -43,7 +44,7 @@ public class DemoCommonResources {
   public static void generate(final DSLContext ctx, final ObjectMapper mapper) {
     try {
       ctx.insertInto(CONFIGS, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME, CONFIGS.CONF_DATA)
-          .values("pdf-site", "Tableau de Bord", mapper.writeValueAsString(ImmutableMap.<String, Object> builder()
+          .values("pdf-site", "Tableau de Bord", JSONB.valueOf(mapper.writeValueAsString(ImmutableMap.<String, Object> builder()
               .put("fileName", "{{site}} - {{config}}")
               .put("size", "a4")
               .put("orientation", "landscape")
@@ -65,7 +66,7 @@ public class DemoCommonResources {
                                                                 .put("cert", CERT_FSST)
                                                                 .put("columns", Integer.valueOf(1)).build())))
                   .build()))
-              .build()))
+              .build())))
           .execute();
     } catch (final JsonProcessingException e) {
       // Can not happen

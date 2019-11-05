@@ -23,6 +23,7 @@ import org.ccjmne.orca.api.utils.JSONFields;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.JSONB;
 import org.jooq.JoinType;
 import org.jooq.Record;
 import org.jooq.Record1;
@@ -30,8 +31,6 @@ import org.jooq.Row1;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Serves the core resources, whose access is restricted on a per-request
@@ -270,7 +269,7 @@ public class ResourcesEndpoint {
 
   private SelectQuery<Record> findSitesGroups() {
     final Table<? extends Record> sites = this.resourcesSelection.selectSites().asTable();
-    final Field<JsonNode> groupID = this.parameters.get(QueryParams.GROUP_BY).as("sgrp_value");
+    final Field<JSONB> groupID = this.parameters.get(QueryParams.GROUP_BY).as("sgrp_value");
     final Table<? extends Record> groups = DSL
         .select(DSL.sum(sites.field("site_employees_count", Integer.class)).as("sgrp_employees_count"))
         .select(DSL.sum(sites.field("site_permanent_count", Integer.class)).as("sgrp_permanent_count"))

@@ -10,6 +10,7 @@ import java.util.Arrays;
 
 import org.ccjmne.orca.jooq.codegen.tables.records.UpdatesRecord;
 import org.jooq.Field;
+import org.jooq.JSONB;
 import org.jooq.Query;
 import org.jooq.Record;
 import org.jooq.Record1;
@@ -21,7 +22,6 @@ import org.jooq.TableLike;
 import org.jooq.Transaction;
 import org.jooq.impl.DSL;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Streams;
 
 /**
@@ -46,7 +46,7 @@ public class Fields {
    * The {@link SITES_TAGS#SITA_VALUE} field coerced to either a boolean or a
    * string JSON element.
    */
-  public static final Field<JsonNode> TAG_VALUE_COERCED = DSL
+  public static final Field<JSONB> TAG_VALUE_COERCED = DSL
       .when(Fields.unqualify(TAGS.TAGS_TYPE).eq(Constants.TAGS_TYPE_BOOLEAN),
             JSONFields.toJson(DSL.cast(Fields.unqualify(SITES_TAGS.SITA_VALUE), Boolean.class)))
       .otherwise(JSONFields.toJson(Fields.unqualify(SITES_TAGS.SITA_VALUE)));

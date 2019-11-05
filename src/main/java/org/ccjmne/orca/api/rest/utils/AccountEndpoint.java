@@ -26,11 +26,10 @@ import org.ccjmne.orca.api.utils.JSONFields;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.JSONB;
 import org.jooq.Record;
 import org.jooq.Row1;
 import org.jooq.impl.DSL;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 @Path("account")
 public class AccountEndpoint {
@@ -101,7 +100,7 @@ public class AccountEndpoint {
    */
   @GET
   @Path("config")
-  public JsonNode getUserConfig() {
+  public JSONB getUserConfig() {
     return this.ctx.select(USERS.USER_CONFIG).from(USERS).where(USERS.USER_ID.eq(this.userId)).fetchOne(USERS.USER_CONFIG);
   }
 
@@ -112,12 +111,12 @@ public class AccountEndpoint {
    *
    * @param key
    *          The unique identifier for this config entry
-   * @return The configuration value as a JsonNode.
+   * @return The configuration value as a JSONB.
    */
   @GET
   @Path("config/{key}")
-  public JsonNode getConfigEntry(@PathParam("key") final String key) {
-    final Field<JsonNode> entry = JSONFields.getByKey(USERS.USER_CONFIG, key);
+  public JSONB getConfigEntry(@PathParam("key") final String key) {
+    final Field<JSONB> entry = JSONFields.getByKey(USERS.USER_CONFIG, key);
     return this.ctx.select(entry).from(USERS).where(USERS.USER_ID.eq(this.userId)).fetchOne(entry);
   }
 
@@ -136,8 +135,8 @@ public class AccountEndpoint {
   @PUT
   @Path("config/{key}")
   @Consumes(MediaType.APPLICATION_JSON)
-  public JsonNode setConfigEntry(@PathParam("key") final String key, final JsonNode value) {
-    final Field<JsonNode> entry = JSONFields.getByKey(USERS.USER_CONFIG, key);
+  public JSONB setConfigEntry(@PathParam("key") final String key, final JSONB value) {
+    final Field<JSONB> entry = JSONFields.getByKey(USERS.USER_CONFIG, key);
     return this.ctx.update(USERS).set(USERS.USER_CONFIG, JSONFields.setByKey(USERS.USER_CONFIG, key, value))
         .where(USERS.USER_ID.eq(this.userId)).returningResult(entry).fetchOne().getValue(entry);
   }
@@ -151,8 +150,8 @@ public class AccountEndpoint {
    */
   @DELETE
   @Path("config/{key}")
-  public JsonNode removeConfigEntry(@PathParam("key") final String key) {
-    final Field<JsonNode> entry = JSONFields.getByKey(USERS.USER_CONFIG, key);
+  public JSONB removeConfigEntry(@PathParam("key") final String key) {
+    final Field<JSONB> entry = JSONFields.getByKey(USERS.USER_CONFIG, key);
     return this.ctx.update(USERS).set(USERS.USER_CONFIG, JSONFields.deleteByKey(USERS.USER_CONFIG, key))
         .where(USERS.USER_ID.eq(this.userId)).returningResult(entry).fetchOne().getValue(entry);
   }
@@ -172,7 +171,7 @@ public class AccountEndpoint {
 
   // TODO: DELETE, use setConfigEntry instead
   /**
-   * Use {@link AccountEndpoint#setConfigEntry(String, JsonNode)} instead.
+   * Use {@link AccountEndpoint#setConfigEntry(String, JSONB)} instead.
    */
   @PUT
   @Path("observed-certificates")

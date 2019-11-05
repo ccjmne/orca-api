@@ -26,6 +26,7 @@ import org.ccjmne.orca.api.utils.JSONFields;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jooq.Condition;
 import org.jooq.Field;
+import org.jooq.JSONB;
 import org.jooq.Record;
 import org.jooq.Select;
 import org.jooq.SelectFinalStep;
@@ -35,7 +36,6 @@ import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.tools.Convert;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
@@ -544,7 +544,7 @@ public class RecordsCollator {
      * <br/>
      * Typically used for:
      * <ul>
-     * <li>fields drilling into a {@code JsonNode} with a specific {@code path}</li>
+     * <li>fields drilling into a {@code JSONB} with a specific {@code path}</li>
      * <li>fields that are encapsulated in a function, like
      * {@code unaccent(<field>)}</li>
      * </ul>
@@ -647,11 +647,11 @@ public class RecordsCollator {
         return Optional.of(PREPROCESSORS.getOrDefault(availableType, f -> f).apply(DSL.field(this.name, matchedType)));
       }
 
-      if (!JsonNode.class.equals(matchedType)) {
+      if (!JSONB.class.equals(matchedType)) {
         throw new IllegalArgumentException(String.format("Couldn't access property '%s' on field '%s' of type '%s'", this.path.get(), this.name, matchedType));
       }
 
-      final Field<Object> leaf = DSL.field("{0} #>> {1}", Object.class, DSL.field(this.name, JsonNode.class), DSL.array(this.path.get().split("\\.")));
+      final Field<Object> leaf = DSL.field("{0} #>> {1}", Object.class, DSL.field(this.name, JSONB.class), DSL.array(this.path.get().split("\\.")));
       if (!this.type.isPresent()) {
         return Optional.of(leaf);
       }
