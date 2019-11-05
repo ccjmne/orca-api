@@ -83,7 +83,7 @@ public class StatisticsOverTimeEndpoint {
   @GET
   @Path("sites-groups")
   public Result<? extends Record> getSitesGroupsStatsOverTime() {
-    if (!this.parameters.isDefault(QueryParams.GROUP_BY_FIELD)) {
+    if (!this.parameters.isDefault(QueryParams.GROUP_BY)) {
       throw new IllegalArgumentException("Statistics history generation may not be used with the 'group-by' parameter.");
     }
 

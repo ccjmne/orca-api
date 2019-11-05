@@ -49,8 +49,8 @@ public class QueryParams {
   public static final DependentType<Field<Date>, Field<Date>> TO             = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate, d -> d);
   public static final FirstParamType<Field<Date>>             INTERVAL       = new FirstParamType<>("interval", v -> DSL
       .field("{0}::interval", Date.class, v), DSL.field("'1 month'::interval", Date.class));
-  public static final FirstParamType<Field<JsonNode>>         GROUP_BY_FIELD = new FirstParamType<>("group-by", v -> DSL
-      .field("site_tags -> {0}", JSONFields.JSON_TYPE, v), JSONFields.toJson(DSL.cast(Constants.TAGS_VALUE_UNIVERSAL, SQLDataType.VARCHAR)));
+  public static final FirstParamType<Field<JsonNode>>         GROUP_BY      = new FirstParamType<>("group-by", v -> DSL
+      .field("site_tags -> {0}", JSONFields.JSON_TYPE, v), JSONFields.toJson(DSL.val(Constants.TAGS_VALUE_UNIVERSAL, SQLDataType.VARCHAR)));
 
   private static final Pattern IS_INFINITY_DATE = Pattern.compile("^-?infinity$");
   private static final Pattern IS_RELATIVE_DATE = Pattern.compile("^[+-]");

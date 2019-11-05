@@ -270,7 +270,7 @@ public class ResourcesEndpoint {
 
   private SelectQuery<Record> findSitesGroups() {
     final Table<? extends Record> sites = this.resourcesSelection.selectSites().asTable();
-    final Field<JsonNode> groupID = this.parameters.get(QueryParams.GROUP_BY_FIELD).as("sgrp_value");
+    final Field<JsonNode> groupID = this.parameters.get(QueryParams.GROUP_BY).as("sgrp_value");
     final Table<? extends Record> groups = DSL
         .select(DSL.sum(sites.field("site_employees_count", Integer.class)).as("sgrp_employees_count"))
         .select(DSL.sum(sites.field("site_permanent_count", Integer.class)).as("sgrp_permanent_count"))
