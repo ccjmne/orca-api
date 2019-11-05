@@ -97,10 +97,12 @@ public class QueryParams {
   }
 
   /**
-   * Is {@code true} when the given {@code type} does have a default value that
-   * wasn't overridden by the query parameters.
+   * Is {@code true} when the given {@code type} <strong>does have a default
+   * value<strong> that wasn't overridden by the query parameters.
    */
   public <T> boolean isDefault(final Type<?, T> type) {
+    // Don't use QueryParams#has or QueryParams#of, which treat unspecified
+    // parameters with default values as being actually present
     return (type.orElse != null) && !this.types.containsKey(type);
   }
 
@@ -108,11 +110,22 @@ public class QueryParams {
     return this.has(type) && value.equals(this.getRaw(type));
   }
 
+  /**
+   * Convenience method for {@link QueryParams#is(type, Boolean.TRUE)}.
+   */
+  // TODO: use this instead of QueryParams#is(..., Boolean.TRUE)
+  public boolean isEnabled(final FieldType<Boolean> type) {
+    return this.has(type) && Boolean.TRUE.equals(this.getRaw(type));
+  }
+
   @SuppressWarnings("unchecked") // always safe
   public <T> T get(final Type<?, T> type) {
     return (T) this.types.getOrDefault(type, type.orElse);
   }
 
+  /**
+   * Overload of {@link QueryParams#get(Type)} for {@link DependentType}.
+   */
   @SuppressWarnings("unchecked") // always safe
   public <U, T> T get(final DependentType<U, T> type) {
     return ((Function<? super U, ? extends T>) this.types.getOrDefault(type, type.orElse)).apply(this.get(type.getDependency()));
@@ -120,6 +133,24 @@ public class QueryParams {
 
   public <T> T getRaw(final FieldType<T> type) {
     return this.get(type).getValue();
+  }
+
+  /**
+   * Returns the given {@code Type}'s parameter iff it was provided by the
+   * request.<br />
+   * Otherwise, returns {@code orElse}, <strong>regardless of whether
+   * the given {@code Type} specifies a default value<strong>.
+   */
+  public <T> T getOrDefault(final Type<?, T> type, final @NonNull T orElse) {
+    return this.types.containsKey(type) ? this.get(type) : orElse;
+  }
+
+  /**
+   * Overload of {@link QueryParams#getOrDefault(Type, Object)} for
+   * {@link DependentType}.
+   */
+  public <U, T> T getOrDefault(final DependentType<U, T> type, final @NonNull T orElse) {
+    return this.types.containsKey(type) ? this.get(type) : orElse;
   }
 
   /**
