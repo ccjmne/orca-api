@@ -120,7 +120,7 @@
 
 	<security-constraint>
 		<web-resource-collection>
-			<web-resource-name>Trainers-only Management API</web-resource-name>
+			<web-resource-name>Instructors-only Management API</web-resource-name>
 
 			<url-pattern>/sessions/*</url-pattern>
 			<http-method>POST</http-method>

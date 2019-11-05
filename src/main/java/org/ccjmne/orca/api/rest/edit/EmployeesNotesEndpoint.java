@@ -92,7 +92,8 @@ public class EmployeesNotesEndpoint {
       throw new IllegalArgumentException("Missing 'certificate' parameter.");
     }
 
-    this.ctx.deleteFrom(EMPLOYEES_VOIDINGS).where(EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(this.employee))
-        .and(EMPLOYEES_VOIDINGS.EMVO_CERT_FK.eq(this.certificate.get())).execute();
+    this.ctx.deleteFrom(EMPLOYEES_VOIDINGS)
+        .where(EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(this.employee)).and(EMPLOYEES_VOIDINGS.EMVO_CERT_FK.eq(this.certificate.get()))
+        .execute();
   }
 }

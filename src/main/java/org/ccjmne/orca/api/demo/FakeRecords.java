@@ -128,7 +128,7 @@ public class FakeRecords {
               break;
             default:
               // Can *not* happen
-              throw new IllegalArgumentException(String.format("The outcome of a training must be one of %s.", Constants.TRAINING_OUTCOMES));
+              throw new IllegalArgumentException(String.format("The outcome of a session must be one of: %s", Constants.TRAINING_OUTCOMES));
           }
 
           return DSL.row(FakeRecords.asFields(FakeRecords.random(TRAININGTYPES, TRAININGTYPES.TRTY_PK), date, outcome, ""));
