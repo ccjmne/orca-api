@@ -31,15 +31,15 @@ import org.jooq.Record;
 import org.jooq.Row1;
 import org.jooq.impl.DSL;
 
-@Path("account")
-public class AccountEndpoint {
+@Path("user")
+public class UserEndpoint {
 
   private final String       userId;
   private final DSLContext   ctx;
   private final Restrictions restrictions;
 
   @Inject
-  public AccountEndpoint(final DSLContext ctx, final Restrictions restrictions) {
+  public UserEndpoint(final DSLContext ctx, final Restrictions restrictions) {
     this.restrictions = restrictions;
     this.ctx = ctx;
     this.userId = restrictions.getUserId();
@@ -158,7 +158,7 @@ public class AccountEndpoint {
 
   // TODO: DELETE, use getConfigEntry instead
   /**
-   * Use {@link AccountEndpoint#getConfigEntry(String)} instead.
+   * Use {@link UserEndpoint#getConfigEntry(String)} instead.
    */
   @GET
   @Path("observed-certificates")
@@ -171,7 +171,7 @@ public class AccountEndpoint {
 
   // TODO: DELETE, use setConfigEntry instead
   /**
-   * Use {@link AccountEndpoint#setConfigEntry(String, JSONB)} instead.
+   * Use {@link UserEndpoint#setConfigEntry(String, JSONB)} instead.
    */
   @PUT
   @Path("observed-certificates")

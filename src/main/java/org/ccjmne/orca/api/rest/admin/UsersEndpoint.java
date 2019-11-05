@@ -23,7 +23,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.inject.business.Restrictions;
-import org.ccjmne.orca.api.rest.utils.AccountEndpoint;
+import org.ccjmne.orca.api.rest.utils.UserEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.RecordMappers;
@@ -78,7 +78,7 @@ public class UsersEndpoint {
   }
 
   /**
-   * Not part of the exposed API. Used by {@link AccountEndpoint} only.<br />
+   * Not part of the exposed API. Used by {@link UserEndpoint} only.<br />
    * Returns account information and corresponding {@link Restrictions} for a
    * given user ID.
    */
@@ -201,7 +201,7 @@ public class UsersEndpoint {
   }
 
   /**
-   * Not part of the exposed API. Used by {@link AccountEndpoint} only.
+   * Not part of the exposed API. Used by {@link UserEndpoint} only.
    */
   public static void changeIdImpl(final String user_id, final String newId, final DSLContext ctx) {
     Transactions.with(ctx, transactionCtx -> {
