@@ -303,7 +303,7 @@ public class ResourcesEndpoint {
     return this.collator.applyFAndS(DSL
         .select(sessions.fields())
         .select(JSONFields.objectAgg(outcome, DSL.coalesce(stats.field("count"), DSL.zero())).as("stats"))
-        .select(DSL.sum(stats.field("count", Integer.class)).as("trainees_count"))
+        .select(DSL.coalesce(DSL.sum(stats.field("count", Integer.class)), DSL.zero()).as("trainees_count"))
         .from(sessions)
         .join(OUTCOMES_TABLE).on(DSL.noCondition())
         .leftOuterJoin(stats)
