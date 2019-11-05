@@ -18,6 +18,7 @@ import javax.ws.rs.core.UriInfo;
 
 import org.ccjmne.orca.api.rest.utils.QuickSearchEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.JSONFields;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
@@ -43,11 +44,13 @@ public class QueryParams {
   public static final FieldType<Boolean> FILTER_BY_SESSIONS    = new FieldType<>("filter-by-sessions", Boolean.class);
   public static final FieldType<String>  SEARCH_TERMS          = new FieldType<>("q", String.class);
 
-  public static final AllParamsType<List<String>>             RESOURCE_TYPE  = new AllParamsType<>("type", v -> v, QuickSearchEndpoint.RESOURCES_TYPES);
-  public static final FirstParamType<Field<Date>>             DATE           = new FirstParamType<>("date", v -> DSL.val(v, Date.class), DSL.currentDate());
-  public static final DependentType<Field<Date>, Field<Date>> FROM           = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate, d -> d);
-  public static final DependentType<Field<Date>, Field<Date>> TO             = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate, d -> d);
-  public static final FirstParamType<Field<Date>>             INTERVAL       = new FirstParamType<>("interval", v -> DSL
+  public static final AllParamsType<List<String>>             RESOURCE_TYPE = new AllParamsType<>("type", v -> v, QuickSearchEndpoint.RESOURCES_TYPES);
+  public static final FirstParamType<Field<Date>>             DATE          = new FirstParamType<>("date", v -> DSL.val(v, Date.class), DSL.currentDate());
+  public static final DependentType<Field<Date>, Field<Date>> FROM          = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate,
+                                                                                                  d -> Fields.DATE_NEGATIVE_INFINITY);
+  public static final DependentType<Field<Date>, Field<Date>> TO            = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate,
+                                                                                                  d -> Fields.DATE_INFINITY);
+  public static final FirstParamType<Field<Date>>             INTERVAL      = new FirstParamType<>("interval", v -> DSL
       .field("{0}::interval", Date.class, v), DSL.field("'1 month'::interval", Date.class));
   public static final FirstParamType<Field<JsonNode>>         GROUP_BY      = new FirstParamType<>("group-by", v -> DSL
       .field("site_tags -> {0}", JSONFields.JSON_TYPE, v), JSONFields.toJson(DSL.val(Constants.TAGS_VALUE_UNIVERSAL, SQLDataType.VARCHAR)));

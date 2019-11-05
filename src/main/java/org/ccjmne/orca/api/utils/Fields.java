@@ -33,6 +33,9 @@ public class Fields {
 
   private static final Integer NO_UPDATE = Integer.valueOf(-1);
 
+  public static final Field<Date> DATE_INFINITY          = DSL.field("{0}::date", Date.class, "infinity");
+  public static final Field<Date> DATE_NEGATIVE_INFINITY = DSL.field("{0}::date", Date.class, "-infinity");
+
   public static Field<?>[] USERS_FIELDS              = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK };
   public static String[]   EMPLOYEES_STATS_FIELDS    = new String[] { "status", "expiry", "void_since" };
   public static String[]   SITES_STATS_FIELDS        = new String[] { "status", "current", "percent", "target", "remaining", "success", "warning", "danger" };

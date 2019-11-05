@@ -56,8 +56,8 @@ public class StatisticsOverTimeEndpoint {
     this.statisticsSelection = new StatisticsSelection(DSL.field(DATE_SERIES_FIELD_NAME, Date.class));
     this.date = DSL
         .field("generate_series({0}, {1}, {2})::date", Date.class,
-               parameters.get(QueryParams.FROM),
-               parameters.get(QueryParams.TO),
+               parameters.getOrDefault(QueryParams.FROM, DSL.currentDate()),
+               parameters.getOrDefault(QueryParams.TO, DSL.currentDate()),
                parameters.get(QueryParams.INTERVAL))
         .as(DATE_SERIES_FIELD_NAME);
   }
