@@ -72,7 +72,7 @@ public class QueryParams {
   public QueryParams(@Context final UriInfo uriInfo) {
     this.types = Stream.concat(uriInfo.getQueryParameters().entrySet().stream(), uriInfo.getPathParameters().entrySet().stream())
         .map(Type::mapper).filter(Optional::isPresent).map(Optional::get)
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (first, second) -> second));
   }
 
   public <T> Optional<T> of(final Type<?, T> type) {
