@@ -76,7 +76,7 @@ public class Fields {
    */
   public static Field<String> formatDate(final Field<Date> field) {
     return DSL
-        .when(field.eq(DSL.inline(Constants.DATE_INFINITY)), Constants.DATE_INFINITY_LITERAL)
+        .when(field.eq(DSL.inline(Constants.DATE_NEVER)), Constants.DATE_NEVER_LITERAL)
         .otherwise(DSL.field("to_char({0}, {1})", String.class, field, APIDateFormat.FORMAT));
   }
 

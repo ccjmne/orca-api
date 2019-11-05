@@ -31,7 +31,7 @@ public class StatisticsSelection {
   private static final Integer DURATION_INFINITE = Integer.valueOf(0);
 
   public static final Field<Date> MAX_EXPIRY = DSL.max(DSL
-      .when(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.eq(StatisticsSelection.DURATION_INFINITE), DSL.date(Constants.DATE_INFINITY))
+      .when(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.eq(StatisticsSelection.DURATION_INFINITE), DSL.date(Constants.DATE_NEVER))
       .otherwise(TRAININGS.TRNG_DATE.plus(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.mul(new YearToMonth(0, 1)))));
 
   private static final Field<Date> EXPIRY = DSL

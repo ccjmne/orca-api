@@ -17,8 +17,8 @@ public class APIDateFormat {
 
         @Override
         public StringBuffer format(final java.util.Date date, final StringBuffer toAppendTo, final java.text.FieldPosition pos) {
-          if (date.equals(Constants.DATE_INFINITY)) {
-            return toAppendTo.insert(pos.getBeginIndex(), Constants.DATE_INFINITY_LITERAL);
+          if (date.equals(Constants.DATE_NEVER)) {
+            return toAppendTo.insert(pos.getBeginIndex(), Constants.DATE_NEVER_LITERAL);
           }
 
           return super.format(date, toAppendTo, pos);

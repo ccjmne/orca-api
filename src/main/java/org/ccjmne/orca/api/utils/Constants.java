@@ -21,11 +21,11 @@ public class Constants {
    *      "http://stackoverflow.com/questions/41301892/insert-the-max-date-independent-from-database">
    *      Insert the max date (independent from database)</a>
    */
-  public static final Date DATE_INFINITY = Date.valueOf(LocalDate.of(9999, Month.JANUARY, 1).with(TemporalAdjusters.lastDayOfYear()));
+  public static final Date DATE_NEVER = Date.valueOf(LocalDate.of(9999, Month.JANUARY, 1).with(TemporalAdjusters.lastDayOfYear()));
 
   // ---- API CONSTANTS
-  public static final String FIELDS_ALL            = "all";
-  public static final String DATE_INFINITY_LITERAL = "infinity";
+  public static final String FIELDS_ALL         = "all";
+  public static final String DATE_NEVER_LITERAL = "infinity";
 
   public static final String STATUS_SUCCESS = "success";
   public static final String STATUS_WARNING = "warning";
