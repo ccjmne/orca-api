@@ -23,6 +23,7 @@ import org.jooq.Select;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
+import org.jooq.impl.SQLDataType;
 import org.jooq.types.DayToSecond;
 import org.jooq.types.YearToMonth;
 
@@ -169,7 +170,9 @@ public class StatisticsSelection {
             .when(status.eq(Constants.STATUS_SUCCESS), DSL.val(1f))
             .when(status.eq(Constants.STATUS_WARNING), DSL.val(2 / 3f))
             .otherwise(DSL.val(0f)))
-        .mul(DSL.val(100)).div(DSL.count()));
+        .mul(DSL.val(100))
+        .div(DSL.count())
+        .cast(SQLDataType.NUMERIC), 1);
 
     try (final SelectQuery<Record> q = DSL.select().getQuery()) {
       q.addSelect(sitesStats.field(CERTIFICATES.CERT_PK));
