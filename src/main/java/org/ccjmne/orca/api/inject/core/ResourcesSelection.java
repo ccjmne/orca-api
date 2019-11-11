@@ -9,6 +9,8 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_TRAINERS;
 
+import java.sql.Date;
+
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
 
@@ -184,8 +186,17 @@ public class ResourcesSelection {
       }
 
       if (!this.parameters.isDefault(QueryParams.FROM) || !this.parameters.isDefault(QueryParams.TO)) {
-        query.addConditions(DSL.row(TRAININGS.TRNG_START, TRAININGS.TRNG_DATE)
-            .overlaps(this.parameters.get(QueryParams.FROM), this.parameters.get(QueryParams.TO)));
+        // OVERLAPS works with half-open intervals, see
+        // https://www.postgresql.org/docs/12/functions-datetime.html#FUNCTIONS-DATETIME-TABLE
+        // We use [trng_start || trng_date, trng_date + '1 day') ∩ [from, to + '1 day')
+        // to conceptually close the ranges.
+        query.addConditions(DSL
+            .row(
+                 DSL.when(TRAININGS.TRNG_START.isNotNull(), TRAININGS.TRNG_START).otherwise(TRAININGS.TRNG_DATE),
+                 TRAININGS.TRNG_DATE.plus(DSL.field("'1 day'::interval", Date.class)))
+            .overlaps(
+                      this.parameters.get(QueryParams.FROM),
+                      this.parameters.get(QueryParams.TO).plus(DSL.field("'1 day'::interval", Date.class))));
       }
 
       return this.recordsCollator.applyFiltering(query);
