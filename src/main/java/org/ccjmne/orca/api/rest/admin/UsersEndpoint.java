@@ -26,6 +26,7 @@ import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.rest.utils.UserEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Fields;
+import org.ccjmne.orca.api.utils.JSONFields;
 import org.ccjmne.orca.api.utils.RecordMappers;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.jooq.DSLContext;
@@ -83,20 +84,22 @@ public class UsersEndpoint {
    * given user ID.
    */
   public static Map<String, Object> getUserInfoImpl(final String user_id, final DSLContext ctx) {
-    final Map<String, Object> res = ctx.select(Fields.USERS_FIELDS).select(EMPLOYEES.fields()).select(SITES.fields())
-        .select(DSL.arrayAgg(USERS_ROLES.USRO_TYPE).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("type_array"),
-                DSL.arrayAgg(USERS_ROLES.USRO_LEVEL).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("level_array"),
-                DSL.arrayAgg(USERS_ROLES.USRO_TRPR_FK).filterWhere(USERS_ROLES.USRO_TYPE.isNotNull()).as("trainer_array"),
-                DSL.arrayAgg(DSL.when(USERS_ROLES.USRO_TYPE.isNotNull(), Boolean.TRUE)).as("true_array"))
+    final Map<String, Object> res = ctx
+        .select(
+                USERS.USER_ID,
+                USERS.USER_TYPE,
+                JSONFields
+                    .objectAgg(USERS_ROLES.USRO_TYPE, DSL.when(USERS_ROLES.USRO_LEVEL.isNotNull(), USERS_ROLES.USRO_LEVEL).otherwise(USERS_ROLES.USRO_TRPR_FK))
+                    .as("roles"),
+                JSONFields.toJson(EMPLOYEES.fields()).as("employee"),
+                JSONFields.toJson(SITES.fields()).as("site"))
         .from(USERS)
+        .leftOuterJoin(USERS_ROLES).on(USERS_ROLES.USER_ID.eq(USERS.USER_ID))
         .leftOuterJoin(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(USERS.USER_EMPL_FK))
         .leftOuterJoin(SITES).on(SITES.SITE_PK.eq(USERS.USER_SITE_FK))
-        .leftOuterJoin(USERS_ROLES).on(USERS_ROLES.USER_ID.eq(USERS.USER_ID))
         .where(USERS.USER_ID.eq(user_id))
-        .groupBy(Fields.concat(Fields.USERS_FIELDS, EMPLOYEES.fields(), SITES.fields()))
-        .fetchOne(RecordMappers.getMapperWithZip(RecordMappers
-            .getZipSelectMapper("type_array", "level_array", "trainer_array", "true_array"), "roles"));
-
+        .groupBy(Fields.concat(USERS.fields(), EMPLOYEES.fields(), SITES.fields()))
+        .fetchOne().intoMap();
     res.put("restrictions", Restrictions.forUser(user_id, ctx));
     return res;
   }
