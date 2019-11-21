@@ -21,6 +21,7 @@ import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Provides tools to manage restrictions of resources access or manipulation
@@ -110,6 +111,7 @@ public class Restrictions {
         .fetch(TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK);
   }
 
+  @JsonIgnore
   public String getUserId() {
     return this.userId;
   }
