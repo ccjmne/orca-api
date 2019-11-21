@@ -129,6 +129,10 @@ public class QueryParams {
     return (type.orElse != null) && !this.types.containsKey(type);
   }
 
+  /**
+   * True iff the given {@code type} is truthy. Useful for detecting flags to be
+   * enabled or disabled.
+   */
   public <T> boolean is(final FieldType<T> type, @NonNull final T value) {
     return this.has(type) && value.equals(this.getRaw(type));
   }
@@ -136,7 +140,6 @@ public class QueryParams {
   /**
    * Convenience method for {@link QueryParams#is(type, Boolean.TRUE)}.
    */
-  // TODO: use this instead of QueryParams#is(..., Boolean.TRUE)
   public boolean isEnabled(final FieldType<Boolean> type) {
     return this.has(type) && Boolean.TRUE.equals(this.getRaw(type));
   }

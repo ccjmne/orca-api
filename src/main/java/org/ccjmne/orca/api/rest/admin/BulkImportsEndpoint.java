@@ -148,8 +148,8 @@ public class BulkImportsEndpoint {
       final Row3<String, Integer, String>[] tags = sites.stream().flatMap(s -> s.entrySet().stream()
           .map(e -> String.format("%s=%s", e.getKey(), e.getValue())).map(PARSE_TAGS::matcher).filter(Matcher::matches)
           .peek(m -> {
-            // TODO: Prevent insertion of non-boolean values for
-            // 'b'-type tags
+            // TODO: Prevent insertion of non-boolean values for b-type tags
+            // TODO: Prevent insertion of 'true' and 'false' for s-type tags
             if (Constants.TAGS_VALUE_NONE.equals(m.group("value")) || Constants.TAGS_VALUE_UNIVERSAL.equals(m.group("value"))) {
               throw new IllegalArgumentException(String
                   .format("Invalid tag value: '%s' for site: %s", m.group("value"), s.get(SITES.SITE_EXTERNAL_ID.getName())));

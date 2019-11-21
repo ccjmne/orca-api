@@ -101,7 +101,7 @@ public class ResourcesSelection {
    */
   public SelectQuery<Record> scopeSites() {
     final SelectQuery<Record> query = this.scopeSitesImpl();
-    if (!this.parameters.is(QueryParams.INCLUDE_DECOMMISSIONED, Boolean.TRUE)) {
+    if (!this.parameters.isEnabled(QueryParams.INCLUDE_DECOMMISSIONED)) {
       query.addConditions(DSL.exists(DSL.selectFrom(SITES_EMPLOYEES).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK))));
     }
 
@@ -119,7 +119,7 @@ public class ResourcesSelection {
       query.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).as("site_employees_count"));
       query.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("site_permanent_count"));
       query.addJoin(SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)),
-                    this.parameters.is(QueryParams.INCLUDE_DECOMMISSIONED, Boolean.TRUE) ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
+                    this.parameters.isEnabled(QueryParams.INCLUDE_DECOMMISSIONED) ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
                     SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK));
       query.addGroupBy(SITES.fields());
 
@@ -223,7 +223,7 @@ public class ResourcesSelection {
         query.addConditions(EMPLOYEES.EMPL_PK.eq(this.parameters.get(QueryParams.EMPLOYEE)));
       }
 
-      if (this.parameters.is(QueryParams.FILTER_BY_SESSIONS, Boolean.TRUE)) {
+      if (this.parameters.isEnabled(QueryParams.FILTER_BY_SESSIONS)) {
         if (!this.restrictions.canAccessTrainings()) {
           throw new ForbiddenException();
         }

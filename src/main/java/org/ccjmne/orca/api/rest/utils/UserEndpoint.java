@@ -3,10 +3,8 @@ package org.ccjmne.orca.api.rest.utils;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAINERPROFILES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAINERPROFILES_TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
-import static org.ccjmne.orca.jooq.codegen.Tables.USERS_CERTIFICATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.USERS_ROLES;
 
-import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -23,12 +21,10 @@ import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.rest.admin.UsersEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.JSONFields;
-import org.ccjmne.orca.api.utils.Transactions;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.JSONB;
 import org.jooq.Record;
-import org.jooq.Row1;
 import org.jooq.impl.DSL;
 
 @Path("user")
@@ -154,38 +150,5 @@ public class UserEndpoint {
     final Field<JSONB> entry = JSONFields.getByKey(USERS.USER_CONFIG, key);
     return this.ctx.update(USERS).set(USERS.USER_CONFIG, JSONFields.deleteByKey(USERS.USER_CONFIG, key))
         .where(USERS.USER_ID.eq(this.userId)).returningResult(entry).fetchOne().getValue(entry);
-  }
-
-  // TODO: DELETE, use getConfigEntry instead
-  /**
-   * Use {@link UserEndpoint#getConfigEntry(String)} instead.
-   */
-  @GET
-  @Path("observed-certificates")
-  @Deprecated
-  public List<Integer> getRelevantCertificates() {
-    return this.ctx.selectFrom(USERS_CERTIFICATES)
-        .where(USERS_CERTIFICATES.USCE_USER_FK.eq(this.userId))
-        .fetch(USERS_CERTIFICATES.USCE_CERT_FK);
-  }
-
-  // TODO: DELETE, use setConfigEntry instead
-  /**
-   * Use {@link UserEndpoint#setConfigEntry(String, JSONB)} instead.
-   */
-  @PUT
-  @Path("observed-certificates")
-  @Deprecated
-  @SuppressWarnings("unchecked")
-  public void setRelevantCertificates(final List<Integer> certificates) {
-    Transactions.with(this.ctx, transactionCtx -> {
-      transactionCtx.delete(USERS_CERTIFICATES).where(USERS_CERTIFICATES.USCE_USER_FK.eq(this.userId)).execute();
-      if (!certificates.isEmpty()) {
-        transactionCtx.insertInto(USERS_CERTIFICATES, USERS_CERTIFICATES.USCE_USER_FK, USERS_CERTIFICATES.USCE_CERT_FK)
-            .select(DSL.select(DSL.val(this.userId), DSL.field("cert_id", Integer.class))
-                .from(DSL.values(certificates.stream().map(DSL::row).toArray(Row1[]::new)).as("unused", "cert_id")))
-            .execute();
-      }
-    });
   }
 }

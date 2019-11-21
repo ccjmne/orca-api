@@ -32,9 +32,7 @@ public class Constants {
   public static final String STATUS_DANGER  = "danger";
 
   public static final String TAGS_VALUE_UNIVERSAL = "*";
-  // Actually, it's not true anymore, it's just an actual JSON "null" leaf
-  // TODO: Maybe delete this property
-  public static final String TAGS_VALUE_NONE = String.valueOf((Object) null);
+  public static final String TAGS_VALUE_NONE      = String.valueOf((Object) null);
 
   public static final String SORT_DIRECTION_DESC = "desc"; // case-insensitive
   public static final String FILTER_VALUE_NULL   = "null";
