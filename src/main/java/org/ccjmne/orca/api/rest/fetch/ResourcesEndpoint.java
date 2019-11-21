@@ -105,7 +105,7 @@ public class ResourcesEndpoint {
 
   @GET
   @Path("sessions/{session}/trainees")
-  public Record listTrainees() {
+  public Record listSessionTrainees() {
     return this.listEmployees();
   }
 
@@ -114,13 +114,15 @@ public class ResourcesEndpoint {
    * ------------------------------------------------------------------------
    *
    * <pre>
-   * +--------+---------------+-----------+
-   * | Method | Path          | Response  |
-   * +--------+---------------+-----------+
-   * | GET    | /sites        | PAGINATED |
-   * +--------+---------------+-----------+
-   * | GET    | /sites/{site} | SINGLE    |
-   * +--------+---------------+-----------+
+   * +--------+----------------------------------------------+-----------+
+   * | Method | Path                                         | Response  |
+   * +--------+----------------------------------------------+-----------+
+   * | GET    | /sites                                       | PAGINATED |
+   * +--------+----------------------------------------------+-----------+
+   * | GET    | /sites/{site}                                | SINGLE    |
+   * +--------+----------------------------------------------+-----------+
+   * | GET    | /sites-groups/{group-by}/{group-value}/sites | PAGINATED |
+   * +--------+----------------------------------------------+-----------+
    * </pre>
    */
 
@@ -136,18 +138,26 @@ public class ResourcesEndpoint {
     return this.ctx.fetchSingle(this.findSites());
   }
 
+  @GET
+  @Path("sites-groups/{group-by}/{group-value}/sites")
+  public Record listSitesGroupSites() {
+    return this.listSites();
+  }
+
   /**
    * SITES-GROUPS listing methods
    * ------------------------------------------------------------------------
    *
    * <pre>
-   * +--------+--------------------------+-----------+
-   * | Method | Path                     | Response  |
-   * +--------+--------------------------+-----------+
-   * | GET    | /sites-groups            | PAGINATED |
-   * +--------+--------------------------+-----------+
-   * | GET    | /sites-groups/{group-by} | PAGINATED |
-   * +--------+--------------------------+-----------+
+   * +--------+----------------------------------------+-----------+
+   * | Method | Path                                   | Response  |
+   * +--------+----------------------------------------+-----------+
+   * | GET    | /sites-groups                          | PAGINATED |
+   * +--------+----------------------------------------+-----------+
+   * | GET    | /sites-groups/{group-by}               | PAGINATED |
+   * +--------+----------------------------------------+-----------+
+   * | GET    | /sites-groups/{group-by}/{group-value} | SINGLE    |
+   * +--------+----------------------------------------+-----------+
    * </pre>
    */
 
@@ -161,6 +171,12 @@ public class ResourcesEndpoint {
   @Path("sites-groups/{group-by}")
   public Record listSitesGroupedBy() {
     return this.listSitesGroups();
+  }
+
+  @GET
+  @Path("sites-groups/{group-by}/{group-value}")
+  public Record lookupSitesGroup() {
+    return this.ctx.fetchSingle(this.findSitesGroups());
   }
 
   /**
