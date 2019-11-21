@@ -54,8 +54,8 @@ public class QueryParams {
                                                                                                QueryParams::computeGroupValue, v -> DSL.noCondition());
 
   // Collation flags
-  public static final FieldType<Boolean> INCLUDE_DECOMISSIONED = new FieldType<>("include-decommissioned", Boolean.class);
-  public static final FieldType<Boolean> FILTER_BY_SESSIONS    = new FieldType<>("filter-by-sessions", Boolean.class);
+  public static final FieldType<Boolean> INCLUDE_DECOMMISSIONED = new FieldType<>("include-decommissioned", Boolean.class);
+  public static final FieldType<Boolean> FILTER_BY_SESSIONS     = new FieldType<>("filter-by-sessions", Boolean.class);
 
   // Temporal selectors
   public static final FirstParamType<Field<Date>>             DATE          = new FirstParamType<>("date", v -> DSL.val(v, Date.class), DSL.currentDate());
