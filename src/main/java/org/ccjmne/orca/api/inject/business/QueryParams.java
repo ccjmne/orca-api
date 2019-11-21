@@ -65,6 +65,8 @@ public class QueryParams {
       .field("{0}::interval", Date.class, v), DSL.field("'1 month'::interval", Date.class));
   public static final FirstParamType<Field<JSONB>>            GROUP_BY      = new FirstParamType<>("group-by", v -> Constants.TAGS_VALUE_UNIVERSAL
       .equals(v) ? TAGS_FIELD_UNIVERSAL : DSL.field("site_tags -> {0}", JSONB.class, v), TAGS_FIELD_UNIVERSAL);
+  public static final DependentType<Field<Date>, Field<Date>> SESSION_DATE  = new DependentType<>("session-date", QueryParams.DATE, QueryParams::parseDate,
+                                                                                                  d -> d);
 
   private static final Pattern IS_INFINITY_DATE = Pattern.compile("^-?infinity$");
   private static final Pattern IS_RELATIVE_DATE = Pattern.compile("^[+-]");
