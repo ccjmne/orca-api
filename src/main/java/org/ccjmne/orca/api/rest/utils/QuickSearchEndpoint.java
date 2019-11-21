@@ -47,10 +47,10 @@ public class QuickSearchEndpoint {
    * database.
    */
   private static final Map<String, Field<?>[]> FIELDS = ImmutableMap
-      .of("employees", new Field<?>[] { EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_SURNAME, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_NOTES },
-          "sites", new Field<?>[] { SITES.SITE_EXTERNAL_ID, SITES.SITE_NAME, SITES.SITE_NOTES },
-          "sites-groups", new Field<?>[] { TAGS.TAGS_SHORT, TAGS.TAGS_NAME, FIELD_SITA_VALUE_RAW },
-          "sessions", new Field<?>[] {});
+      .of("employee", new Field<?>[] { EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_SURNAME, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_NOTES },
+          "site", new Field<?>[] { SITES.SITE_EXTERNAL_ID, SITES.SITE_NAME, SITES.SITE_NOTES },
+          "site-tag", new Field<?>[] { TAGS.TAGS_SHORT, TAGS.TAGS_NAME, FIELD_SITA_VALUE_RAW },
+          "session", new Field<?>[] {});
 
   public static final List<String> RESOURCES_TYPES = new ArrayList<>(FIELDS.keySet());
 
@@ -88,13 +88,13 @@ public class QuickSearchEndpoint {
   private Result<Record> searchImpl(final String type) {
     final Table<? extends Record> table;
     switch (type) {
-      case "employees":
+      case "employee":
         table = this.resourcesSelection.scopeEmployees().asTable();
         break;
-      case "sites":
+      case "site":
         table = this.resourcesSelection.scopeSites().asTable();
         break;
-      case "sites-groups":
+      case "site-tag":
         table = DSL
             .selectDistinct(TAGS.fields())
             .select(FIELD_SITA_VALUE_RAW, Fields.TAG_VALUE_COERCED.as("sita_value"))
@@ -103,7 +103,7 @@ public class QuickSearchEndpoint {
                 .and(SITES_TAGS.SITA_SITE_FK.in(Fields.select(SITES.SITE_PK, this.resourcesSelection.scopeSites()))))
             .asTable();
         break;
-      case "sessions":
+      case "session":
         // Searching for sessions additionally matches according to chronological
         // proximity to a given Date.
         return this.searchSessions();
