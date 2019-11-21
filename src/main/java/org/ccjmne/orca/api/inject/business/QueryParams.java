@@ -2,9 +2,11 @@ package org.ccjmne.orca.api.inject.business;
 
 import java.sql.Date;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -27,6 +29,7 @@ import org.jooq.Param;
 import org.jooq.impl.DSL;
 
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Provides tools to extract arguments from the current
@@ -75,8 +78,7 @@ public class QueryParams {
   @Inject
   public QueryParams(@Context final UriInfo uriInfo) {
     this.types = Stream.concat(uriInfo.getQueryParameters().entrySet().stream(), uriInfo.getPathParameters().entrySet().stream())
-        .map(Type::mapper).filter(Optional::isPresent).map(Optional::get)
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (first, second) -> second));
+        .flatMap(Type::mapper).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (fromQueryParams, fromPath) -> fromPath));
   }
 
   public <T> Optional<T> of(final Type<?, T> type) {
@@ -173,7 +175,7 @@ public class QueryParams {
    */
   private static abstract class Type<U, T> {
 
-    private static final Map<String, Type<?, ?>> TYPES = new HashMap<>();
+    private static final Map<String, List<Type<?, ?>>> TYPES = new HashMap<>();
 
     protected final @Nullable T orElse;
 
@@ -182,15 +184,19 @@ public class QueryParams {
     protected Type(final String name, final Function<? super U, ? extends T> coercer, @Nullable final T orElse) {
       this.coercer = coercer;
       this.orElse = orElse;
-      if (TYPES.put(name, this) != null) {
-        throw new IllegalArgumentException(String.format("Duplicate type '%s'", name));
-      }
+      TYPES.compute(name, (k, v) -> v == null
+                                              ? Collections.singletonList(this)
+                                              : ImmutableList.<Type<?, ?>> builder().addAll(v).add(this).build());
     }
 
-    protected static <U, T> Optional<Map.Entry<Type<U, T>, T>> mapper(final Map.Entry<String, List<String>> source) {
-      @SuppressWarnings("unchecked") // always safe
-      final Type<U, T> t = (Type<U, T>) TYPES.get(source.getKey());
-      return t != null ? Optional.of(new SimpleEntry<>(t, t.coercer.apply(t.supplyCoercer(source.getValue())))) : Optional.empty();
+    @SuppressWarnings("unchecked") // always safe
+    protected static final Stream<? extends Map.Entry<Type<?, ?>, ?>> mapper(final Map.Entry<String, List<String>> source) {
+      final List<Type<?, ?>> types = TYPES.getOrDefault(source.getKey(), Collections.EMPTY_LIST);
+      return (Stream<? extends Entry<Type<?, ?>, ?>>) types.stream().map(t -> t.map(source.getValue()));
+    }
+
+    private final Map.Entry<Type<U, T>, T> map(final List<String> parameters) {
+      return new SimpleEntry<>(this, this.coercer.apply(this.supplyCoercer(parameters)));
     }
 
     protected abstract U supplyCoercer(final List<String> parameters);
@@ -256,7 +262,6 @@ public class QueryParams {
    *          This {@code Type} dependency's coercion class
    * @param <T>
    *          The class of this {@code Type}'s coerced values
-   *
    */
   private static class DependentType<U, T> extends FirstParamType<Function<? super U, ? extends T>> {
 
