@@ -40,18 +40,24 @@ public class QueryParams {
 
   private static final Param<JSONB> TAGS_FIELD_UNIVERSAL = DSL.val(JSONB.valueOf(new TextNode(Constants.TAGS_VALUE_UNIVERSAL).toString()));
 
-  public static final FieldType<Integer> EMPLOYEE              = new FieldType<>("employee", Integer.class);
-  public static final FieldType<Integer> SITE                  = new FieldType<>("site", Integer.class);
-  public static final FieldType<Integer> SESSION               = new FieldType<>("session", Integer.class);
-  public static final FieldType<Integer> TRAINER               = new FieldType<>("trainer", Integer.class);
-  public static final FieldType<Integer> CERTIFICATE           = new FieldType<>("certificate", Integer.class);
+  // Resources identifiers
+  public static final FieldType<Integer> SITE        = new FieldType<>("site", Integer.class);
+  public static final FieldType<Integer> EMPLOYEE    = new FieldType<>("employee", Integer.class);
+  public static final FieldType<Integer> TRAINER     = new FieldType<>("trainer", Integer.class);
+  public static final FieldType<Integer> SESSION     = new FieldType<>("session", Integer.class);
+  public static final FieldType<Integer> CERTIFICATE = new FieldType<>("certificate", Integer.class);
+
+  // Virtual resources identifiers
+  public static final FirstParamType<Field<JSONB>>           GROUP_BY    = new FirstParamType<>("group-by", v -> Constants.TAGS_VALUE_UNIVERSAL
+      .equals(v) ? TAGS_FIELD_UNIVERSAL : DSL.field("site_tags -> {0}", JSONB.class, v), TAGS_FIELD_UNIVERSAL);
   public static final DependentType<Field<JSONB>, Condition> GROUP_VALUE = new DependentType<>("group-value", QueryParams.GROUP_BY,
                                                                                                QueryParams::computeGroupValue, v -> DSL.noCondition());
+
+  // Collation flags
   public static final FieldType<Boolean> INCLUDE_DECOMISSIONED = new FieldType<>("include-decommissioned", Boolean.class);
   public static final FieldType<Boolean> FILTER_BY_SESSIONS    = new FieldType<>("filter-by-sessions", Boolean.class);
-  public static final FieldType<String>  SEARCH_TERMS          = new FieldType<>("q", String.class);
 
-  public static final AllParamsType<List<String>>             RESOURCE_TYPE = new AllParamsType<>("type", v -> v, QuickSearchEndpoint.RESOURCES_TYPES);
+  // Temporal selectors
   public static final FirstParamType<Field<Date>>             DATE          = new FirstParamType<>("date", v -> DSL.val(v, Date.class), DSL.currentDate());
   public static final DependentType<Field<Date>, Field<Date>> FROM          = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate,
                                                                                                   d -> Fields.DATE_NEGATIVE_INFINITY);
@@ -63,8 +69,10 @@ public class QueryParams {
                                                                                                   d -> d);
   public static final FirstParamType<Field<Date>>             INTERVAL      = new FirstParamType<>("interval", v -> DSL
       .field("{0}::interval", Date.class, v), DSL.field("'1 month'::interval", Date.class));
-  public static final FirstParamType<Field<JSONB>>            GROUP_BY      = new FirstParamType<>("group-by", v -> Constants.TAGS_VALUE_UNIVERSAL
-      .equals(v) ? TAGS_FIELD_UNIVERSAL : DSL.field("site_tags -> {0}", JSONB.class, v), TAGS_FIELD_UNIVERSAL);
+
+  // Quick-search parameters
+  public static final FieldType<String>                       SEARCH_TERMS  = new FieldType<>("q", String.class);
+  public static final AllParamsType<List<String>>             RESOURCE_TYPE = new AllParamsType<>("type", v -> v, QuickSearchEndpoint.RESOURCES_TYPES);
   public static final DependentType<Field<Date>, Field<Date>> SESSION_DATE  = new DependentType<>("session-date", QueryParams.DATE, QueryParams::parseDate,
                                                                                                   d -> d);
 
