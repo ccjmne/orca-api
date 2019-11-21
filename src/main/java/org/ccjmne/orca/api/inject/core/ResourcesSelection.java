@@ -123,13 +123,16 @@ public class ResourcesSelection {
                     SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK));
       query.addGroupBy(SITES.fields());
 
-      return this.recordsCollator.applyFiltering(DSL
+      final Table<Record> sites = DSL
           .select(query.fields())
           .select(JSONFields.objectAgg(SITES_TAGS.SITA_TAGS_FK, Fields.TAG_VALUE_COERCED).as("site_tags"))
           .from(query)
           .leftOuterJoin(SITES_TAGS).on(SITES_TAGS.SITA_SITE_FK.eq(query.field(SITES.SITE_PK)))
           .leftOuterJoin(TAGS).on(TAGS.TAGS_PK.eq(SITES_TAGS.SITA_TAGS_FK)) // In order to extract TAGS_TYPE for TAG_VALUE_COERCED
-          .groupBy(query.fields()));
+          .groupBy(query.fields()).asTable();
+
+      // This Condition uses the aggregated "site_tags" field
+      return this.recordsCollator.applyFiltering(DSL.selectFrom(sites).where(this.parameters.get(QueryParams.GROUP_VALUE)));
     }
   }
 

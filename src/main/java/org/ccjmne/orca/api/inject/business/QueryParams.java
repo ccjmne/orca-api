@@ -23,6 +23,7 @@ import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Fields;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
+import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.JSONB;
 import org.jooq.Param;
@@ -44,6 +45,8 @@ public class QueryParams {
   public static final FieldType<Integer> SESSION               = new FieldType<>("session", Integer.class);
   public static final FieldType<Integer> TRAINER               = new FieldType<>("trainer", Integer.class);
   public static final FieldType<Integer> CERTIFICATE           = new FieldType<>("certificate", Integer.class);
+  public static final DependentType<Field<JSONB>, Condition> GROUP_VALUE = new DependentType<>("group-value", QueryParams.GROUP_BY,
+                                                                                               QueryParams::computeGroupValue, v -> DSL.noCondition());
   public static final FieldType<Boolean> INCLUDE_DECOMISSIONED = new FieldType<>("include-decommissioned", Boolean.class);
   public static final FieldType<Boolean> FILTER_BY_SESSIONS    = new FieldType<>("filter-by-sessions", Boolean.class);
   public static final FieldType<String>  SEARCH_TERMS          = new FieldType<>("q", String.class);
@@ -304,5 +307,17 @@ public class QueryParams {
     }
 
     return unused -> DSL.val(dateStr, Date.class);
+  }
+
+  /**
+   * Builds up on the {@link QueryParams#GROUP_BY} parameter to select a specific
+   * value taken by that tag to uniquely identify a virtual sites-group.
+   */
+  private static Function<? super Field<JSONB>, ? extends Condition> computeGroupValue(final String value) {
+    if (Constants.TAGS_VALUE_NONE.equals(value)) {
+      return tag -> tag.isNull();
+    }
+
+    return tag -> tag.eq(JSONB.valueOf("true".equals(value) || "false".equals(value) ? value : new TextNode(value).toString()));
   }
 }
