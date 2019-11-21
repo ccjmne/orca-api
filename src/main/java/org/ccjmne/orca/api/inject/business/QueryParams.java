@@ -54,6 +54,10 @@ public class QueryParams {
                                                                                                   d -> Fields.DATE_NEGATIVE_INFINITY);
   public static final DependentType<Field<Date>, Field<Date>> TO            = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate,
                                                                                                   d -> Fields.DATE_INFINITY);
+  public static final DependentType<Field<Date>, Field<Date>> FROM_OR_TODAY = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate,
+                                                                                                  d -> d);
+  public static final DependentType<Field<Date>, Field<Date>> TO_OR_TODAY   = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate,
+                                                                                                  d -> d);
   public static final FirstParamType<Field<Date>>             INTERVAL      = new FirstParamType<>("interval", v -> DSL
       .field("{0}::interval", Date.class, v), DSL.field("'1 month'::interval", Date.class));
   public static final FirstParamType<Field<JSONB>>            GROUP_BY      = new FirstParamType<>("group-by", v -> Constants.TAGS_VALUE_UNIVERSAL
