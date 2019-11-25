@@ -13,6 +13,7 @@ import org.ccjmne.orca.api.inject.clients.S3Client;
 import org.ccjmne.orca.api.inject.core.ResourcesSelection;
 import org.ccjmne.orca.api.inject.core.StatisticsSelection;
 import org.ccjmne.orca.api.utils.CustomObjectMapper;
+import org.ccjmne.orca.api.utils.ParamsAssertion;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.process.internal.RequestScoped;
@@ -38,6 +39,7 @@ public class ApplicationConfig extends ResourceConfig {
         super.bind(PostgresDSLContext.class).to(DSLContext.class).in(Singleton.class);
         super.bind(Restrictions.class).to(Restrictions.class).in(RequestScoped.class);
         super.bind(QueryParams.class).to(QueryParams.class).in(RequestScoped.class);
+        super.bind(ParamsAssertion.class).to(ParamsAssertion.class).in(RequestScoped.class);
         super.bind(RecordsCollator.class).to(RecordsCollator.class).in(RequestScoped.class);
 
         // Core modules

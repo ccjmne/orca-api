@@ -193,7 +193,7 @@ public class QueryParams {
    * @see FirstParamType
    * @see AllParamsType
    */
-  private static abstract class Type<U, T> {
+  public static abstract class Type<U, T> {
 
     private static final Map<String, List<Type<?, ?>>> TYPES = new HashMap<>();
 
