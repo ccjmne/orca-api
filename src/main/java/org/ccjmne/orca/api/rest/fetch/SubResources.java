@@ -35,32 +35,33 @@ public class SubResources {
   private final ResourcesSelection resourcesSelection;
 
   @Inject
-  private SubResources(final DSLContext ctx, final ResourcesSelection resourcesSelection) {
+  public SubResources(final DSLContext ctx, final ResourcesSelection resourcesSelection) {
     this.ctx = ctx;
     this.resourcesSelection = resourcesSelection;
   }
 
   @GET
   @Path("certificates")
-  public Map<Integer, ? extends Record> getCertificatesMap() {
+  public Map<Integer, ? extends Record> getCertificates() {
     return this.ctx.selectFrom(CERTIFICATES).fetchMap(CERTIFICATES.CERT_PK);
   }
 
   @GET
   @Path("session-types")
-  public Map<Integer, ? extends Record> getSessionTypesMap() {
+  public Map<Integer, ? extends Record> getSessionTypes() {
     return this.ctx
         .select(TRAININGTYPES.fields())
-        .select(JSONFields.objectAgg(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK, TRAININGTYPES_CERTIFICATES.TTCE_DURATION).as("certificates"))
+        .select(JSONFields.objectAgg(CERTIFICATES.CERT_PK, Fields.concat(CERTIFICATES.fields(), TRAININGTYPES_CERTIFICATES.TTCE_DURATION)).as("certificates"))
         .from(TRAININGTYPES)
         .join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
+        .join(CERTIFICATES).on(CERTIFICATES.CERT_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
         .groupBy(TRAININGTYPES.fields())
         .fetchMap(TRAININGTYPES.TRTY_PK);
   }
 
   @GET
   @Path("tags")
-  public Map<Integer, ? extends Record> getTagsMap() {
+  public Map<Integer, ? extends Record> getTags() {
     final Table<Record3<Integer, String, Integer>> stats = DSL
         .select(SITES_TAGS.SITA_TAGS_FK, SITES_TAGS.SITA_VALUE, DSL.count(SITES_TAGS.SITA_VALUE))
         .from(SITES_TAGS)
