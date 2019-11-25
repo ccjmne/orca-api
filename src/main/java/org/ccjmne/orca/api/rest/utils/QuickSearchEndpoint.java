@@ -23,6 +23,7 @@ import javax.ws.rs.Path;
 import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.inject.core.ResourcesSelection;
 import org.ccjmne.orca.api.utils.Fields;
+import org.ccjmne.orca.api.utils.JSONFields;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Param;
@@ -164,7 +165,8 @@ public class QuickSearchEndpoint {
       return this.ctx.with("matchedTypes").as(matchedTypes)
           .select(dateDistance)
           .select(sessions.fields())
-          .select(matchedTypes.fields())
+          .select(matchedTypes.field(FIELD_DISTANCE))
+          .select(JSONFields.toJson(matchedTypes.fields(TRAININGTYPES.fields())).as("type"))
           .from(sessions)
           .join(matchedTypes).on(matchedTypes.field(TRAININGTYPES.TRTY_PK).eq(sessions.field(TRAININGS.TRNG_TRTY_FK)))
           .orderBy(dateDistance)
