@@ -3,6 +3,7 @@ package org.ccjmne.orca.api.utils;
 import org.jooq.Field;
 import org.jooq.JSONB;
 import org.jooq.Record;
+import org.jooq.SortField;
 import org.jooq.TableLike;
 import org.jooq.impl.DSL;
 
@@ -129,6 +130,25 @@ public class JSONFields {
    */
   public static Field<JSONB> arrayAgg(final Field<?>... fields) {
     return DSL.field("COALESCE(jsonb_agg({0}) FILTER (WHERE {0} IS NOT NULL), '[]'::jsonb)", JSONB.class, JSONFields.toJson(fields));
+  }
+
+  /**
+   * Builds a {@link JSONB} for each {@link Record} from the {@code fields}
+   * argument, and <strong>aggregates</strong> these into a single JSON
+   * Array, in the order defined via {@code orderBy}.<br />
+   *
+   * @param orderBy
+   *          The {@link SortField} used to determine the ordering of the
+   *          aggregated array
+   * @param fields
+   *          The fields to be included in the resulting {@code JSONB}
+   *          for each {@code Record}
+   * @return A {@code Field<JSONB>} built from aggregating the
+   *         {@code fields} argument with
+   *         {@link JSONFields#toJson(Field...)}
+   */
+  public static Field<JSONB> arrayAggOrderBy(final SortField<?> orderBy, final Field<?>... fields) {
+    return DSL.field("COALESCE(jsonb_agg({0} ORDER BY {1}) FILTER (WHERE {0} IS NOT NULL), '[]'::jsonb)", JSONB.class, JSONFields.toJson(fields), orderBy);
   }
 
   /**
