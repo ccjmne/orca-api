@@ -54,6 +54,9 @@ public class QueryParams {
   public static final DependentType<Field<JSONB>, Condition> GROUP_VALUE = new DependentType<>("group-value", QueryParams.GROUP_BY,
                                                                                                QueryParams::computeGroupValue, v -> DSL.noCondition());
 
+  // Admin-mode flag (decorates resources w/ information facilitating management)
+  public static final FieldType<Boolean> INCLUDE_ADMIN_HINTS = new FieldType<>("admin-hints", Boolean.class);
+
   // Collation flags
   public static final FieldType<Boolean> INCLUDE_DECOMMISSIONED = new FieldType<>("include-decommissioned", Boolean.class);
   public static final FieldType<Boolean> FILTER_BY_SESSIONS     = new FieldType<>("filter-by-sessions", Boolean.class);
