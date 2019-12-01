@@ -33,7 +33,7 @@ public class Restrictions {
   private final DSLContext ctx;
 
   private final String        userId;
-  private final boolean       accessTrainings;
+  private final boolean       accessSessions;
   private final boolean       accessAllSites;
   private final boolean       manageEmployeeNotes;
   private final boolean       manageSitesAndTags;
@@ -69,7 +69,7 @@ public class Restrictions {
       this.manageUsers = false;
     }
 
-    this.accessTrainings = roles.containsKey(Constants.ROLE_ACCESS)
+    this.accessSessions = roles.containsKey(Constants.ROLE_ACCESS)
         && Constants.ACCESS_LEVEL_TRAININGS.equals(roles.get(Constants.ROLE_ACCESS).getUsroLevel());
     this.accessAllSites = roles.containsKey(Constants.ROLE_ACCESS)
         && (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(roles.get(Constants.ROLE_ACCESS).getUsroLevel()) <= 0);
@@ -137,8 +137,8 @@ public class Restrictions {
   }
 
   @JsonGetter
-  public boolean canAccessTrainings() {
-    return this.accessTrainings;
+  public boolean canAccessSessions() {
+    return this.accessSessions;
   }
 
   /**

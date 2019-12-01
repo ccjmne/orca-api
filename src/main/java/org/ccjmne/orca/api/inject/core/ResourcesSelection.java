@@ -56,7 +56,7 @@ public class ResourcesSelection {
    * <ul>
    * <li>Fetching a specific employee ({@code has(QueryParameters.EMPLOYEE)}),
    * and:</li>
-   * <li>{@link Restrictions#canAccessTrainings()} is {@code true}</li>
+   * <li>{@link Restrictions#canAccessSessions()} is {@code true}</li>
    * </ul>
    * Or:
    * <ul>
@@ -65,7 +65,7 @@ public class ResourcesSelection {
    * </ul>
    */
   public boolean includeRetiredEmployees() {
-    return this.parameters.has(QueryParams.SESSION) || (this.parameters.has(QueryParams.EMPLOYEE) && this.restrictions.canAccessTrainings());
+    return this.parameters.has(QueryParams.SESSION) || (this.parameters.has(QueryParams.EMPLOYEE) && this.restrictions.canAccessSessions());
   }
 
   /**
@@ -142,7 +142,7 @@ public class ResourcesSelection {
    * @return A {@code Select}ion of all available sessions
    */
   public SelectQuery<Record> scopeSessions() {
-    if (!this.restrictions.canAccessTrainings()) {
+    if (!this.restrictions.canAccessSessions()) {
       throw new ForbiddenException();
     }
 
@@ -172,7 +172,7 @@ public class ResourcesSelection {
    * @return A filtered and sorted {@code Select}ion of sessions
    */
   public SelectQuery<Record> selectSessions() {
-    if (!this.restrictions.canAccessTrainings()) {
+    if (!this.restrictions.canAccessSessions()) {
       throw new ForbiddenException();
     }
 
@@ -224,7 +224,7 @@ public class ResourcesSelection {
       }
 
       if (this.parameters.isEnabled(QueryParams.FILTER_BY_SESSIONS)) {
-        if (!this.restrictions.canAccessTrainings()) {
+        if (!this.restrictions.canAccessSessions()) {
           throw new ForbiddenException();
         }
 
@@ -232,7 +232,7 @@ public class ResourcesSelection {
             .where(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(EMPLOYEES.EMPL_PK))));
       }
       if (this.parameters.has(QueryParams.SESSION)) {
-        if (!this.restrictions.canAccessTrainings()) {
+        if (!this.restrictions.canAccessSessions()) {
           throw new ForbiddenException();
         }
 
