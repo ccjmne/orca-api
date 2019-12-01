@@ -41,11 +41,12 @@ public class QueryParams {
   private static final Param<JSONB> TAGS_FIELD_UNIVERSAL = DSL.val(JSONB.valueOf(new TextNode(Constants.TAGS_VALUE_UNIVERSAL).toString()));
 
   // Resources identifiers
-  public static final FieldType<Integer> SITE        = new FieldType<>("site", Integer.class);
-  public static final FieldType<Integer> EMPLOYEE    = new FieldType<>("employee", Integer.class);
-  public static final FieldType<Integer> TRAINER     = new FieldType<>("trainer", Integer.class);
-  public static final FieldType<Integer> SESSION     = new FieldType<>("session", Integer.class);
-  public static final FieldType<Integer> CERTIFICATE = new FieldType<>("certificate", Integer.class);
+  public static final FieldType<Integer> SITE         = new FieldType<>("site", Integer.class);
+  public static final FieldType<Integer> EMPLOYEE     = new FieldType<>("employee", Integer.class);
+  public static final FieldType<Integer> TRAINER      = new FieldType<>("trainer", Integer.class);
+  public static final FieldType<Integer> SESSION      = new FieldType<>("session", Integer.class);
+  public static final FieldType<Integer> CERTIFICATE  = new FieldType<>("certificate", Integer.class);
+  public static final FieldType<Integer> SESSION_TYPE = new FieldType<>("session-type", Integer.class);
 
   // Virtual resources identifiers
   public static final FirstParamType<Field<JSONB>>           GROUP_BY    = new FirstParamType<>("group-by", v -> Constants.TAGS_VALUE_UNIVERSAL
