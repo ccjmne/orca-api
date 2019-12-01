@@ -100,7 +100,7 @@ public class DemoDataTrainings {
             .join(DSL.select(
                              DSL.field("trem_comment"),
                              DSL.rowNumber().over().as("trem_comment_id"))
-                .from(DSL.values(Arrays.stream(comments).map(DSL::<String> row).toArray(Row1[]::new)).as("unused", "trem_comment")))
+                .from(DSL.values(Arrays.stream(comments).map(DSL::row).toArray(Row1[]::new)).as("unused", "trem_comment")))
             .on(DSL.field("linked_trem_comment_id").eq(DSL.field("trem_comment_id"))))
         .onDuplicateKeyIgnore();
   }

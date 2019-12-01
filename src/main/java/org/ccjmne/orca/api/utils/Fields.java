@@ -14,7 +14,6 @@ import org.jooq.JSONB;
 import org.jooq.Query;
 import org.jooq.Record;
 import org.jooq.Record1;
-import org.jooq.Record2;
 import org.jooq.Select;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
@@ -177,14 +176,11 @@ public class Fields {
    * @return A {@link Query} to be executed, ideally within a
    *         {@link Transaction}
    */
+  @SuppressWarnings("null")
   public static Query cleanupSequence(final Table<?> table, final Field<Integer> key, final Field<Integer> order) {
-    final Field<Integer> newOrder = DSL.rowNumber().over().orderBy(order).as("new_order");
-    final Table<Record2<Integer, Integer>> reorderMap = DSL
-        .select(key, newOrder)
-        .from(table).asTable("reorder_map");
-
-    return DSL.update(table).set(order, reorderMap.field(newOrder))
-        .from(reorderMap)
-        .where(key.eq(reorderMap.field(key)));
+    return DSL.update(table)
+        .set(order, DSL.field("idx", Integer.class))
+        .from(DSL.select(key, DSL.rowNumber().over(DSL.orderBy(order))).from(table).asTable("unused", "key", "idx"))
+        .where(key.eq(DSL.field("key", Integer.class)));
   }
 }
