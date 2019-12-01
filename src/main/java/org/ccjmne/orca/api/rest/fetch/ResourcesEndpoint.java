@@ -154,6 +154,8 @@ public class ResourcesEndpoint {
    * +--------+----------------------------------------+-----------+
    * | GET    | /sites-groups                          | PAGINATED |
    * +--------+----------------------------------------+-----------+
+   * | GET    | /sites-groups/*                        | SINGLE    |
+   * +--------+----------------------------------------+-----------+
    * | GET    | /sites-groups/{group-by}               | PAGINATED |
    * +--------+----------------------------------------+-----------+
    * | GET    | /sites-groups/{group-by}/{group-value} | SINGLE    |
@@ -165,6 +167,12 @@ public class ResourcesEndpoint {
   @Path("sites-groups")
   public Record listSitesGroups() {
     return this.ctx.fetchOne(this.collator.applyPagination(this.findSitesGroups()));
+  }
+
+  @GET
+  @Path("sites-groups/*")
+  public Record lookupGlobalSitesGroup() {
+    return this.lookupSitesGroup();
   }
 
   @GET
