@@ -62,6 +62,7 @@ public class QueryParams {
   public static final FieldType<Boolean> FILTER_BY_SESSIONS     = new FieldType<>("filter-by-sessions", Boolean.class);
 
   // Temporal selectors
+  public static final FieldType<Integer>                      YEAR          = new FieldType<>("year", Integer.class);
   public static final FirstParamType<Field<Date>>             DATE          = new FirstParamType<>("date", v -> DSL.val(v, Date.class), DSL.currentDate());
   public static final DependentType<Field<Date>, Field<Date>> FROM          = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate,
                                                                                                   d -> Fields.DATE_NEGATIVE_INFINITY);
