@@ -116,6 +116,7 @@
 			<web-resource-name>Data fetching API</web-resource-name>
 
 			<url-pattern>/statistics/*</url-pattern>
+			<url-pattern>/sessions-dashboard/*</url-pattern>
 			<url-pattern>/resources/*</url-pattern>
 			<http-method>GET</http-method>
 		</web-resource-collection>
