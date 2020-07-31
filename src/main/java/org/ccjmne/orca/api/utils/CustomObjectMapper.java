@@ -1,7 +1,6 @@
 package org.ccjmne.orca.api.utils;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.util.Arrays;
 
 import org.jooq.JSONB;
@@ -20,6 +19,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.google.common.collect.ImmutableMap;
 
@@ -28,37 +28,15 @@ public class CustomObjectMapper extends ObjectMapper {
 
   public CustomObjectMapper() {
     super.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    super.setDateFormat(APIDateFormat.getDateFormat());
-    super.registerModule(new AllKindsOfDatesSerialiserModule());
+    super.registerModule(new JavaTimeModule());
     super.registerModule(new JOOQResultsSerialiserModule());
     super.registerModule(new AfterburnerModule());
     super.registerModule(new JooqJSONBSerialiserModule());
   }
 
-  private class AllKindsOfDatesSerialiserModule extends SimpleModule {
-
-    public AllKindsOfDatesSerialiserModule() {
-      super(
-            "AllKindsOfDatesSerialiserModule",
-            new Version(1, 0, 0, null, null, null),
-            Arrays.asList(new StdSerializer<java.sql.Date>(java.sql.Date.class, false) {
-
-              @Override
-              public void serialize(final java.sql.Date value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException {
-                provider.findValueSerializer(java.util.Date.class).serialize(new java.util.Date(value.getTime()), jgen, provider);
-              }
-            }, new StdSerializer<LocalDate>(LocalDate.class, false) {
-
-              @Override
-              public void serialize(final LocalDate value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException {
-                provider.findValueSerializer(java.sql.Date.class).serialize(java.sql.Date.valueOf(value), jgen, provider);
-              }
-            }));
-    }
-  }
-
   private class JOOQResultsSerialiserModule extends SimpleModule {
 
+    @SuppressWarnings("null")
     public JOOQResultsSerialiserModule() {
       super(
             "JOOQResultsSerialiserModule",
@@ -83,6 +61,7 @@ public class CustomObjectMapper extends ObjectMapper {
 
   private class JooqJSONBSerialiserModule extends SimpleModule {
 
+    @SuppressWarnings("null")
     public JooqJSONBSerialiserModule() {
       super(
             "JooqJSONBSerialiserModule",

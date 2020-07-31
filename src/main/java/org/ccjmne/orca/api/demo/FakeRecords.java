@@ -2,7 +2,6 @@ package org.ccjmne.orca.api.demo;
 
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 
-import java.sql.Date;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -112,10 +111,10 @@ public class FakeRecords {
                                String.format("E%04d", uniqueId));
   }
 
-  public Table<Record4<Integer, Date, String, String>> sessions(final String outcome, final int amount) {
+  public Table<Record4<Integer, LocalDate, String, String>> sessions(final String outcome, final int amount) {
     return DSL.values(IntStream.range(0, amount)
         .mapToObj(i -> {
-          final Date date;
+          final LocalDate date;
           switch (outcome) {
             case Constants.TRNG_OUTCOME_CANCELLED:
               date = FakeRecords.anyWithin(this.cancelledTraining);
@@ -146,8 +145,7 @@ public class FakeRecords {
     return source.get(RANDOM.nextInt(source.size()));
   }
 
-  private static Date anyWithin(final Range<LocalDate> dateRange) {
-    return Date.valueOf(LocalDate
-        .ofEpochDay(RANDOM.nextLong(dateRange.lowerEndpoint().toEpochDay(), dateRange.upperEndpoint().toEpochDay())));
+  private static LocalDate anyWithin(final Range<LocalDate> dateRange) {
+    return LocalDate.ofEpochDay(RANDOM.nextLong(dateRange.lowerEndpoint().toEpochDay(), dateRange.upperEndpoint().toEpochDay()));
   }
 }

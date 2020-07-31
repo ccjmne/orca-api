@@ -39,7 +39,7 @@ public class SubResourcesEndpoint {
   private final ResourcesSelection resourcesSelection;
   private final Restrictions       restrictions;
 
-  private boolean adminHints;
+  private final boolean adminHints;
 
   @Inject
   public SubResourcesEndpoint(

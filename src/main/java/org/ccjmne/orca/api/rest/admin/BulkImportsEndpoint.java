@@ -74,8 +74,8 @@ public class BulkImportsEndpoint {
       transaction.batchInsert(records.get(Boolean.FALSE)).execute();
 
       // 2. INSERT newer update -- no more than ONE per day
-      transaction.delete(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.currentDate())).execute();
-      final Integer update = transaction.insertInto(UPDATES).set(UPDATES.UPDT_DATE, DSL.currentDate()).returning(UPDATES.UPDT_PK).fetchOne()
+      transaction.delete(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.currentLocalDate())).execute();
+      final Integer update = transaction.insertInto(UPDATES).set(UPDATES.UPDT_DATE, DSL.currentLocalDate()).returning(UPDATES.UPDT_PK).fetchOne()
           .getValue(UPDATES.UPDT_PK);
 
       // 3. INSERT sites-employees for newer update
@@ -172,10 +172,10 @@ public class BulkImportsEndpoint {
   private static <R extends TableRecord<?>> Function<Map<String, String>, R> as(final Class<R> recordType) {
     return m -> {
       try {
-        final R record = recordType.newInstance();
+        final R record = recordType.getDeclaredConstructor().newInstance();
         record.fromMap(m);
         return record;
-      } catch (InstantiationException | IllegalAccessException e) {
+      } catch (final Exception e) {
         // Can not happen with <R extends TableRecord>
         throw new RuntimeException(e);
       }

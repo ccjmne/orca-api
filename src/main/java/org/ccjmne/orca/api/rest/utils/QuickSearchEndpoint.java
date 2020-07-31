@@ -9,7 +9,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
 
-import java.sql.Date;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -60,7 +60,7 @@ public class QuickSearchEndpoint {
   private final QueryParams        parameters;
   private final List<String>       resourcesTypes;
   private final Param<String>      searchTerms;
-  private final Field<Date>        sessionDate;
+  private final Field<LocalDate>   sessionDate;
 
   @Inject
   private QuickSearchEndpoint(final DSLContext ctx, final ResourcesSelection resourcesSelection, final QueryParams parameters) {
@@ -119,7 +119,7 @@ public class QuickSearchEndpoint {
         .select(distance.as(FIELD_DISTANCE))
         .select(table.fields())
         .from(table)
-        .where(distance.lessOrEqual(new Double(.5)))
+        .where(distance.lessOrEqual(Double.valueOf(.5)))
         .orderBy(distance)
         .limit(LIMIT).fetch();
   }
@@ -149,11 +149,11 @@ public class QuickSearchEndpoint {
       final Field<Double> distance;
       if (this.searchTerms.getValue().isEmpty() && !this.parameters.isDefault(QueryParams.SESSION_DATE)) {
         // if no SEARCH_TERMS but SESSION_DATE is specified, accept any session type
-        distance = DSL.val(new Double(1));
+        distance = DSL.val(Double.valueOf(1));
       } else {
         distance = QuickSearchEndpoint
             .wordDistance(this.searchTerms, QuickSearchEndpoint.unaccent(QuickSearchEndpoint.concatWS(types.fields("trty_name", "shorts", "certs"))));
-        matchedTypes.addConditions(distance.le(new Double(.5)));
+        matchedTypes.addConditions(distance.le(Double.valueOf(.5)));
         matchedTypes.addOrderBy(distance);
       }
 
@@ -161,7 +161,7 @@ public class QuickSearchEndpoint {
       matchedTypes.addSelect(types.fields(TRAININGTYPES.fields()));
       matchedTypes.addFrom(types);
 
-      final Field<Integer> dateDistance = DSL.abs(DSL.dateDiff(sessions.field(TRAININGS.TRNG_DATE), this.sessionDate)).as(FIELD_DATE_DISTANCE);
+      final Field<Integer> dateDistance = DSL.abs(DSL.localDateDiff(sessions.field(TRAININGS.TRNG_DATE), this.sessionDate)).as(FIELD_DATE_DISTANCE);
       return this.ctx.with("matchedTypes").as(matchedTypes)
           .select(dateDistance)
           .select(sessions.fields())

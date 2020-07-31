@@ -5,7 +5,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
-import java.text.ParseException;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +20,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.inject.business.Restrictions;
-import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.codegen.Sequences;
@@ -60,24 +59,21 @@ public class UpdateEndpoint {
   @Deprecated
   public void process(final List<Map<String, Object>> employees) {
     Transactions.with(this.ctx, transactionCtx -> {
-      final Integer updt_pk = new Integer(transactionCtx.nextval(Sequences.UPDATES_UPDT_PK_SEQ).intValue());
+      final Integer updt_pk = Integer.valueOf(transactionCtx.nextval(Sequences.UPDATES_UPDT_PK_SEQ).intValue());
 
       // No more than ONE update per day
-      transactionCtx.delete(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.currentDate())).execute();
-      transactionCtx.insertInto(UPDATES).set(UPDATES.UPDT_PK, updt_pk).set(UPDATES.UPDT_DATE, DSL.currentDate()).execute();
+      transactionCtx.delete(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.currentLocalDate())).execute();
+      transactionCtx.insertInto(UPDATES).set(UPDATES.UPDT_PK, updt_pk).set(UPDATES.UPDT_DATE, DSL.currentLocalDate()).execute();
 
       // TODO: rewrite using a TableLike (basically a Row[])
       // ... and w/o try-catch
       try (final InsertValuesStep3<SitesEmployeesRecord, Integer, Integer, Integer> query = transactionCtx
           .insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_UPDT_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_EMPL_FK)) {
         for (final Map<String, Object> employee : employees) {
-          query.values(updt_pk, (Integer) employee.get(SITES_EMPLOYEES.SIEM_SITE_FK.getName()),
-                       UpdateEndpoint.updateEmployee(employee, transactionCtx));
+          query.values(updt_pk, (Integer) employee.get(SITES_EMPLOYEES.SIEM_SITE_FK.getName()), UpdateEndpoint.updateEmployee(employee, transactionCtx));
         }
 
         query.execute();
-      } catch (final ParseException e) {
-        throw new RuntimeException(e);
       }
 
       // Remove all privileges of the unassigned employees
@@ -113,12 +109,12 @@ public class UpdateEndpoint {
     return res.toString();
   }
 
-  private static Integer updateEmployee(final Map<String, Object> employee, final DSLContext context) throws ParseException {
+  private static Integer updateEmployee(final Map<String, Object> employee, final DSLContext context) {
     final Integer empl_pk = (Integer) employee.get(EMPLOYEES.EMPL_PK.getName());
     final Map<TableField<?, ?>, Object> record = new HashMap<>();
     record.put(EMPLOYEES.EMPL_FIRSTNAME, UpdateEndpoint.titleCase((String) employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName())));
     record.put(EMPLOYEES.EMPL_SURNAME, ((String) employee.get(EMPLOYEES.EMPL_SURNAME.getName())).toUpperCase());
-    record.put(EMPLOYEES.EMPL_DOB, APIDateFormat.parseAsSql((String) employee.get(EMPLOYEES.EMPL_DOB.getName())));
+    record.put(EMPLOYEES.EMPL_DOB, LocalDate.parse((String) employee.get(EMPLOYEES.EMPL_DOB.getName())));
     record.put(EMPLOYEES.EMPL_PERMANENT, Boolean.valueOf("CDI".equalsIgnoreCase((String) employee.get(EMPLOYEES.EMPL_PERMANENT.getName()))));
     record.put(EMPLOYEES.EMPL_GENDER, Boolean.valueOf(GENDER_REGEX.matcher((String) employee.get(EMPLOYEES.EMPL_GENDER.getName())).find(0)));
     record.put(EMPLOYEES.EMPL_ADDRESS, employee.get(EMPLOYEES.EMPL_ADDRESS.getName()));

@@ -40,7 +40,7 @@ public class TagsEndpoint {
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
   public Integer createTag(final Map<String, String> tagDefinition) {
-    final Integer tags_pk = new Integer(this.ctx.nextval(Sequences.TAGS_TAGS_PK_SEQ).intValue());
+    final Integer tags_pk = Integer.valueOf(this.ctx.nextval(Sequences.TAGS_TAGS_PK_SEQ).intValue());
     this.updateTag(tags_pk, tagDefinition);
     return tags_pk;
   }

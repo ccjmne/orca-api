@@ -7,7 +7,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
 
-import java.sql.Date;
+import java.time.LocalDate;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -46,16 +46,16 @@ public class StatisticsOverTimeEndpoint {
   private final ResourcesSelection  resourcesSelection;
   private final StatisticsSelection statisticsSelection;
 
-  private final Field<@NonNull Date> date;
+  private final Field<@NonNull LocalDate> date;
 
   @Inject
   private StatisticsOverTimeEndpoint(final DSLContext ctx, final QueryParams parameters, final ResourcesSelection resourcesSelection) {
     this.ctx = ctx;
     this.parameters = parameters;
     this.resourcesSelection = resourcesSelection;
-    this.statisticsSelection = new StatisticsSelection(DSL.field(DATE_SERIES_FIELD_NAME, Date.class));
+    this.statisticsSelection = new StatisticsSelection(DSL.field(DATE_SERIES_FIELD_NAME, LocalDate.class));
     this.date = DSL
-        .field("generate_series({0}, {1}, {2})::date", Date.class,
+        .field("generate_series({0}, {1}, {2})::date", LocalDate.class,
                parameters.get(QueryParams.FROM_OR_TODAY),
                parameters.get(QueryParams.TO_OR_TODAY),
                parameters.get(QueryParams.INTERVAL))
@@ -95,7 +95,7 @@ public class StatisticsOverTimeEndpoint {
   }
 
   private SelectQuery<? extends Record> seriesify(final Table<? extends Record> stats, final String[] fields) {
-    final Table<Record1<@NonNull Date>> dates = DSL.select(this.date).asTable();
+    final Table<Record1<@NonNull LocalDate>> dates = DSL.select(this.date).asTable();
     return DSL
         .select(dates.field(this.date))
         .select(JSONFields

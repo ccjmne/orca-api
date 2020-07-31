@@ -46,7 +46,7 @@ public class SitesEndpoint {
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
   public Integer createSite(final Map<String, Object> site) {
-    final Integer site_pk = new Integer(this.ctx.nextval(Sequences.SITES_SITE_PK_SEQ).intValue());
+    final Integer site_pk = Integer.valueOf(this.ctx.nextval(Sequences.SITES_SITE_PK_SEQ).intValue());
     this.upsertSite(site_pk, site);
     return site_pk;
   }

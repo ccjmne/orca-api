@@ -3,7 +3,7 @@ package org.ccjmne.orca.api.rest.edit;
 import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES_VOIDINGS;
 
-import java.sql.Date;
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
 
@@ -31,7 +31,7 @@ public class EmployeesNotesEndpoint {
 
   private final DSLContext ctx;
 
-  private final Field<Date>              date;
+  private final Field<LocalDate>         date;
   private final Param<Integer>           employee;
   private final Optional<Param<Integer>> certificate;
 

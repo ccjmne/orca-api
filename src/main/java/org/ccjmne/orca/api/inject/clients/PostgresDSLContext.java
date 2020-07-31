@@ -2,8 +2,8 @@ package org.ccjmne.orca.api.inject.clients;
 
 import org.jooq.SQLDialect;
 import org.jooq.conf.ParamType;
-import org.jooq.conf.RenderKeywordStyle;
-import org.jooq.conf.RenderNameStyle;
+import org.jooq.conf.RenderNameCase;
+import org.jooq.conf.RenderQuotedNames;
 import org.jooq.conf.Settings;
 import org.jooq.conf.StatementType;
 import org.jooq.impl.DefaultDSLContext;
@@ -58,8 +58,8 @@ public class PostgresDSLContext extends DefaultDSLContext {
 
     public CustomJooqSettings() {
       super.setExecuteLogging(DEBUG);
-      super.setRenderKeywordStyle(RenderKeywordStyle.UPPER);
-      super.setRenderNameStyle(RenderNameStyle.AS_IS);
+      super.setRenderQuotedNames(RenderQuotedNames.NEVER);
+      super.setRenderNameCase(RenderNameCase.UPPER);
       super.setRenderCatalog(Boolean.FALSE);
       super.setRenderSchema(Boolean.FALSE);
       super.setParamType(DEBUG.booleanValue() ? ParamType.INLINED : ParamType.INDEXED);

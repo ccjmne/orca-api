@@ -9,7 +9,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
 
 import java.math.BigDecimal;
-import java.sql.Date;
+import java.time.LocalDate;
 
 import javax.inject.Inject;
 
@@ -31,25 +31,25 @@ public class StatisticsSelection {
 
   private static final Integer DURATION_INFINITE = Integer.valueOf(0);
 
-  public static final Field<Date> MAX_EXPIRY = DSL.max(DSL
-      .when(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.eq(StatisticsSelection.DURATION_INFINITE), DSL.date(Constants.DATE_NEVER))
+  public static final Field<LocalDate> MAX_EXPIRY = DSL.max(DSL
+      .when(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.eq(StatisticsSelection.DURATION_INFINITE), DSL.localDate(Constants.DATE_NEVER))
       .otherwise(TRAININGS.TRNG_DATE.plus(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.mul(new YearToMonth(0, 1)))));
 
-  private static final Field<Date> EXPIRY = DSL
+  private static final Field<LocalDate> EXPIRY = DSL
       .when(EMPLOYEES_VOIDINGS.EMVO_DATE.le(StatisticsSelection.MAX_EXPIRY), EMPLOYEES_VOIDINGS.EMVO_DATE.sub(new DayToSecond(1)))
       .otherwise(StatisticsSelection.MAX_EXPIRY);
 
   // TODO: Add special status for explicitly VOIDED aptitudes
   // TODO: The number of months under which an aptitude is to be renewed soon
   // should be configurable per aptitude
-  private static Field<String> fieldValidity(final Field<Date> date) {
+  private static Field<String> fieldValidity(final Field<LocalDate> date) {
     return DSL
         .when(StatisticsSelection.EXPIRY.ge(date.plus(new YearToMonth(0, 6))), Constants.STATUS_SUCCESS)
         .when(StatisticsSelection.EXPIRY.ge(date), Constants.STATUS_WARNING)
         .otherwise(Constants.STATUS_DANGER);
   }
 
-  private final Field<Date> date;
+  private final Field<LocalDate> date;
 
   @Inject
   public StatisticsSelection(final QueryParams parameters) {
@@ -62,7 +62,7 @@ public class StatisticsSelection {
    * @param date
    *          A mere reference to the {@code generate_series} dates
    */
-  public StatisticsSelection(final Field<Date> date) {
+  public StatisticsSelection(final Field<LocalDate> date) {
     this.date = date;
   }
 
@@ -160,7 +160,6 @@ public class StatisticsSelection {
    * It needs to be {@code JOIN}'d to the relevant sites first (for filtering),
    * then actually {@code GROUP BY}'d the sites-group identifier.
    */
-  @SuppressWarnings("null")
   public SelectQuery<? extends Record> selectSitesGroupsStats() {
     final Table<? extends Record> sitesStats = this.selectSitesStats().asTable();
 

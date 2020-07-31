@@ -58,7 +58,7 @@ public class RecordMappers {
   }
 
   public static <T> ZipRecordMapper<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final String key, final String... fields) {
-    return new ZipRecordMapper<Record, Map<T, Object>>(ImmutableList.<String> builder().addAll(Arrays.asList(fields)).add(key).build()) {
+    return new ZipRecordMapper<>(ImmutableList.<String> builder().addAll(Arrays.asList(fields)).add(key).build()) {
 
       /**
        * Passing this method to {@link Stream#filter} would discard all
@@ -119,7 +119,7 @@ public class RecordMappers {
                                                                                 final BiFunction<? super RecordSlicer, ? super I, ? extends V> coercer,
                                                                                 final String key,
                                                                                 final String... fields) {
-    return new ZipRecordMapper<Record, Map<K, V>>(ImmutableList.<String> builder().addAll(Arrays.asList(fields)).add(key).build()) {
+    return new ZipRecordMapper<>(ImmutableList.<String> builder().addAll(Arrays.asList(fields)).add(key).build()) {
 
       @Override
       @SuppressWarnings("unchecked")

@@ -1,6 +1,6 @@
 package org.ccjmne.orca.api.inject.business;
 
-import java.sql.Date;
+import java.time.LocalDate;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Collections;
 import java.util.HashMap;
@@ -62,27 +62,29 @@ public class QueryParams {
   public static final FieldType<Boolean> FILTER_BY_SESSIONS     = new FieldType<>("filter-by-sessions", Boolean.class);
 
   // Temporal selectors
-  public static final FieldType<Integer>                      YEAR          = new FieldType<>("year", Integer.class);
-  public static final FirstParamType<Field<Date>>             DATE          = new FirstParamType<>("date", v -> DSL.val(v, Date.class), DSL.currentDate());
-  public static final DependentType<Field<Date>, Field<Date>> FROM          = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate,
-                                                                                                  d -> Fields.DATE_NEGATIVE_INFINITY);
-  public static final DependentType<Field<Date>, Field<Date>> TO            = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate,
-                                                                                                  d -> Fields.DATE_INFINITY);
-  public static final DependentType<Field<Date>, Field<Date>> FROM_OR_TODAY = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate,
-                                                                                                  d -> d);
-  public static final DependentType<Field<Date>, Field<Date>> TO_OR_TODAY   = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate,
-                                                                                                  d -> d);
-  public static final FirstParamType<Field<Date>>             INTERVAL      = new FirstParamType<>("interval", v -> DSL
-      .field("{0}::interval", Date.class, v), DSL.field("'1 month'::interval", Date.class));
+  public static final FieldType<Integer>                                YEAR          = new FieldType<>("year", Integer.class);
+  public static final FirstParamType<Field<LocalDate>>                  DATE          = new FirstParamType<>("date", v -> DSL.val(v, LocalDate.class),
+                                                                                                             DSL.currentLocalDate());
+  public static final DependentType<Field<LocalDate>, Field<LocalDate>> FROM          = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate,
+                                                                                                            d -> Fields.DATE_NEGATIVE_INFINITY);
+  public static final DependentType<Field<LocalDate>, Field<LocalDate>> TO            = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate,
+                                                                                                            d -> Fields.DATE_INFINITY);
+  public static final DependentType<Field<LocalDate>, Field<LocalDate>> FROM_OR_TODAY = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate,
+                                                                                                            d -> d);
+  public static final DependentType<Field<LocalDate>, Field<LocalDate>> TO_OR_TODAY   = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate,
+                                                                                                            d -> d);
+  public static final FirstParamType<Field<LocalDate>>                  INTERVAL      = new FirstParamType<>("interval", v -> DSL
+      .field("{0}::interval", LocalDate.class, v), DSL.field("'1 month'::interval", LocalDate.class));
 
   // Quick-search parameters
-  public static final FieldType<String>                       SEARCH_TERMS  = new FieldType<>("q", String.class);
-  public static final AllParamsType<List<String>>             RESOURCE_TYPE = new AllParamsType<>("type", v -> v, QuickSearchEndpoint.RESOURCES_TYPES);
-  public static final DependentType<Field<Date>, Field<Date>> SESSION_DATE  = new DependentType<>("session-date", QueryParams.DATE, QueryParams::parseDate,
-                                                                                                  d -> d);
+  public static final FieldType<String>                                 SEARCH_TERMS  = new FieldType<>("q", String.class);
+  public static final AllParamsType<List<String>>                       RESOURCE_TYPE = new AllParamsType<>("type", v -> v,
+                                                                                                            QuickSearchEndpoint.RESOURCES_TYPES);
+  public static final DependentType<Field<LocalDate>, Field<LocalDate>> SESSION_DATE  = new DependentType<>("session-date", QueryParams.DATE,
+                                                                                                            QueryParams::parseDate, d -> d);
 
   private static final Pattern IS_INFINITY_DATE = Pattern.compile("^-?infinity$");
-  private static final Pattern IS_RELATIVE_DATE = Pattern.compile("^[+-]");
+  private static final Pattern IS_RELATIVE_DATE = Pattern.compile("^[+-].*$");
 
   private final Map<Type<?, ?>, Object> types;
 
@@ -314,17 +316,17 @@ public class QueryParams {
    * <li>{@code /^-?infinity$/}, to represent the unbounded end of a range</li>
    * </ul>
    */
-  private static Function<? super Field<Date>, ? extends Field<Date>> parseDate(final String dateStr) {
+  private static Function<? super Field<LocalDate>, ? extends Field<LocalDate>> parseDate(final String dateStr) {
     if (IS_INFINITY_DATE.matcher(dateStr).matches()) {
-      // Can't parse "infinity"-type dates w/ DSL#val
-      return unused -> DSL.field("{0}::date", Date.class, dateStr);
+      // Can't parse "infinity"-type dates w/ DSL#localDate
+      return unused -> DSL.field("{0}::date", LocalDate.class, dateStr);
     }
 
-    if (IS_RELATIVE_DATE.matcher(dateStr).find(0)) {
-      return reference -> reference.plus(DSL.field("{0}::interval", Date.class, dateStr));
+    if (IS_RELATIVE_DATE.matcher(dateStr).matches()) {
+      return reference -> reference.plus(DSL.field("{0}::interval", LocalDate.class, dateStr));
     }
 
-    return unused -> DSL.val(dateStr, Date.class);
+    return unused -> DSL.localDate(dateStr);
   }
 
   /**

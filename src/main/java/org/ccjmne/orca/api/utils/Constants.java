@@ -1,6 +1,5 @@
 package org.ccjmne.orca.api.utils;
 
-import java.sql.Date;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.temporal.TemporalAdjusters;
@@ -21,12 +20,14 @@ public class Constants {
    *      "http://stackoverflow.com/questions/41301892/insert-the-max-date-independent-from-database">
    *      Insert the max date (independent from database)</a>
    */
-  public static final Date DATE_NEVER = Date.valueOf(LocalDate.of(9999, Month.JANUARY, 1).with(TemporalAdjusters.lastDayOfYear()));
+  public static final LocalDate DATE_NEVER  = LocalDate.of(9999, Month.JANUARY, 1).with(TemporalAdjusters.lastDayOfYear());
+  public static final String    DATE_FORMAT = "yyyy-MM-dd";
 
   // ---- API CONSTANTS
   public static final String FIELDS_ALL         = "all";
   public static final String DATE_NEVER_LITERAL = "infinity";
 
+  // TODO: replace w/ more suitable semantics
   public static final String STATUS_SUCCESS = "success";
   public static final String STATUS_WARNING = "warning";
   public static final String STATUS_DANGER  = "danger";
@@ -63,7 +64,7 @@ public class Constants {
 
   public static final String ROLE_USER    = "user";
   public static final String ROLE_ACCESS  = "access";
-  public static final String ROLE_TRAINER = "trainer";
+  public static final String ROLE_TRAINER = "trainer"; // TODO: should be "instructor" probably
   public static final String ROLE_ADMIN   = "admin";
 
   public static final String USERTYPE_EMPLOYEE = "employee";

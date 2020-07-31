@@ -6,9 +6,11 @@ import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.Arrays;
 
 import org.ccjmne.orca.jooq.codegen.tables.records.UpdatesRecord;
+import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Field;
 import org.jooq.JSONB;
 import org.jooq.Query;
@@ -32,8 +34,8 @@ public class Fields {
 
   private static final Integer NO_UPDATE = Integer.valueOf(-1);
 
-  public static final Field<Date> DATE_INFINITY          = DSL.field("{0}::date", Date.class, "infinity");
-  public static final Field<Date> DATE_NEGATIVE_INFINITY = DSL.field("{0}::date", Date.class, "-infinity");
+  public static final Field<LocalDate> DATE_INFINITY          = DSL.field("{0}::date", LocalDate.class, "infinity");
+  public static final Field<LocalDate> DATE_NEGATIVE_INFINITY = DSL.field("{0}::date", LocalDate.class, "-infinity");
 
   public static Field<?>[] USERS_FIELDS              = new Field<?>[] { USERS.USER_ID, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK };
   public static String[]   EMPLOYEES_STATS_FIELDS    = new String[] { "status", "expiry", "void_since" };
@@ -62,9 +64,9 @@ public class Fields {
    * @return The relevant {@link UpdatesRecord}'s primary key or
    *         {@value Constants#NO_UPDATE} if no such update found.
    */
-  public static Field<Integer> selectUpdate(final Field<Date> date) {
-    return DSL.coalesce(DSL.select(UPDATES.UPDT_PK).from(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.select(DSL.max(UPDATES.UPDT_DATE)).from(UPDATES)
-        .where(UPDATES.UPDT_DATE.le(date)))).asField(), NO_UPDATE);
+  public static Field<Integer> selectUpdate(final Field<LocalDate> date) {
+    return DSL.coalesce(DSL.select(UPDATES.UPDT_PK).from(UPDATES)
+        .where(UPDATES.UPDT_DATE.eq(DSL.select(DSL.max(UPDATES.UPDT_DATE)).from(UPDATES).where(UPDATES.UPDT_DATE.le(date)))).asField(), NO_UPDATE);
   }
 
   /**
@@ -72,14 +74,14 @@ public class Fields {
    * where the date is "never" (for certificate expiration, for instance).
    *
    * @param field
-   *          The {@code Field<java.sql.Date>} to be formatted
+   *          The {@code Field<LocalDate>} to be formatted
    * @return A new {@code VARCHAR}-type {@code Field}, formatted as our API
    *         formats {@link Date}s
    */
-  public static Field<String> formatDate(final Field<Date> field) {
+  public static Field<String> formatDate(final Field<LocalDate> field) {
     return DSL
         .when(field.eq(DSL.inline(Constants.DATE_NEVER)), Constants.DATE_NEVER_LITERAL)
-        .otherwise(DSL.field("to_char({0}, {1})", String.class, field, APIDateFormat.FORMAT));
+        .otherwise(DSL.field("to_char({0}, {1})", String.class, field, Constants.DATE_FORMAT));
   }
 
   /**
@@ -177,7 +179,7 @@ public class Fields {
    *         {@link Transaction}
    */
   @SuppressWarnings("null")
-  public static Query cleanupSequence(final Table<?> table, final Field<Integer> key, final Field<Integer> order) {
+  public static Query cleanupSequence(final Table<?> table, final Field<Integer> key, final Field<@NonNull Integer> order) {
     return DSL.update(table)
         .set(order, DSL.field("idx", Integer.class))
         .from(DSL.select(key, DSL.rowNumber().over(DSL.orderBy(order))).from(table).asTable("unused", "key", "idx"))

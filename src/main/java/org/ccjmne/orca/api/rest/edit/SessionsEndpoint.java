@@ -4,6 +4,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_TRAINERS;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -23,7 +24,6 @@ import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.inject.business.Restrictions;
-import org.ccjmne.orca.api.utils.APIDateFormat;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.codegen.tables.records.TrainingsEmployeesRecord;
@@ -51,9 +51,8 @@ public class SessionsEndpoint {
   private static final List<String> COMPLETED_OUTCOMES = Arrays
       .asList(Constants.EMPL_OUTCOME_VALIDATED, Constants.EMPL_OUTCOME_FLUNKED, Constants.EMPL_OUTCOME_MISSING);
 
-  private final DSLContext   ctx;
-  private final Restrictions restrictions;
-
+  private final DSLContext     ctx;
+  private final Restrictions   restrictions;
   private final Param<Integer> sessionId;
 
   @Inject
@@ -88,8 +87,8 @@ public class SessionsEndpoint {
                       TRAININGS.TRNG_COMMENT)
           .values(
                   (Integer) session.get(TRAININGS.TRNG_TRTY_FK.getName()),
-                  session.get(TRAININGS.TRNG_START.getName()) == null ? null : APIDateFormat.parseAsSql((String) session.get(TRAININGS.TRNG_START.getName())),
-                  APIDateFormat.parseAsSql((String) session.get(TRAININGS.TRNG_DATE.getName())),
+                  session.get(TRAININGS.TRNG_START.getName()) == null ? null : LocalDate.parse((String) session.get(TRAININGS.TRNG_START.getName())),
+                  LocalDate.parse((String) session.get(TRAININGS.TRNG_DATE.getName())),
                   Constants.TRNG_OUTCOME_SCHEDULED,
                   (String) session.get(TRAININGS.TRNG_COMMENT.getName()))
           .returningResult(TRAININGS.TRNG_PK)
@@ -121,8 +120,8 @@ public class SessionsEndpoint {
           .update(TRAININGS)
           .set(TRAININGS.TRNG_TRTY_FK, (Integer) session.get(TRAININGS.TRNG_TRTY_FK.getName()))
           .set(TRAININGS.TRNG_START, session
-              .get(TRAININGS.TRNG_START.getName()) == null ? null : APIDateFormat.parseAsSql((String) session.get(TRAININGS.TRNG_START.getName())))
-          .set(TRAININGS.TRNG_DATE, APIDateFormat.parseAsSql((String) session.get(TRAININGS.TRNG_DATE.getName())))
+              .get(TRAININGS.TRNG_START.getName()) == null ? null : LocalDate.parse((String) session.get(TRAININGS.TRNG_START.getName())))
+          .set(TRAININGS.TRNG_DATE, LocalDate.parse((String) session.get(TRAININGS.TRNG_DATE.getName())))
           .set(TRAININGS.TRNG_COMMENT, (String) session.get(TRAININGS.TRNG_COMMENT.getName()))
           .where(TRAININGS.TRNG_PK.eq(this.sessionId))
           .execute();
@@ -327,9 +326,9 @@ public class SessionsEndpoint {
             .values(
                     null,
                     (Integer) session.get(TRAININGS.TRNG_TRTY_FK.getName()),
-                    session.get(TRAININGS.TRNG_START.getName()) != null ? APIDateFormat.parseAsSql(session.get(TRAININGS.TRNG_START.getName()).toString())
+                    session.get(TRAININGS.TRNG_START.getName()) != null ? LocalDate.parse(session.get(TRAININGS.TRNG_START.getName()).toString())
                                                                         : null,
-                    APIDateFormat.parseAsSql(session.get(TRAININGS.TRNG_DATE.getName()).toString()),
+                    LocalDate.parse(session.get(TRAININGS.TRNG_DATE.getName()).toString()),
                     (String) session.get(TRAININGS.TRNG_OUTCOME.getName()),
                     (String) session.get(TRAININGS.TRNG_COMMENT.getName()))
             .execute();

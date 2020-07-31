@@ -7,7 +7,6 @@ import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
 
-import java.sql.Date;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.Arrays;
@@ -62,7 +61,7 @@ public class DemoDataSitesEmployees {
                         .toArray(Row1[]::new)));
 
     // Update dated from NCLS Development's birth day :)
-    final Integer update = ctx.insertInto(UPDATES, UPDATES.UPDT_DATE).values(Date.valueOf(LocalDate.of(2014, Month.DECEMBER, 8))).returning(UPDATES.UPDT_PK)
+    final Integer update = ctx.insertInto(UPDATES, UPDATES.UPDT_DATE).values(LocalDate.of(2014, Month.DECEMBER, 8)).returning(UPDATES.UPDT_PK)
         .fetchOne()
         .get(UPDATES.UPDT_PK);
 

@@ -1,5 +1,6 @@
 package org.ccjmne.orca.api.inject.business;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -78,7 +79,7 @@ public class RecordsCollator {
     final String pSize = uriInfo.getQueryParameters().getFirst(PARAMETER_NAME_PAGE_SIZE);
     this.limit = pSize == null ? 0 : Integer.parseInt(pSize);
     this.offset = this.limit * Integer.parseInt(MoreObjects.firstNonNull(uriInfo.getQueryParameters().getFirst(PARAMETER_NAME_PAGE_OFFSET), "0"));
-    this.orderBy = URLEncodedUtils.parse(uriInfo.getRequestUri(), "UTF-8").stream().map(p -> String.format("%s=%s", p.getName(), p.getValue()))
+    this.orderBy = URLEncodedUtils.parse(uriInfo.getRequestUri(), StandardCharsets.UTF_8).stream().map(p -> String.format("%s=%s", p.getName(), p.getValue()))
         .map(SORT_ENTRY::matcher)
         .filter(Matcher::matches)
         .map(m -> new Sort(new ParsedField(m.group("field")), m.group("direction")))

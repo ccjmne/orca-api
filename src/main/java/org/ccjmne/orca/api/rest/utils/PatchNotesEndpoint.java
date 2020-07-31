@@ -17,10 +17,10 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriBuilder;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.utils.URIBuilder;
 import org.jooq.DSLContext;
 import org.jooq.Record2;
 import org.jooq.impl.DSL;
@@ -83,7 +83,7 @@ public class PatchNotesEndpoint {
         .from(USERS).where(USERS.USER_ID.eq(request.getRemoteUser())).fetchOne();
 
     final List<PatchNotes> patches = this.client
-        .execute(new HttpGet(new URIBuilder(PATCH_NOTES_SERVICE_URL).addParameter("version", version).build()),
+        .execute(new HttpGet(UriBuilder.fromPath(PATCH_NOTES_SERVICE_URL).queryParam("version", version).build()),
                  response -> {
                    final int statusCode = response.getStatusLine().getStatusCode();
                    if ((statusCode >= 400) && (statusCode < 600)) {

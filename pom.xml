@@ -16,22 +16,22 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-war-plugin</artifactId>
-				<version>2.2</version>
+				<version>3.3.1</version>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.7.0</version>
+				<version>3.8.0</version>
 				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
+					<source>14</source>
+					<target>14</target>
 					<compilerId>eclipse</compilerId>
 				</configuration>
 				<dependencies>
 					<dependency>
 						<groupId>org.codehaus.plexus</groupId>
 						<artifactId>plexus-compiler-eclipse</artifactId>
-						<version>2.8.4</version>
+						<version>2.8.6</version>
 					</dependency>
 				</dependencies>
 			</plugin>
@@ -40,9 +40,9 @@
 
 	<properties>
 		<orca.version>2.3.0</orca.version>
-		<jackson.version>2.9.8</jackson.version>
-		<jersey.version>2.28</jersey.version>
-		<jooq.version>3.12.3</jooq.version>
+		<jackson.version>2.11.1</jackson.version>
+		<jersey.version>2.31</jersey.version>
+		<jooq.version>3.13.4</jooq.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
@@ -69,21 +69,21 @@
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-s3</artifactId>
-			<version>1.11.15</version>
+			<version>1.11.831</version>
 		</dependency>
 
-		<!-- SCHEDULER AND DATA SOURCE FOR DEMO DATA -->
+		<!-- SCHEDULER FOR DEMO DATA -->
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
-			<version>2.2.3</version>
+			<version>2.3.2</version>
 		</dependency>
 
 		<!-- DB CONNECTIONS POOL -->
 		<dependency>
 			<groupId>com.zaxxer</groupId>
 			<artifactId>HikariCP</artifactId>
-			<version>2.3.2</version>
+			<version>3.4.5</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>slf4j-api</artifactId>
@@ -100,7 +100,8 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<version>42.2.5</version>
+			<version>42.2.14</version>
+			<scope>provided</scope> <!-- bundled in tomcat lib/ -->
 		</dependency>
 
 		<!-- DB DSL (JOOQ) -->
@@ -135,14 +136,17 @@
 			<version>${jackson.version}</version>
 		</dependency>
 
-		<!-- LOGGING -->
 		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>1.7.10</version>
+			<!-- JavaTimeModule for LocalDate -->
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>${jackson.version}</version>
 		</dependency>
 
+		<!-- LOGGING -->
+
 		<!-- SEMVER -->
+		<!-- TODO: maybe switch to com.vdurmont/semver4j -->
 		<dependency>
 			<groupId>com.github.zafarkhaja</groupId>
 			<artifactId>java-semver</artifactId>
@@ -159,36 +163,42 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>21.0</version>
+			<version>29.0-jre</version>
 		</dependency>
 
 		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>servlet-api</artifactId>
-			<version>2.5</version>
-			<scope>provided</scope>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-servlet-api</artifactId>
+			<version>9.0.37</version>
+			<scope>provided</scope> <!-- provided by tomcat -->
 		</dependency>
 
+
+		<!-- JERSEY AND JAXB -->
 		<dependency>
 			<groupId>org.glassfish.jersey.inject</groupId>
 			<artifactId>jersey-hk2</artifactId>
-			<version>${jersey.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-servlet-core</artifactId>
-
-			<!-- <exclusions> -->
-			<!-- <exclusion> -->
-			<!-- <groupId>org.glassfish.jersey.bundles.repackaged</groupId> -->
-			<!-- <artifactId>jersey-guava</artifactId> -->
-			<!-- </exclusion> -->
-			<!-- </exclusions> -->
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-multipart</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.sun.xml.bind</groupId>
+			<artifactId>jaxb-impl</artifactId>
+			<version>2.4.0-b180830.0438</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>com.sun.xml.bind</groupId>
+		    <artifactId>jaxb-core</artifactId>
+		    <version>2.3.0.1</version>
 		</dependency>
 	</dependencies>
 

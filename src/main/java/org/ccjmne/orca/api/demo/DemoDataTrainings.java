@@ -5,7 +5,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_TRAINERS;
 
-import java.sql.Date;
+import java.time.LocalDate;
 import java.util.Arrays;
 
 import org.ccjmne.orca.api.utils.Constants;
@@ -63,9 +63,9 @@ public class DemoDataTrainings {
 
   @SuppressWarnings("unchecked")
   private static Insert<TrainingsRecord> addTrainings(final String outcome, final int amount) {
-    final Table<Record4<Integer, Date, String, String>> sessions = new FakeRecords().sessions(outcome, amount);
+    final Table<Record4<Integer, LocalDate, String, String>> sessions = new FakeRecords().sessions(outcome, amount);
     return DSL.insertInto(TRAININGS, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_DATE, TRAININGS.TRNG_OUTCOME, TRAININGS.TRNG_COMMENT)
-        .select((Select<? extends Record4<Integer, Date, String, String>>) DSL.select(sessions.fields()).from(sessions));
+        .select((Select<? extends Record4<Integer, LocalDate, String, String>>) DSL.select(sessions.fields()).from(sessions));
   }
 
   @SuppressWarnings("unchecked")

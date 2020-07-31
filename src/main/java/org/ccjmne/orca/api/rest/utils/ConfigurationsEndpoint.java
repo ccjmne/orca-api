@@ -33,13 +33,11 @@ public class ConfigurationsEndpoint {
 
   private static final List<String> AVAILABLE_TYPES = Arrays.asList("import-employees", "import-sites", "pdf-site");
 
-  private final DSLContext   ctx;
-  private final ObjectMapper mapper;
+  private final DSLContext ctx;
 
   @Inject
   public ConfigurationsEndpoint(final DSLContext ctx, final ObjectMapper mapper) {
     this.ctx = ctx;
-    this.mapper = mapper;
   }
 
   @GET
@@ -69,7 +67,7 @@ public class ConfigurationsEndpoint {
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
   public Integer createConfig(@QueryParam("type") final String type, @QueryParam("name") final String name, final JSONB config) {
-    final Integer key = new Integer(this.ctx.nextval(Sequences.CONFIGS_CONF_PK_SEQ).intValue());
+    final Integer key = Integer.valueOf(this.ctx.nextval(Sequences.CONFIGS_CONF_PK_SEQ).intValue());
     this.updateConfig(key, type, name, config);
     return key;
   }
