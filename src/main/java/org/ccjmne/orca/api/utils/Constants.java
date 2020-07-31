@@ -27,10 +27,17 @@ public class Constants {
   public static final String FIELDS_ALL         = "all";
   public static final String DATE_NEVER_LITERAL = "infinity";
 
-  // TODO: replace w/ more suitable semantics
-  public static final String STATUS_SUCCESS = "success";
-  public static final String STATUS_WARNING = "warning";
-  public static final String STATUS_DANGER  = "danger";
+  public static final String SITE_STATUS_OK      = "ok";
+  public static final String SITE_STATUS_OKAYISH = "okayish";
+  public static final String SITE_STATUS_KO      = "ko";
+
+  public static final String EMPL_STATUS_VALID    = "valid";   // lasting + expiring
+  public static final String EMPL_STATUS_LASTING  = "lasting";
+  public static final String EMPL_STATUS_EXPIRING = "expiring";
+
+  public static final String EMPL_STATUS_INVALID = "invalid"; // expired + voided
+  public static final String EMPL_STATUS_EXPIRED = "expired";
+  public static final String EMPL_STATUS_VOIDED  = "voided";
 
   public static final String TAGS_VALUE_UNIVERSAL = "*";
   public static final String TAGS_VALUE_NONE      = String.valueOf((Object) null);

@@ -24,29 +24,24 @@ import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
-import org.jooq.types.DayToSecond;
 import org.jooq.types.YearToMonth;
 
 public class StatisticsSelection {
 
   private static final Integer DURATION_INFINITE = Integer.valueOf(0);
 
-  public static final Field<LocalDate> MAX_EXPIRY = DSL.max(DSL
+  public static final Field<LocalDate> EXPIRY = DSL.max(DSL
       .when(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.eq(StatisticsSelection.DURATION_INFINITE), DSL.localDate(Constants.DATE_NEVER))
       .otherwise(TRAININGS.TRNG_DATE.plus(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.mul(new YearToMonth(0, 1)))));
 
-  private static final Field<LocalDate> EXPIRY = DSL
-      .when(EMPLOYEES_VOIDINGS.EMVO_DATE.le(StatisticsSelection.MAX_EXPIRY), EMPLOYEES_VOIDINGS.EMVO_DATE.sub(new DayToSecond(1)))
-      .otherwise(StatisticsSelection.MAX_EXPIRY);
-
-  // TODO: Add special status for explicitly VOIDED aptitudes
   // TODO: The number of months under which an aptitude is to be renewed soon
   // should be configurable per aptitude
   private static Field<String> fieldValidity(final Field<LocalDate> date) {
     return DSL
-        .when(StatisticsSelection.EXPIRY.ge(date.plus(new YearToMonth(0, 6))), Constants.STATUS_SUCCESS)
-        .when(StatisticsSelection.EXPIRY.ge(date), Constants.STATUS_WARNING)
-        .otherwise(Constants.STATUS_DANGER);
+        .when(EMPLOYEES_VOIDINGS.EMVO_DATE.le(date), Constants.EMPL_STATUS_VOIDED)
+        .when(StatisticsSelection.EXPIRY.ge(date.plus(new YearToMonth(0, 6))), Constants.EMPL_STATUS_LASTING)
+        .when(StatisticsSelection.EXPIRY.ge(date), Constants.EMPL_STATUS_EXPIRING)
+        .otherwise(Constants.EMPL_STATUS_EXPIRED);
   }
 
   private final Field<LocalDate> date;
@@ -102,9 +97,10 @@ public class StatisticsSelection {
         .select(
                 eStats.field(SITES_EMPLOYEES.SIEM_SITE_FK),
                 eStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK),
-                DSL.count().filterWhere(eStatus.eq(Constants.STATUS_SUCCESS)).as(Constants.STATUS_SUCCESS),
-                DSL.count().filterWhere(eStatus.eq(Constants.STATUS_WARNING)).as(Constants.STATUS_WARNING),
-                DSL.count().filterWhere(eStatus.eq(Constants.STATUS_DANGER)).as(Constants.STATUS_DANGER))
+                DSL.count().filterWhere(eStatus.eq(Constants.EMPL_STATUS_LASTING)).as(Constants.EMPL_STATUS_LASTING),
+                DSL.count().filterWhere(eStatus.eq(Constants.EMPL_STATUS_EXPIRING)).as(Constants.EMPL_STATUS_EXPIRING),
+                DSL.count().filterWhere(eStatus.eq(Constants.EMPL_STATUS_EXPIRED)).as(Constants.EMPL_STATUS_EXPIRED),
+                DSL.count().filterWhere(eStatus.eq(Constants.EMPL_STATUS_VOIDED)).as(Constants.EMPL_STATUS_VOIDED))
         .from(eStats)
         .groupBy(eStats.field(SITES_EMPLOYEES.SIEM_SITE_FK), eStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
         .asTable();
@@ -122,26 +118,30 @@ public class StatisticsSelection {
         .groupBy(CERTIFICATES.CERT_PK, SITES_EMPLOYEES.SIEM_SITE_FK)
         .asTable();
 
-    final Field<Integer> target = DSL.ceil(eCount.mul(certs.field(CERTIFICATES.CERT_TARGET).div(DSL.val(100f))));
-    final Field<Integer> warningTarget = DSL.ceil(eCount.mul(certs.field(CERTIFICATES.CERT_TARGET).div(DSL.val(300 / 2f))));
-    final Field<Integer> current = DSL
-        .coalesce(sStats.field(Constants.STATUS_SUCCESS, Integer.class).add(sStats.field(Constants.STATUS_WARNING)),
-                  Integer.valueOf(0));
+    final Field<Integer> okTarget = DSL.ceil(eCount.mul(certs.field(CERTIFICATES.CERT_TARGET).div(DSL.val(100f))));
+    final Field<Integer> okayishTarget = DSL.ceil(eCount.mul(certs.field(CERTIFICATES.CERT_TARGET).div(DSL.val(300 / 2f))));
+    final Field<Integer> validCount = DSL
+        .coalesce(sStats.field(Constants.EMPL_STATUS_LASTING, Integer.class).plus(sStats.field(Constants.EMPL_STATUS_EXPIRING)), DSL.zero());
+    final Field<Integer> invalidCount = DSL
+        .coalesce(sStats.field(Constants.EMPL_STATUS_EXPIRED, Integer.class).plus(sStats.field(Constants.EMPL_STATUS_VOIDED)), DSL.zero());
     return DSL.select(
                       certs.field(eCount),
                       certs.field(SITES_EMPLOYEES.SIEM_SITE_FK),
                       certs.field(CERTIFICATES.CERT_PK),
-                      DSL.coalesce(sStats.field(Constants.STATUS_SUCCESS, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_SUCCESS),
-                      DSL.coalesce(sStats.field(Constants.STATUS_WARNING, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_WARNING),
-                      DSL.coalesce(sStats.field(Constants.STATUS_DANGER, Integer.class), Integer.valueOf(0)).as(Constants.STATUS_DANGER),
-                      current.as("current"),
-                      target.as("target"),
-                      DSL.when(target.minus(current).ge(DSL.zero()), target.minus(current)).otherwise(DSL.zero()).as("remaining"),
-                      DSL.round(current.mul(Float.valueOf(100f)).div(eCount), 1).as("percent"),
+                      DSL.coalesce(sStats.field(Constants.EMPL_STATUS_LASTING), DSL.zero()).as(Constants.EMPL_STATUS_LASTING),
+                      DSL.coalesce(sStats.field(Constants.EMPL_STATUS_EXPIRING), DSL.zero()).as(Constants.EMPL_STATUS_EXPIRING),
+                      DSL.coalesce(sStats.field(Constants.EMPL_STATUS_EXPIRED), DSL.zero()).as(Constants.EMPL_STATUS_EXPIRED),
+                      DSL.coalesce(sStats.field(Constants.EMPL_STATUS_VOIDED), DSL.zero()).as(Constants.EMPL_STATUS_VOIDED),
+                      validCount.as(Constants.EMPL_STATUS_VALID),
+                      invalidCount.as(Constants.EMPL_STATUS_INVALID),
+                      okTarget.as("target"),
+                      DSL.when(okTarget.minus(validCount).ge(DSL.zero()), okTarget.minus(validCount)).otherwise(DSL.zero()).as("missing"),
+                      DSL.round(validCount.mul(Float.valueOf(100f)).div(eCount), 1).as("percent"),
                       DSL
-                          .when(current.ge(target), Constants.STATUS_SUCCESS)
-                          .when(current.ge(warningTarget), Constants.STATUS_WARNING)
-                          .otherwise(Constants.STATUS_DANGER).as("status"))
+                          .when(validCount.ge(okTarget), Constants.SITE_STATUS_OK)
+                          .when(validCount.ge(okayishTarget), Constants.SITE_STATUS_OKAYISH)
+                          .otherwise(Constants.SITE_STATUS_KO)
+                          .as("status"))
         .from(certs)
         .leftOuterJoin(sStats)
         .on(sStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK).eq(certs.field(CERTIFICATES.CERT_PK))
@@ -166,8 +166,8 @@ public class StatisticsSelection {
     final Field<@NonNull String> status = sitesStats.field("status", String.class);
     final Field<BigDecimal> score = DSL.round(DSL
         .sum(DSL
-            .when(status.eq(Constants.STATUS_SUCCESS), DSL.val(1f))
-            .when(status.eq(Constants.STATUS_WARNING), DSL.val(2 / 3f))
+            .when(status.eq(Constants.SITE_STATUS_OK), DSL.val(1f))
+            .when(status.eq(Constants.SITE_STATUS_OKAYISH), DSL.val(2 / 3f))
             .otherwise(DSL.val(0f)))
         .mul(DSL.val(100))
         .div(DSL.count())
@@ -175,23 +175,24 @@ public class StatisticsSelection {
 
     try (final SelectQuery<Record> q = DSL.select().getQuery()) {
       q.addSelect(sitesStats.field(CERTIFICATES.CERT_PK));
-      final Field<BigDecimal> current = DSL.sum(sitesStats.field("current", Integer.class));
       q.addSelect(
-                  current.as("current"),
-                  DSL.round(current.mul(Integer.valueOf(100)).div(DSL.sum(sitesStats.field("site_employees", Integer.class))), 1).as("percent"),
+                  DSL.round(DSL.sum(sitesStats.field(Constants.EMPL_STATUS_VALID, Integer.class))
+                      .div(DSL.sum(sitesStats.field("site_employees", Integer.class)))
+                      .mul(Integer.valueOf(100)), 1).as("percent"),
                   score.as("score"),
-                  DSL.sum(sitesStats.field(Constants.STATUS_SUCCESS, Integer.class)).as(Constants.STATUS_SUCCESS),
-                  DSL.sum(sitesStats.field(Constants.STATUS_WARNING, Integer.class)).as(Constants.STATUS_WARNING),
-                  DSL.sum(sitesStats.field(Constants.STATUS_DANGER, Integer.class)).as(Constants.STATUS_DANGER),
-                  DSL.count().filterWhere(status.eq(Constants.STATUS_SUCCESS))
-                      .as("sites_" + Constants.STATUS_SUCCESS),
-                  DSL.count().filterWhere(status.eq(Constants.STATUS_WARNING))
-                      .as("sites_" + Constants.STATUS_WARNING),
-                  DSL.count().filterWhere(status.eq(Constants.STATUS_DANGER))
-                      .as("sites_" + Constants.STATUS_DANGER),
-                  DSL.when(score.eq(DSL.val(BigDecimal.valueOf(100))), Constants.STATUS_SUCCESS)
-                      .when(score.ge(DSL.val(BigDecimal.valueOf(67))), Constants.STATUS_WARNING)
-                      .otherwise(Constants.STATUS_DANGER).as("status"));
+                  DSL.sum(sitesStats.field(Constants.EMPL_STATUS_LASTING, Integer.class)).as(Constants.EMPL_STATUS_LASTING),
+                  DSL.sum(sitesStats.field(Constants.EMPL_STATUS_EXPIRING, Integer.class)).as(Constants.EMPL_STATUS_EXPIRING),
+                  DSL.sum(sitesStats.field(Constants.EMPL_STATUS_EXPIRED, Integer.class)).as(Constants.EMPL_STATUS_EXPIRED),
+                  DSL.sum(sitesStats.field(Constants.EMPL_STATUS_VOIDED, Integer.class)).as(Constants.EMPL_STATUS_VOIDED),
+                  DSL.sum(sitesStats.field(Constants.EMPL_STATUS_VALID, Integer.class)).as(Constants.EMPL_STATUS_VALID),
+                  DSL.sum(sitesStats.field(Constants.EMPL_STATUS_INVALID, Integer.class)).as(Constants.EMPL_STATUS_INVALID),
+                  DSL.count().filterWhere(status.eq(Constants.SITE_STATUS_OK)).as(Constants.SITE_STATUS_OK),
+                  DSL.count().filterWhere(status.eq(Constants.SITE_STATUS_OKAYISH)).as(Constants.SITE_STATUS_OKAYISH),
+                  DSL.count().filterWhere(status.eq(Constants.SITE_STATUS_KO)).as(Constants.SITE_STATUS_KO),
+                  DSL.when(score.eq(DSL.val(BigDecimal.valueOf(100))), Constants.SITE_STATUS_OK)
+                      .when(score.ge(DSL.val(BigDecimal.valueOf(67))), Constants.SITE_STATUS_OKAYISH)
+                      .otherwise(Constants.SITE_STATUS_KO)
+                      .as("status"));
       q.addFrom(sitesStats);
       q.addGroupBy(sitesStats.field(CERTIFICATES.CERT_PK));
       return q;
