@@ -56,7 +56,7 @@ public class DemoBareWorkingState {
     ctx.insertInto(SITES, SITES.SITE_PK, SITES.SITE_NAME, SITES.SITE_EXTERNAL_ID)
         .values(Constants.DECOMMISSIONED_SITE, "", "::decommissioned::site")
         .execute();
-    ctx.alterSequence(DemoBareWorkingState.sequenceFor(SITES.SITE_PK)).restartWith(Integer.valueOf(1)).execute();
+    ctx.alterSequence(DemoBareWorkingState.sequenceFor(SITES.SITE_PK)).restartWith(DSL.one()).execute();
 
     ctx.insertInto(
                    EMPLOYEES,
@@ -76,7 +76,7 @@ public class DemoBareWorkingState {
                 Boolean.valueOf(false),
                 "::root::employee")
         .execute();
-    ctx.alterSequence(DemoBareWorkingState.sequenceFor(EMPLOYEES.EMPL_PK)).restartWith(Integer.valueOf(1)).execute();
+    ctx.alterSequence(DemoBareWorkingState.sequenceFor(EMPLOYEES.EMPL_PK)).restartWith(DSL.one()).execute();
 
     ctx.insertInto(USERS, USERS.USER_ID, USERS.USER_PWD, USERS.USER_TYPE, USERS.USER_EMPL_FK)
         .values(DSL.val(Constants.USER_ROOT), DSL.md5(DEMO_PASSWORD), DSL.val(Constants.USERTYPE_EMPLOYEE), DSL.val(Constants.EMPLOYEE_ROOT))
@@ -89,7 +89,7 @@ public class DemoBareWorkingState {
     // All roles except account management
     ctx.insertInto(USERS_ROLES, USERS_ROLES.USER_ID, USERS_ROLES.USRO_TYPE, USERS_ROLES.USRO_LEVEL, USERS_ROLES.USRO_TRPR_FK)
         .values(Constants.USER_ROOT, Constants.ROLE_ACCESS, Integer.valueOf(4), null)
-        .values(Constants.USER_ROOT, Constants.ROLE_TRAINER, null, Constants.DEFAULT_TRAINERPROFILE)
+        .values(Constants.USER_ROOT, Constants.ROLE_INSTRUCTOR, null, Constants.DEFAULT_TRAINERPROFILE)
         .values(Constants.USER_ROOT, Constants.ROLE_ADMIN, Integer.valueOf(4), null)
         .execute();
   }

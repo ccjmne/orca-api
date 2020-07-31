@@ -70,13 +70,13 @@ public class Restrictions {
     }
 
     this.accessSessions = roles.containsKey(Constants.ROLE_ACCESS)
-        && Constants.ACCESS_LEVEL_TRAININGS.equals(roles.get(Constants.ROLE_ACCESS).getUsroLevel());
+        && Constants.ACCESS_LEVEL_SESSIONS.equals(roles.get(Constants.ROLE_ACCESS).getUsroLevel());
     this.accessAllSites = roles.containsKey(Constants.ROLE_ACCESS)
         && (Constants.ACCESS_LEVEL_ALL_SITES.compareTo(roles.get(Constants.ROLE_ACCESS).getUsroLevel()) <= 0);
 
     final UsersRecord user = ctx.selectFrom(USERS).where(USERS.USER_ID.eq(user_id)).fetchOne();
     this.accessibleSites = this.listAccessibleSites(user, roles.get(Constants.ROLE_ACCESS));
-    this.manageableTypes = this.listManageableTypes(roles.get(Constants.ROLE_TRAINER));
+    this.manageableTypes = this.listManageableTypes(roles.get(Constants.ROLE_INSTRUCTOR));
   }
 
   private List<Integer> listAccessibleSites(final UsersRecord user, final UsersRolesRecord role) {

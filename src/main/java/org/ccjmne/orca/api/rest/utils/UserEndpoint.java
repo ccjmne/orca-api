@@ -53,7 +53,7 @@ public class UserEndpoint {
         .from(TRAINERPROFILES).leftOuterJoin(TRAINERPROFILES_TRAININGTYPES).on(TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK.eq(TRAINERPROFILES.TRPR_PK))
         .where(TRAINERPROFILES.TRPR_PK
             .eq(DSL.select(USERS_ROLES.USRO_TRPR_FK).from(USERS_ROLES)
-                .where(USERS_ROLES.USER_ID.eq(this.userId).and(USERS_ROLES.USRO_TYPE.eq(Constants.ROLE_TRAINER)))
+                .where(USERS_ROLES.USER_ID.eq(this.userId).and(USERS_ROLES.USRO_TYPE.eq(Constants.ROLE_INSTRUCTOR)))
                 .asField()))
         .groupBy(TRAINERPROFILES.TRPR_PK, TRAINERPROFILES.TRPR_ID).fetchOne();
   }

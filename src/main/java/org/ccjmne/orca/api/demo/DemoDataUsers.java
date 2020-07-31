@@ -35,7 +35,7 @@ public class DemoDataUsers {
           .values(empl.getEmplExternalId(), Constants.ROLE_ACCESS, Integer.valueOf(access), null)) {
 
         if (access == 4) {
-          roles.values(FakeRecords.asFields(empl.getEmplExternalId(), Constants.ROLE_TRAINER, null,
+          roles.values(FakeRecords.asFields(empl.getEmplExternalId(), Constants.ROLE_INSTRUCTOR, null,
                                             FakeRecords.random(TRAINERPROFILES, TRAINERPROFILES.TRPR_PK)));
         }
 
@@ -58,7 +58,7 @@ public class DemoDataUsers {
           .values(site.getSiteExternalId(), Constants.ROLE_ACCESS, Integer.valueOf(access), null)) {
 
         if (access == 4) {
-          roles.values(FakeRecords.asFields(site.getSiteExternalId(), Constants.ROLE_TRAINER, null,
+          roles.values(FakeRecords.asFields(site.getSiteExternalId(), Constants.ROLE_INSTRUCTOR, null,
                                             FakeRecords.random(TRAINERPROFILES, TRAINERPROFILES.TRPR_PK)));
         }
 

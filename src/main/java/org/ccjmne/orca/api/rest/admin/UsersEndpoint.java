@@ -175,7 +175,7 @@ public class UsersEndpoint {
             case Constants.ROLE_ADMIN:
               specification = USERS_ROLES.USRO_LEVEL;
               break;
-            case Constants.ROLE_TRAINER:
+            case Constants.ROLE_INSTRUCTOR:
               specification = USERS_ROLES.USRO_TRPR_FK;
               break;
             default:
@@ -246,7 +246,7 @@ public class UsersEndpoint {
   @SuppressWarnings({ "unchecked", "null" })
   public Integer createTrainerprofile(final Map<String, Object> level) {
     return Transactions.with(this.ctx, transactionCtx -> {
-      final Integer trpr_pk = transactionCtx.select(DSL.max(TRAINERPROFILES.TRPR_PK).add(Integer.valueOf(1)).as(TRAINERPROFILES.TRPR_PK.getName()))
+      final Integer trpr_pk = transactionCtx.select(DSL.max(TRAINERPROFILES.TRPR_PK).plus(DSL.one()).as(TRAINERPROFILES.TRPR_PK.getName()))
           .from(TRAINERPROFILES).fetchOne(TRAINERPROFILES.TRPR_PK.getName(), Integer.class);
       transactionCtx.insertInto(TRAINERPROFILES, TRAINERPROFILES.TRPR_PK, TRAINERPROFILES.TRPR_ID)
           .values(trpr_pk, (String) level.get(TRAINERPROFILES.TRPR_ID.getName())).execute();

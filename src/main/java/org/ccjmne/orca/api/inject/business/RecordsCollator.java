@@ -192,9 +192,9 @@ public class RecordsCollator {
     return DSL.with("resultset").as(query)
         .select(
                 DSL.select(DSL.count()).from("resultset").asField("rslt_count"),
-                DSL.val(Integer.valueOf(1)).as("rslt_pages"),
-                DSL.val(Integer.valueOf(0)).as("page_size"),
-                DSL.val(Integer.valueOf(0)).as("page_offset"),
+                DSL.one().as("rslt_pages"),
+                DSL.zero().as("page_size"),
+                DSL.zero().as("page_offset"),
                 DSL.select(JSONFields.arrayAgg(data.fields())).from("resultset").asField("page_contents"))
         .getQuery();
   }

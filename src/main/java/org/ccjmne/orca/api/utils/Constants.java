@@ -62,15 +62,15 @@ public class Constants {
   public static final Integer DECOMMISSIONED_SITE    = Integer.valueOf(0);
   public static final Integer DEFAULT_TRAINERPROFILE = Integer.valueOf(0);
 
-  public static final String ROLE_USER    = "user";
-  public static final String ROLE_ACCESS  = "access";
-  public static final String ROLE_TRAINER = "trainer"; // TODO: should be "instructor" probably
-  public static final String ROLE_ADMIN   = "admin";
+  public static final String ROLE_USER       = "user";
+  public static final String ROLE_ACCESS     = "access";
+  public static final String ROLE_INSTRUCTOR = "trainer"; // TODO: should be "instructor" probably
+  public static final String ROLE_ADMIN      = "admin";
 
   public static final String USERTYPE_EMPLOYEE = "employee";
   public static final String USERTYPE_SITE     = "site";
 
-  public static final Integer ACCESS_LEVEL_TRAININGS = Integer.valueOf(4);
+  public static final Integer ACCESS_LEVEL_SESSIONS  = Integer.valueOf(4);
   public static final Integer ACCESS_LEVEL_ALL_SITES = Integer.valueOf(3);
   public static final Integer ACCESS_LEVEL_SITE      = Integer.valueOf(2);
   public static final Integer ACCESS_LEVEL_ONESELF   = Integer.valueOf(1);

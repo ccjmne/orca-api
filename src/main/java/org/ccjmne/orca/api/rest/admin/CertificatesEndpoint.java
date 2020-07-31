@@ -56,7 +56,7 @@ public class CertificatesEndpoint {
         .set(CERTIFICATES.CERT_NAME, (String) cert.get(CERTIFICATES.CERT_NAME.getName()))
         .set(CERTIFICATES.CERT_SHORT, (String) cert.get(CERTIFICATES.CERT_SHORT.getName()))
         .set(CERTIFICATES.CERT_TARGET, (Integer) cert.get(CERTIFICATES.CERT_TARGET.getName()))
-        .set(CERTIFICATES.CERT_ORDER, DSL.select(DSL.count().plus(Integer.valueOf(1))).from(CERTIFICATES)) // TODO: does it need coalescing?
+        .set(CERTIFICATES.CERT_ORDER, DSL.select(DSL.count().plus(DSL.one())).from(CERTIFICATES)) // TODO: does it need coalescing?
         .returning(CERTIFICATES.CERT_PK)
         .fetchOne().getValue(CERTIFICATES.CERT_PK);
   }
@@ -119,7 +119,7 @@ public class CertificatesEndpoint {
       final Integer id = transactionCtx
           .insertInto(TRAININGTYPES)
           .set(TRAININGTYPES.TRTY_NAME, (String) type.get(TRAININGTYPES.TRTY_NAME.getName()))
-          .set(TRAININGTYPES.TRTY_ORDER, DSL.select(DSL.count().plus(Integer.valueOf(1))).from(TRAININGTYPES)) // TODO: does it need coalescing?
+          .set(TRAININGTYPES.TRTY_ORDER, DSL.select(DSL.count().plus(DSL.one())).from(TRAININGTYPES)) // TODO: does it need coalescing?
           .returning(TRAININGTYPES.TRTY_PK)
           .fetchOne().getValue(TRAININGTYPES.TRTY_PK);
 

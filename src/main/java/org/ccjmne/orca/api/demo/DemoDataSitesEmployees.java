@@ -70,7 +70,7 @@ public class DemoDataSitesEmployees {
             .from(DSL.select(
                              EMPLOYEES.EMPL_PK,
                              DSL.floor(DSL.rand().mul(DSL.select(DSL.count()).from(SITES).where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE))
-                                 .asField()).add(DSL.val(1)))
+                                 .asField()).plus(DSL.val(1)))
                                  .as("linked_site_id"))
                 .from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT)).asTable("employees_view"))
             .join(DSL.select(
@@ -87,7 +87,7 @@ public class DemoDataSitesEmployees {
         .select(DSL.select(DSL.field("site", Integer.class), DSL.val(tags_pk), DSL.field("tag", String.class))
             .from(DSL
                 .select(SITES.SITE_PK.as("site"),
-                        DSL.rowNumber().over().orderBy(DSL.rand()).mod(Integer.valueOf(values.length)).plus(Integer.valueOf(1)).as("tag_fk"))
+                        DSL.rowNumber().over().orderBy(DSL.rand()).mod(Integer.valueOf(values.length)).plus(DSL.one()).as("tag_fk"))
                 .from(SITES).where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE)))
             .join(DSL.select(tagsTable.field(0, String.class).as("tag"), DSL.rowNumber().over().as("tag_pk")).from(tagsTable))
             .on(DSL.field("tag_fk").eq(DSL.field("tag_pk"))));

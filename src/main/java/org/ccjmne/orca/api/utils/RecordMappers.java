@@ -53,18 +53,18 @@ public class RecordMappers {
     return RecordMappers.getZipMapper(true, key, fields);
   }
 
-  public static <T> ZipRecordMapper<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final Field<T> key, final Field<?>... fields) {
-    return RecordMappers.getZipMapper(ignoreFalsey, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
+  public static <T> ZipRecordMapper<Record, Map<T, Object>> getZipMapper(final boolean allowFalsy, final Field<T> key, final Field<?>... fields) {
+    return RecordMappers.getZipMapper(allowFalsy, key.getName(), Arrays.asList(fields).stream().map(Field::getName).toArray(String[]::new));
   }
 
-  public static <T> ZipRecordMapper<Record, Map<T, Object>> getZipMapper(final boolean ignoreFalsey, final String key, final String... fields) {
+  public static <T> ZipRecordMapper<Record, Map<T, Object>> getZipMapper(final boolean allowFalsy, final String key, final String... fields) {
     return new ZipRecordMapper<>(ImmutableList.<String> builder().addAll(Arrays.asList(fields)).add(key).build()) {
 
       /**
        * Passing this method to {@link Stream#filter} would discard all
        * <code>null</code> entries.<br />
-       * Additionally, if <code>ignoreFalsey</code> is set, also discard
-       * all the following:
+       * Additionally, <strong>unless <code>allowFalsy</code> is set</strong>, also
+       * discard all the following:
        * <ul>
        * <li><code>Boolean.FALSE</code></li>
        * <li><code>Integer.valueOf(0)</code></li>
@@ -72,8 +72,7 @@ public class RecordMappers {
        * </ul>
        */
       private final boolean checkTruthy(final Object o) {
-        return ignoreFalsey ? (null != o) && !Boolean.FALSE.equals(o) && !Integer.valueOf(0).equals(o) && !"".equals(o)
-                            : null != o;
+        return (null != o) && (allowFalsy || (!Boolean.FALSE.equals(o) && !Integer.valueOf(0).equals(o) && !"".equals(o)));
       }
 
       @Override

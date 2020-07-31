@@ -60,7 +60,7 @@ public class TagsEndpoint {
         transactionCtx.insertInto(TAGS)
             .set(tagDefinition)
             .set(TAGS.TAGS_PK, tags_pk)
-            .set(TAGS.TAGS_ORDER, DSL.select(DSL.coalesce(DSL.max(TAGS.TAGS_ORDER), Integer.valueOf(0)).add(Integer.valueOf(1))).from(TAGS))
+            .set(TAGS.TAGS_ORDER, DSL.select(DSL.coalesce(DSL.max(TAGS.TAGS_ORDER), DSL.zero()).plus(DSL.one())).from(TAGS))
             .execute();
       }
 
