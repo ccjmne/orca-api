@@ -36,7 +36,7 @@ public class InitEndpoint {
       throw new IllegalStateException("The instance is not set up for (re)initilisation or your password is invalid.");
     }
 
-    if (null == this.ctx.selectFrom(USERS).where(USERS.USER_ID.eq(Constants.USER_ROOT)).fetchOne()) {
+    if (null != this.ctx.selectFrom(USERS).where(USERS.USER_ID.eq(Constants.USER_ROOT)).fetchOne()) {
       throw new IllegalStateException("The database has already been initialised.");
     }
 
