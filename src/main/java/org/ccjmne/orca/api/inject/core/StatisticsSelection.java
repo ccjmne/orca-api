@@ -105,7 +105,7 @@ public class StatisticsSelection {
         .groupBy(eStats.field(SITES_EMPLOYEES.SIEM_SITE_FK), eStats.field(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
         .asTable();
 
-    final Field<Integer> eCount = DSL.count().as("site_employees");
+    final Field<Integer> eCount = DSL.count().as("of");
     final Table<? extends Record> certs = DSL
         .select(
                 CERTIFICATES.CERT_PK,
@@ -119,7 +119,7 @@ public class StatisticsSelection {
         .asTable();
 
     final Field<Integer> okTarget = DSL.ceil(eCount.mul(certs.field(CERTIFICATES.CERT_TARGET).div(DSL.val(100f))));
-    final Field<Integer> okayishTarget = DSL.ceil(eCount.mul(certs.field(CERTIFICATES.CERT_TARGET).div(DSL.val(300 / 2f))));
+    final Field<Integer> okayishTarget = DSL.ceil(eCount.mul(certs.field(CERTIFICATES.CERT_TARGET).mul(DSL.val(2f / 3)).div(DSL.val(100f))));
     final Field<Integer> validCount = DSL
         .coalesce(sStats.field(Constants.EMPL_STATUS_LASTING, Integer.class).plus(sStats.field(Constants.EMPL_STATUS_EXPIRING)), DSL.zero());
     final Field<Integer> invalidCount = DSL
@@ -167,17 +167,17 @@ public class StatisticsSelection {
     final Field<BigDecimal> score = DSL.round(DSL
         .sum(DSL
             .when(status.eq(Constants.SITE_STATUS_OK), DSL.val(1f))
-            .when(status.eq(Constants.SITE_STATUS_OKAYISH), DSL.val(2 / 3f))
+            .when(status.eq(Constants.SITE_STATUS_OKAYISH), DSL.val(2f / 3))
             .otherwise(DSL.val(0f)))
-        .mul(DSL.val(100))
         .div(DSL.count())
+        .mul(DSL.val(100))
         .cast(SQLDataType.NUMERIC), 1);
 
     try (final SelectQuery<Record> q = DSL.select().getQuery()) {
       q.addSelect(sitesStats.field(CERTIFICATES.CERT_PK));
       q.addSelect(
                   DSL.round(DSL.sum(sitesStats.field(Constants.EMPL_STATUS_VALID, Integer.class))
-                      .div(DSL.sum(sitesStats.field("site_employees", Integer.class)))
+                      .div(DSL.sum(sitesStats.field("of", Integer.class)))
                       .mul(Integer.valueOf(100)), 1).as("percent"),
                   score.as("score"),
                   DSL.sum(sitesStats.field(Constants.EMPL_STATUS_LASTING, Integer.class)).as(Constants.EMPL_STATUS_LASTING),

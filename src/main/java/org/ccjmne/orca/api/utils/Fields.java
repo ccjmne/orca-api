@@ -45,6 +45,7 @@ public class Fields {
       Constants.EMPL_STATUS_INVALID,
       "percent",
       "target",
+      "of",
       "missing",
       Constants.EMPL_STATUS_LASTING,
       Constants.EMPL_STATUS_EXPIRING,
