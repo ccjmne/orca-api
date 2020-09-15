@@ -24,6 +24,7 @@ import org.jooq.Record1;
 import org.jooq.Row1;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
+import org.jooq.types.YearToMonth;
 
 public class DemoDataSitesEmployees {
 
@@ -60,7 +61,7 @@ public class DemoDataSitesEmployees {
                         .map(DSL::row)
                         .toArray(Row1[]::new)));
 
-    // Update dated from NCLS Development's birth day :)
+    // Update dated from NCLS Development's DOB :)
     final Integer update = ctx.insertInto(UPDATES, UPDATES.UPDT_DATE).values(LocalDate.of(2014, Month.DECEMBER, 8)).returning(UPDATES.UPDT_PK)
         .fetchOne()
         .get(UPDATES.UPDT_PK);
@@ -70,7 +71,49 @@ public class DemoDataSitesEmployees {
             .from(DSL.select(
                              EMPLOYEES.EMPL_PK,
                              DSL.floor(DSL.rand().mul(DSL.select(DSL.count()).from(SITES).where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE))
-                                 .asField()).plus(DSL.val(1)))
+                                 .asField()).plus(DSL.one()))
+                                 .as("linked_site_id"))
+                .from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT)).asTable("employees_view"))
+            .join(DSL.select(
+                             SITES.SITE_PK,
+                             DSL.rowNumber().over().orderBy(DSL.rand()).as("site_id"))
+                .from(SITES).where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE)).asTable("sites_view"))
+            .on(DSL.field("linked_site_id").eq(DSL.field("site_id"))))
+        .execute();
+
+    // Another update dated from a year ago
+    final Integer oneYearAgo = ctx.insertInto(UPDATES, UPDATES.UPDT_DATE).values(DSL.currentLocalDate().minus(new YearToMonth(1)))
+        .returning(UPDATES.UPDT_PK)
+        .fetchOne()
+        .get(UPDATES.UPDT_PK);
+
+    ctx.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_UPDT_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_EMPL_FK)
+        .select(DSL.select(DSL.val(oneYearAgo), DSL.field("site_pk", Integer.class), DSL.field("empl_pk", Integer.class))
+            .from(DSL.select(
+                             EMPLOYEES.EMPL_PK,
+                             DSL.floor(DSL.rand().mul(DSL.select(DSL.count()).from(SITES).where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE))
+                                 .asField()).plus(DSL.one()))
+                                 .as("linked_site_id"))
+                .from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT)).asTable("employees_view"))
+            .join(DSL.select(
+                             SITES.SITE_PK,
+                             DSL.rowNumber().over().orderBy(DSL.rand()).as("site_id"))
+                .from(SITES).where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE)).asTable("sites_view"))
+            .on(DSL.field("linked_site_id").eq(DSL.field("site_id"))))
+        .execute();
+
+    // Another update dated from six months ago
+    final Integer sixMonthsAgo = ctx.insertInto(UPDATES, UPDATES.UPDT_DATE).values(DSL.currentLocalDate().minus(new YearToMonth(0, 6)))
+        .returning(UPDATES.UPDT_PK)
+        .fetchOne()
+        .get(UPDATES.UPDT_PK);
+
+    ctx.insertInto(SITES_EMPLOYEES, SITES_EMPLOYEES.SIEM_UPDT_FK, SITES_EMPLOYEES.SIEM_SITE_FK, SITES_EMPLOYEES.SIEM_EMPL_FK)
+        .select(DSL.select(DSL.val(sixMonthsAgo), DSL.field("site_pk", Integer.class), DSL.field("empl_pk", Integer.class))
+            .from(DSL.select(
+                             EMPLOYEES.EMPL_PK,
+                             DSL.floor(DSL.rand().mul(DSL.select(DSL.count()).from(SITES).where(SITES.SITE_PK.ne(Constants.DECOMMISSIONED_SITE))
+                                 .asField()).plus(DSL.one()))
                                  .as("linked_site_id"))
                 .from(EMPLOYEES).where(EMPLOYEES.EMPL_PK.ne(Constants.EMPLOYEE_ROOT)).asTable("employees_view"))
             .join(DSL.select(
