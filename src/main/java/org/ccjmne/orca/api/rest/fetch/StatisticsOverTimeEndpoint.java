@@ -64,7 +64,7 @@ public class StatisticsOverTimeEndpoint {
 
   @GET
   @Path("employees/{employee}")
-  public Result<? extends Record> getEmployeesStatsOverTime() {
+  public Result<? extends Record> getEmployeeStatsOverTime() {
     final Table<Record> employees = this.resourcesSelection.scopeEmployees().asTable();
     final Table<? extends Record> stats = this.statisticsSelection.selectEmployeesStats().asTable();
     return this.ctx.fetch(this.seriesify(DSL.select().from(employees).leftOuterJoin(stats)
@@ -73,7 +73,7 @@ public class StatisticsOverTimeEndpoint {
 
   @GET
   @Path("sites/{site}")
-  public Result<? extends Record> getSitesStatsOverTime() {
+  public Result<? extends Record> getSiteStatsOverTime() {
     final Table<Record> sites = this.resourcesSelection.scopeSites().asTable();
     final Table<? extends Record> stats = this.statisticsSelection.selectSitesStats().asTable();
     return this.ctx.fetch(this.seriesify(DSL.select().from(sites).leftOuterJoin(stats)
@@ -81,12 +81,18 @@ public class StatisticsOverTimeEndpoint {
   }
 
   @GET
-  @Path("sites-groups")
-  public Result<? extends Record> getSitesGroupsStatsOverTime() {
+  @Path("sites-groups/*")
+  public Result<? extends Record> getSitesGroupStatsOverTime() {
     if (!this.parameters.isDefault(QueryParams.GROUP_BY)) {
       throw new IllegalArgumentException("Statistics history generation may not be used with the 'group-by' parameter.");
     }
+    
+    return this.getSpecificSitesGroupStatsOverTime();
+  }
 
+  @GET
+  @Path("sites-groups/{group-by}/{group-value}")
+  public Result<? extends Record> getSpecificSitesGroupStatsOverTime() {
     final Table<? extends Record> sites = this.resourcesSelection.selectSites().asTable();
     try (final SelectQuery<? extends Record> stats = this.statisticsSelection.selectSitesGroupsStats()) {
       stats.addJoin(sites, JoinType.RIGHT_OUTER_JOIN, sites.field(SITES.SITE_PK).eq(Fields.unqualify(SITES_EMPLOYEES.SIEM_SITE_FK)));
