@@ -1,0 +1,16 @@
+version: 2
+updates:
+- package-ecosystem: maven
+  directory: "/"
+  schedule:
+    interval: monthly
+  open-pull-requests-limit: 10
+  target-branch: develop
+  ignore:
+  - dependency-name: com.amazonaws:aws-java-sdk-s3
+    versions:
+    - 1.11.930
+    - 1.11.946
+  - dependency-name: org.postgresql:postgresql
+    versions:
+    - 42.2.18
