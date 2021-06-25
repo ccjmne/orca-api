@@ -48,7 +48,7 @@
 	<properties>
 		<orca.version>2.3.0</orca.version>
 		<jackson.version>2.11.1</jackson.version>
-		<jersey.version>2.31</jersey.version>
+		<jersey.version>3.0.2</jersey.version>
 		<jooq.version>3.13.4</jooq.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
