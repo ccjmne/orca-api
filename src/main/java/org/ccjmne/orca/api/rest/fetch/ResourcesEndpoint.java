@@ -327,13 +327,14 @@ public class ResourcesEndpoint {
 				query.addSelect(SITES_EMPLOYEES.fields());
 			} else {
 				query.addSelect(
-								EMPLOYEES.EMPL_PK,
-								EMPLOYEES.EMPL_FIRSTNAME,
-								EMPLOYEES.EMPL_SURNAME,
-								EMPLOYEES.EMPL_GENDER,
-								EMPLOYEES.EMPL_PERMANENT,
-								EMPLOYEES.EMPL_EXTERNAL_ID,
-								SITES_EMPLOYEES.SIEM_SITE_FK);
+				                EMPLOYEES.EMPL_PK,
+				                EMPLOYEES.EMPL_FIRSTNAME,
+				                EMPLOYEES.EMPL_SURNAME,
+				                EMPLOYEES.EMPL_BIRTHNAME,
+				                EMPLOYEES.EMPL_GENDER,
+				                EMPLOYEES.EMPL_PERMANENT,
+				                EMPLOYEES.EMPL_EXTERNAL_ID,
+				                SITES_EMPLOYEES.SIEM_SITE_FK);
 			}
 
 			if (trng_pk != null) {
