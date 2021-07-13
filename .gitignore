@@ -1,4 +1,5 @@
-/.settings/
+/.settings/*
+!/.settings/org.eclipse.jdt*
 /target/
 .classpath
 .project
