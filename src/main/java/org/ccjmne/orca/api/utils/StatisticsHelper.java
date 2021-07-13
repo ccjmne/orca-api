@@ -170,7 +170,6 @@ public class StatisticsHelper {
 	 * The <code>tagsSelection</code> condition should be on <code>
 	 * SITES_TAGS.SITA_TAGS_FK</code>
 	 */
-	@SuppressWarnings("null")
 	public static Select<? extends Record> selectSitesGroupsStats(
 																	final String dateStr,
 																	final Condition employeesSelection,

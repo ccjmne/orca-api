@@ -3,8 +3,10 @@ package org.ccjmne.orca.api.rest.edit;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
 
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -103,7 +105,9 @@ public class TrainingsEndpoint {
 			throw new ForbiddenException();
 		}
 
-		TrainingsEndpoint.validateOutcomes(map);
+		TrainingsEndpoint.validateOutcomes(map, transactionContext.selectFrom(TRAININGTYPES)
+				.where(TRAININGTYPES.TRTY_PK.eq(Integer.valueOf(map.get(TRAININGTYPES.TRTY_PK.getName()).toString())))
+				.fetchOne(TRAININGTYPES.TRTY_PRESENCEONLY).booleanValue());
 
 		transactionContext
 				.insertInto(
@@ -146,7 +150,7 @@ public class TrainingsEndpoint {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static void validateOutcomes(final Map<String, Object> training) {
+	private static void validateOutcomes(final Map<String, Object> training, final boolean presenceOnly) {
 		if (!Constants.TRAINING_OUTCOMES.contains(training.get(TRAININGS.TRNG_OUTCOME.getName()))) {
 			throw new IllegalArgumentException(String.format("The outcome of a training must be one of %s.", Constants.TRAINING_OUTCOMES));
 		}
@@ -161,9 +165,11 @@ public class TrainingsEndpoint {
 				predicate = outcome -> outcome.equals(Constants.EMPL_OUTCOME_CANCELLED);
 				break;
 			case Constants.TRNG_OUTCOME_COMPLETED:
-				predicate = outcome -> outcome.equals(Constants.EMPL_OUTCOME_FLUNKED)
-						|| outcome.equals(Constants.EMPL_OUTCOME_MISSING)
-						|| outcome.equals(Constants.EMPL_OUTCOME_VALIDATED);
+				predicate = outcome -> (presenceOnly
+														? Arrays.asList(Constants.EMPL_OUTCOME_VALIDATED, Constants.EMPL_OUTCOME_MISSING)
+														: Arrays.asList(Constants.EMPL_OUTCOME_VALIDATED, Constants.EMPL_OUTCOME_MISSING,
+																		Constants.EMPL_OUTCOME_FLUNKED))
+																				.contains(outcome);
 				break;
 			default: // TRNG_OUTCOME_SCHEDULED
 				predicate = outcome -> outcome.equals(Constants.EMPL_OUTCOME_PENDING);

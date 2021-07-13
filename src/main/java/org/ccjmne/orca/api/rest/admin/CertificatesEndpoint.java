@@ -2,6 +2,8 @@ package org.ccjmne.orca.api.rest.admin;
 
 import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
 
@@ -113,16 +115,29 @@ public class CertificatesEndpoint {
 			if (exists) {
 				transactionCtx.update(TRAININGTYPES)
 						.set(TRAININGTYPES.TRTY_NAME, String.valueOf(trty.get(TRAININGTYPES.TRTY_NAME.getName())))
+						.set(TRAININGTYPES.TRTY_PRESENCEONLY, Boolean.valueOf(String.valueOf(trty.get(TRAININGTYPES.TRTY_PRESENCEONLY.getName()))))
 						.where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
+
+				// If "presenceOnly" training type, replace "FLUNKED" outcomes w/ "MISSING"
+				if (Boolean.valueOf(String.valueOf(trty.get(TRAININGTYPES.TRTY_PRESENCEONLY.getName()))).booleanValue()) {
+					transactionCtx.update(TRAININGS_EMPLOYEES)
+							.set(TRAININGS_EMPLOYEES.TREM_OUTCOME, Constants.EMPL_OUTCOME_MISSING)
+							.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.in(DSL
+									.select(TRAININGS.TRNG_PK).from(TRAININGS).where(TRAININGS.TRNG_TRTY_FK.eq(trty_pk))))
+							.and(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_FLUNKED))
+							.execute();
+				}
 			} else {
 				transactionCtx.insertInto(
 											TRAININGTYPES,
 											TRAININGTYPES.TRTY_PK,
 											TRAININGTYPES.TRTY_NAME,
+											TRAININGTYPES.TRTY_PRESENCEONLY,
 											TRAININGTYPES.TRTY_ORDER)
 						.values(
 								trty_pk,
 								trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString(),
+								Boolean.valueOf(String.valueOf(trty.get(TRAININGTYPES.TRTY_PRESENCEONLY.getName()))),
 								transactionCtx
 										.select(DSL.coalesce(DSL.max(TRAININGTYPES.TRTY_ORDER), Integer.valueOf(0)).add(Integer.valueOf(1)).as("order"))
 										.from(TRAININGTYPES)
