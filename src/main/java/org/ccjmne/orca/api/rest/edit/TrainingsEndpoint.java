@@ -106,7 +106,7 @@ public class TrainingsEndpoint {
 		}
 
 		TrainingsEndpoint.validateOutcomes(map, transactionContext.selectFrom(TRAININGTYPES)
-				.where(TRAININGTYPES.TRTY_PK.eq(Integer.valueOf(map.get(TRAININGTYPES.TRTY_PK.getName()).toString())))
+				.where(TRAININGTYPES.TRTY_PK.eq(Integer.valueOf(map.get(TRAININGS.TRNG_TRTY_FK.getName()).toString())))
 				.fetchOne(TRAININGTYPES.TRTY_PRESENCEONLY).booleanValue());
 
 		transactionContext
@@ -165,11 +165,8 @@ public class TrainingsEndpoint {
 				predicate = outcome -> outcome.equals(Constants.EMPL_OUTCOME_CANCELLED);
 				break;
 			case Constants.TRNG_OUTCOME_COMPLETED:
-				predicate = outcome -> (presenceOnly
-														? Arrays.asList(Constants.EMPL_OUTCOME_VALIDATED, Constants.EMPL_OUTCOME_MISSING)
-														: Arrays.asList(Constants.EMPL_OUTCOME_VALIDATED, Constants.EMPL_OUTCOME_MISSING,
-																		Constants.EMPL_OUTCOME_FLUNKED))
-																				.contains(outcome);
+				predicate = outcome -> Arrays.asList(Constants.EMPL_OUTCOME_VALIDATED, Constants.EMPL_OUTCOME_MISSING).contains(outcome) ||
+						(Constants.EMPL_OUTCOME_FLUNKED.equals(outcome) && !presenceOnly);
 				break;
 			default: // TRNG_OUTCOME_SCHEDULED
 				predicate = outcome -> outcome.equals(Constants.EMPL_OUTCOME_PENDING);
