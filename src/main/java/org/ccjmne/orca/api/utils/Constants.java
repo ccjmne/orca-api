@@ -1,16 +1,15 @@
 package org.ccjmne.orca.api.utils;
 
-import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
-import static org.ccjmne.orca.jooq.classes.Tables.USERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
-import java.sql.Date;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Arrays;
 import java.util.List;
 
-import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.UpdatesRecord;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Record1;
@@ -33,7 +32,7 @@ public class Constants {
 	 *      "http://stackoverflow.com/questions/41301892/insert-the-max-date-independent-from-database">
 	 *      Insert the max date (independent from database)</a>
 	 */
-	public static final Date DATE_INFINITY = Date.valueOf(LocalDate.of(9999, Month.JANUARY, 1).with(TemporalAdjusters.lastDayOfYear()));
+	public static final LocalDate DATE_INFINITY = LocalDate.of(9999, Month.JANUARY, 1).with(TemporalAdjusters.lastDayOfYear());
 
 	// ---- API CONSTANTS
 	public static final String FIELDS_ALL = "all";
@@ -107,8 +106,8 @@ public class Constants {
 		return DSL.select(table.field(field)).from(table);
 	}
 
-	public static Field<Date> fieldDate(final String dateStr) {
-		return dateStr != null ? DSL.date(dateStr) : DSL.currentDate();
+	public static Field<LocalDate> fieldDate(final String dateStr) {
+		return dateStr != null ? DSL.localDate(dateStr) : DSL.currentLocalDate();
 	}
 
 	/**

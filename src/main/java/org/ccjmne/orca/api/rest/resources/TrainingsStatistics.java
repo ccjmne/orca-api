@@ -1,8 +1,8 @@
 package org.ccjmne.orca.api.rest.resources;
 
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 
-import java.sql.Date;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -20,9 +20,9 @@ public class TrainingsStatistics {
 
 		private final Map<Integer, Set<Integer>> certificatesByTrainingType;
 		private final Map<Integer, TrainingsCertificateStatistics> certificates;
-		private Range<Date> dateRange;
+		private Range<LocalDate> dateRange;
 
-		protected TrainingsStatisticsBuilder(final Map<Integer, Set<Integer>> certificatesByTrainingType, final Range<Date> dateRange) {
+		protected TrainingsStatisticsBuilder(final Map<Integer, Set<Integer>> certificatesByTrainingType, final Range<LocalDate> dateRange) {
 			this.certificatesByTrainingType = certificatesByTrainingType;
 			this.certificates = new HashMap<>();
 			this.dateRange = dateRange;
@@ -66,46 +66,46 @@ public class TrainingsStatistics {
 			return new TrainingsStatistics(getBeginning(), getEnd(), this.certificates);
 		}
 
-		public Date getBeginning() {
+		public LocalDate getBeginning() {
 			return this.dateRange.lowerEndpoint();
 		}
 
-		public Date getEnd() {
+		public LocalDate getEnd() {
 			if (this.dateRange.upperBoundType().equals(BoundType.OPEN)) {
-				return Date.valueOf(this.dateRange.upperEndpoint().toLocalDate().minusDays(1));
+				return this.dateRange.upperEndpoint().minusDays(1);
 			}
 
 			return this.dateRange.upperEndpoint();
 		}
 
 		public void closeRange() {
-			this.dateRange = Range.<Date> closed(this.dateRange.lowerEndpoint(), this.dateRange.upperEndpoint());
+			this.dateRange = Range.<LocalDate> closed(this.dateRange.lowerEndpoint(), this.dateRange.upperEndpoint());
 		}
 
-		public Range<Date> getDateRange() {
+		public Range<LocalDate> getDateRange() {
 			return this.dateRange;
 		}
 	}
 
-	public static TrainingsStatisticsBuilder builder(final Map<Integer, Set<Integer>> certificatesByTrainingType, final Range<Date> dateRange) {
+	public static TrainingsStatisticsBuilder builder(final Map<Integer, Set<Integer>> certificatesByTrainingType, final Range<LocalDate> dateRange) {
 		return new TrainingsStatisticsBuilder(certificatesByTrainingType, dateRange);
 	}
 
-	private final Date beginning;
-	private final Date end;
+	private final LocalDate beginning;
+	private final LocalDate end;
 	private final Map<Integer, TrainingsCertificateStatistics> certificates;
 
-	public TrainingsStatistics(final Date beginning, final Date end, final Map<Integer, TrainingsCertificateStatistics> certificates) {
+	public TrainingsStatistics(final LocalDate beginning, final LocalDate end, final Map<Integer, TrainingsCertificateStatistics> certificates) {
 		this.beginning = beginning;
 		this.end = end;
 		this.certificates = certificates;
 	}
 
-	public Date getBeginning() {
+	public LocalDate getBeginning() {
 		return this.beginning;
 	}
 
-	public Date getEnd() {
+	public LocalDate getEnd() {
 		return this.end;
 	}
 

@@ -1,11 +1,11 @@
 package org.ccjmne.orca.api.rest.admin;
 
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
-import static org.ccjmne.orca.jooq.classes.Tables.USERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
 import java.util.List;
 import java.util.Map;
@@ -23,8 +23,8 @@ import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.Transactions;
-import org.ccjmne.orca.jooq.classes.tables.records.EmployeesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.SitesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.EmployeesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.SitesRecord;
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -68,8 +68,8 @@ public class BulkImportsEndpoint {
       transactionCtx.batchInsert(records.get(Boolean.FALSE)).execute();
 
       // 2. INSERT newer update -- no more than ONE per day
-      transactionCtx.delete(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.currentDate())).execute();
-      final Integer update = transactionCtx.insertInto(UPDATES).set(UPDATES.UPDT_DATE, DSL.currentDate()).returning(UPDATES.UPDT_PK).fetchOne()
+      transactionCtx.delete(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.currentLocalDate())).execute();
+      final Integer update = transactionCtx.insertInto(UPDATES).set(UPDATES.UPDT_DATE, DSL.currentLocalDate()).returning(UPDATES.UPDT_PK).fetchOne()
           .getValue(UPDATES.UPDT_PK);
 
       // 3. INSERT sites-employees for newer update

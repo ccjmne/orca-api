@@ -1,9 +1,9 @@
 package org.ccjmne.orca.api.rest.admin;
 
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
-import static org.ccjmne.orca.jooq.classes.Tables.USERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
 import java.text.ParseException;
 import java.util.HashMap;
@@ -24,8 +24,8 @@ import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.Transactions;
-import org.ccjmne.orca.jooq.classes.Sequences;
-import org.ccjmne.orca.jooq.classes.tables.records.SitesEmployeesRecord;
+import org.ccjmne.orca.jooq.codegen.Sequences;
+import org.ccjmne.orca.jooq.codegen.tables.records.SitesEmployeesRecord;
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep3;
 import org.jooq.TableField;
@@ -55,8 +55,8 @@ public class UpdateEndpoint {
 			final Integer updt_pk = new Integer(transactionCtx.nextval(Sequences.UPDATES_UPDT_PK_SEQ).intValue());
 
 			// No more than ONE update per day
-			transactionCtx.delete(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.currentDate())).execute();
-			transactionCtx.insertInto(UPDATES).set(UPDATES.UPDT_PK, updt_pk).set(UPDATES.UPDT_DATE, DSL.currentDate()).execute();
+			transactionCtx.delete(UPDATES).where(UPDATES.UPDT_DATE.eq(DSL.currentLocalDate())).execute();
+			transactionCtx.insertInto(UPDATES).set(UPDATES.UPDT_PK, updt_pk).set(UPDATES.UPDT_DATE, DSL.currentLocalDate()).execute();
 
 			// TODO: rewrite using a TableLike (basically a Row[])
 			// ... and w/o try-catch

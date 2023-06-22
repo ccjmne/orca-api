@@ -1,8 +1,7 @@
 package org.ccjmne.orca.api.demo;
 
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 
-import java.sql.Date;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -13,10 +12,10 @@ import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.jooq.classes.tables.Employees;
-import org.ccjmne.orca.jooq.classes.tables.Sites;
-import org.ccjmne.orca.jooq.classes.tables.records.EmployeesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.SitesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.Employees;
+import org.ccjmne.orca.jooq.codegen.tables.Sites;
+import org.ccjmne.orca.jooq.codegen.tables.records.EmployeesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.SitesRecord;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Record4;
@@ -113,10 +112,10 @@ public class FakeRecords {
 		                           String.format("E%04d", uniqueId), birthName, FakeRecords.anyFrom(FakeRecords.CITIES), "France");
 	}
 
-	public Table<Record4<Integer, Date, String, String>> sessions(final String outcome, final int amount) {
+	public Table<Record4<Integer, LocalDate, String, String>> sessions(final String outcome, final int amount) {
 		return DSL.values(IntStream.range(0, amount)
 				.mapToObj(i -> {
-					final Date date;
+					final LocalDate date;
 					switch (outcome) {
 						case Constants.TRNG_OUTCOME_CANCELLED:
 							date = FakeRecords.anyWithin(this.cancelledTraining);
@@ -149,8 +148,7 @@ public class FakeRecords {
 		return source.get(RANDOM.nextInt(source.size()));
 	}
 
-	private static Date anyWithin(final Range<LocalDate> dateRange) {
-		return Date.valueOf(LocalDate
-				.ofEpochDay(RANDOM.nextLong(dateRange.lowerEndpoint().toEpochDay(), dateRange.upperEndpoint().toEpochDay())));
+	private static LocalDate anyWithin(final Range<LocalDate> dateRange) {
+		return LocalDate.ofEpochDay(RANDOM.nextLong(dateRange.lowerEndpoint().toEpochDay(), dateRange.upperEndpoint().toEpochDay()));
 	}
 }

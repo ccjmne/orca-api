@@ -1,11 +1,10 @@
 package org.ccjmne.orca.api.rest.fetch;
 
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 
-import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -104,8 +103,7 @@ public class ResourcesByKeysEndpoint {
 												@QueryParam("date") final String dateStr,
 												@QueryParam("from") final String fromStr,
 												@QueryParam("to") final String toStr,
-												@QueryParam("completed") final Boolean completedOnly)
-			throws ParseException {
+												@QueryParam("completed") final Boolean completedOnly) {
 		return this.resources.listTrainings(empl_pk, types, dateStr, fromStr, toStr, completedOnly).intoMap(TRAININGS.TRNG_PK);
 	}
 }

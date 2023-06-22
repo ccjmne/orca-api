@@ -1,18 +1,18 @@
 package org.ccjmne.orca.api.utils;
 
-import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_VOIDINGS;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES_VOIDINGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_TRAINERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
 
 import java.math.BigDecimal;
-import java.sql.Date;
+import java.time.LocalDate;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.jooq.Condition;
@@ -30,11 +30,11 @@ public class StatisticsHelper {
 
 	private static final Integer DURATION_INFINITE = Integer.valueOf(0);
 
-	private static final Field<Date> MAX_EXPIRY = DSL.max(DSL
-			.when(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.eq(StatisticsHelper.DURATION_INFINITE), DSL.date(Constants.DATE_INFINITY))
+	private static final Field<LocalDate> MAX_EXPIRY = DSL.max(DSL
+			.when(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.eq(StatisticsHelper.DURATION_INFINITE), DSL.localDate(Constants.DATE_INFINITY))
 			.otherwise(TRAININGS.TRNG_DATE.plus(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.mul(new YearToMonth(0, 1)))));
 
-	private static final Field<Date> EXPIRY = DSL
+	private static final Field<LocalDate> EXPIRY = DSL
 			.when(
 					EMPLOYEES_VOIDINGS.EMVO_DATE.le(StatisticsHelper.MAX_EXPIRY),
 					EMPLOYEES_VOIDINGS.EMVO_DATE.sub(new DayToSecond(1)))
@@ -51,7 +51,7 @@ public class StatisticsHelper {
 				.otherwise(Constants.STATUS_DANGER);
 	}
 
-	private static Field<Date> fieldOptedOut(final String dateStr) {
+	private static Field<LocalDate> fieldOptedOut(final String dateStr) {
 		return DSL.field(EMPLOYEES_VOIDINGS.EMVO_DATE);
 	}
 

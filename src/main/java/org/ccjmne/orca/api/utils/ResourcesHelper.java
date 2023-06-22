@@ -1,7 +1,7 @@
 package org.ccjmne.orca.api.utils;
 
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
 
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -1,13 +1,12 @@
 package org.ccjmne.orca.api.demo;
 
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
 
-import java.sql.Date;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.Arrays;
@@ -16,9 +15,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.jooq.classes.tables.records.EmployeesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.SitesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.SitesTagsRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.EmployeesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.SitesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.SitesTagsRecord;
 import org.jooq.DSLContext;
 import org.jooq.Insert;
 import org.jooq.Record1;
@@ -62,7 +61,7 @@ public class DemoDataSitesEmployees {
 									.toArray(Row1[]::new)));
 
 		// Update dated from NCLS Development's birth day :)
-		final Integer update = ctx.insertInto(UPDATES, UPDATES.UPDT_DATE).values(Date.valueOf(LocalDate.of(2014, Month.DECEMBER, 8))).returning(UPDATES.UPDT_PK)
+		final Integer update = ctx.insertInto(UPDATES, UPDATES.UPDT_DATE).values(LocalDate.of(2014, Month.DECEMBER, 8)).returning(UPDATES.UPDT_PK)
 				.fetchOne()
 				.get(UPDATES.UPDT_PK);
 

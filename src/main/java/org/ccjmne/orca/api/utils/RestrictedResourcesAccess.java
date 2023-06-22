@@ -1,10 +1,10 @@
 package org.ccjmne.orca.api.utils;
 
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
 
 import java.util.List;
 import java.util.Map;

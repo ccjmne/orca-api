@@ -3,16 +3,15 @@ package org.ccjmne.orca.api.rest.fetch;
 import static org.ccjmne.orca.api.utils.Constants.STATUS_DANGER;
 import static org.ccjmne.orca.api.utils.Constants.STATUS_SUCCESS;
 import static org.ccjmne.orca.api.utils.Constants.STATUS_WARNING;
-import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
 
-import java.sql.Date;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -105,7 +104,7 @@ public class StatisticsEndpoint {
 			final List<TrainingsStatisticsBuilder> trainingsStatsBuilders = new ArrayList<>();
 
 			StatisticsEndpoint.computeDates(fromStr, toStr, interval).stream().reduce((cur, next) -> {
-				trainingsStatsBuilders.add(TrainingsStatistics.builder(certs, Range.<Date> closedOpen(cur, next)));
+				trainingsStatsBuilders.add(TrainingsStatistics.builder(certs, Range.<LocalDate> closedOpen(cur, next)));
 				return next;
 			});
 
@@ -366,13 +365,13 @@ public class StatisticsEndpoint {
 	private static void populateTrainingsStatsBuilders(
 														final List<TrainingsStatisticsBuilder> trainingsStatsBuilders,
 														final Iterable<Record> trainings,
-														final Function<Record, Date> dateMapper,
+														final Function<Record, LocalDate> dateMapper,
 														final BiConsumer<TrainingsStatisticsBuilder, Record> populateFunction) {
 		final Iterator<TrainingsStatisticsBuilder> iterator = trainingsStatsBuilders.iterator();
 		TrainingsStatisticsBuilder next = iterator.next();
 		for (final Record training : trainings) {
-			final Date relevantDate = dateMapper.apply(training);
-			if (relevantDate.before(next.getBeginning())) {
+			final LocalDate relevantDate = dateMapper.apply(training);
+			if (relevantDate.isBefore(next.getBeginning())) {
 				continue;
 			}
 
@@ -386,9 +385,9 @@ public class StatisticsEndpoint {
 		}
 	}
 
-	public static List<Date> computeDates(final String fromStr, final String toStr, final Integer intervalRaw)
+	public static List<LocalDate> computeDates(final String fromStr, final String toStr, final Integer intervalRaw)
 			throws ParseException {
-		final Date utmost = (toStr == null) ? new Date(new java.util.Date().getTime()) : SafeDateFormat.parseAsSql(toStr);
+		final LocalDate utmost = (toStr == null) ? LocalDate.now() : LocalDate.parse(toStr);
 		if (fromStr == null) {
 			return Collections.singletonList(utmost);
 		}
@@ -396,14 +395,14 @@ public class StatisticsEndpoint {
 		final int interval = (intervalRaw != null ? intervalRaw : DEFAULT_INTERVAL).intValue();
 		LocalDate cur = SafeDateFormat.parseAsSql(fromStr).toLocalDate();
 		if (interval == 0) {
-			return ImmutableList.<Date> of(Date.valueOf(cur), utmost);
+			return ImmutableList.<LocalDate> of(cur, utmost);
 		}
 
-		final List<Date> res = new ArrayList<>();
+		final List<LocalDate> res = new ArrayList<>();
 		do {
-			res.add(Date.valueOf(cur));
+			res.add(cur);
 			cur = cur.plusMonths(interval);
-		} while (cur.isBefore(utmost.toLocalDate()));
+		} while (cur.isBefore(utmost));
 
 		res.add(utmost);
 		return res;

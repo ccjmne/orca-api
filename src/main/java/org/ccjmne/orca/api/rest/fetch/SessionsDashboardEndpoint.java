@@ -1,9 +1,9 @@
 package org.ccjmne.orca.api.rest.fetch;
 
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_TRAINERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_TRAINERS;
 
 import java.util.Map;
 

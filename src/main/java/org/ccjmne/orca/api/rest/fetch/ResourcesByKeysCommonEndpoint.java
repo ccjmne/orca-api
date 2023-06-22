@@ -1,8 +1,8 @@
 package org.ccjmne.orca.api.rest.fetch;
 
-import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
-import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.codegen.Tables.CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 
 import java.util.Map;
 
@@ -11,7 +11,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
-import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.CertificatesRecord;
 
 import com.google.common.collect.Maps;
 

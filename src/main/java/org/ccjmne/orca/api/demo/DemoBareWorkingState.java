@@ -1,13 +1,13 @@
 package org.ccjmne.orca.api.demo;
 
-import static org.ccjmne.orca.jooq.classes.Tables.CLIENT;
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES;
-import static org.ccjmne.orca.jooq.classes.Tables.USERS;
-import static org.ccjmne.orca.jooq.classes.Tables.USERS_ROLES;
+import static org.ccjmne.orca.jooq.codegen.Tables.CLIENT;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAINERPROFILES;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS_ROLES;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 import org.ccjmne.orca.api.rest.pub.ClientEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
@@ -71,7 +71,7 @@ public class DemoBareWorkingState {
 						Constants.EMPLOYEE_ROOT,
 						"Admin",
 						DEMO_CLIENT_ID,
-						new java.sql.Date(new Date().getTime()),
+						LocalDate.now(),
 						Boolean.valueOf(false),
 						Boolean.valueOf(false),
 						"::root::employee")

@@ -1,19 +1,18 @@
 package org.ccjmne.orca.api.rest.fetch;
 
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_VOIDINGS;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
-import static org.ccjmne.orca.jooq.classes.Tables.UPDATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES_VOIDINGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
 
-import java.sql.Date;
-import java.text.ParseException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,10 +32,9 @@ import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.RestrictedResourcesAccess;
-import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
-import org.ccjmne.orca.jooq.classes.tables.records.TrainingsEmployeesRecord;
-import org.ccjmne.orca.jooq.classes.tables.records.UpdatesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.TrainingsEmployeesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.UpdatesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.JoinType;
@@ -219,15 +217,14 @@ public class ResourcesEndpoint {
 										@QueryParam("date") final String dateStr,
 										@QueryParam("from") final String fromStr,
 										@QueryParam("to") final String toStr,
-										@QueryParam("completed") final Boolean completedOnly)
-			throws ParseException {
+										@QueryParam("completed") final Boolean completedOnly) {
 		if (!this.restrictions.canAccessTrainings()) {
 			throw new ForbiddenException();
 		}
 
-		final Date date = dateStr == null ? null : SafeDateFormat.parseAsSql(dateStr);
-		final Date from = fromStr == null ? null : SafeDateFormat.parseAsSql(fromStr);
-		final Date to = toStr == null ? null : SafeDateFormat.parseAsSql(toStr);
+        final Field<LocalDate> date = dateStr == null ? null : DSL.localDate(dateStr);
+        final Field<LocalDate> from = fromStr == null ? null : DSL.localDate(fromStr);
+        final Field<LocalDate> to = toStr == null ? null : DSL.localDate(toStr);
 
 		try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
 			query.addSelect(TRAININGS.fields());

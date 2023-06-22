@@ -1,6 +1,6 @@
 package org.ccjmne.orca.api.rest.utils;
 
-import static org.ccjmne.orca.jooq.classes.Tables.USERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;

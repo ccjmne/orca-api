@@ -1,11 +1,11 @@
 package org.ccjmne.orca.api.rest.admin;
 
-import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGS_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAINERPROFILES_TRAININGTYPES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
 
 import java.util.Collections;
 import java.util.Map;
@@ -24,7 +24,7 @@ import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.Transactions;
-import org.ccjmne.orca.jooq.classes.Sequences;
+import org.ccjmne.orca.jooq.codegen.Sequences;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Row2;

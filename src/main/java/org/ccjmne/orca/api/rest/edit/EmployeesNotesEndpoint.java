@@ -1,8 +1,9 @@
 package org.ccjmne.orca.api.rest.edit;
 
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.EMPLOYEES_VOIDINGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES_VOIDINGS;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -48,7 +49,7 @@ public class EmployeesNotesEndpoint {
 	public void optOut(
 						@PathParam("empl_pk") final Integer empl_pk,
 						@QueryParam("cert_pk") final Integer cert_pk,
-						@QueryParam("date") final java.sql.Date date,
+						@QueryParam("date") final LocalDate date,
 						final Map<String, String> data) {
 		if (this.ctx.fetchExists(DSL.selectFrom(EMPLOYEES_VOIDINGS).where(EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(empl_pk))
 				.and(EMPLOYEES_VOIDINGS.EMVO_CERT_FK.eq(cert_pk)))) {

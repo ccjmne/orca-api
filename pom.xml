@@ -60,8 +60,8 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.ccjmne.orca</groupId>
-			<artifactId>orca-jooq-generation</artifactId>
-			<version>1.8.5</version>
+			<artifactId>orca-jooq-codegen</artifactId>
+			<version>2.4.0</version>
 		</dependency>
 
 		<!-- AWS INTEGRATION -->

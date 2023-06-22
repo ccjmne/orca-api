@@ -1,11 +1,11 @@
 package org.ccjmne.orca.api.modules;
 
-import static org.ccjmne.orca.jooq.classes.Tables.CERTIFICATES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TAGS;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
 
 import java.util.Collections;
 import java.util.List;
@@ -16,7 +16,7 @@ import javax.inject.Inject;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.RestrictedResourcesAccess;
-import org.ccjmne.orca.jooq.classes.tables.records.CertificatesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.CertificatesRecord;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.JoinType;

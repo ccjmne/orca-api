@@ -1,8 +1,8 @@
 package org.ccjmne.orca.api.rest.admin;
 
-import static org.ccjmne.orca.jooq.classes.Tables.SITES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_EMPLOYEES;
-import static org.ccjmne.orca.jooq.classes.Tables.SITES_TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_EMPLOYEES;
+import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
 
 import java.util.Collections;
 import java.util.Map;
@@ -23,8 +23,8 @@ import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.Transactions;
-import org.ccjmne.orca.jooq.classes.Sequences;
-import org.ccjmne.orca.jooq.classes.tables.records.SitesTagsRecord;
+import org.ccjmne.orca.jooq.codegen.Sequences;
+import org.ccjmne.orca.jooq.codegen.tables.records.SitesTagsRecord;
 import org.jooq.DSLContext;
 
 @Path("sites")

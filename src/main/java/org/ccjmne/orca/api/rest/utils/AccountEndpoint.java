@@ -1,10 +1,10 @@
 package org.ccjmne.orca.api.rest.utils;
 
-import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES;
-import static org.ccjmne.orca.jooq.classes.Tables.TRAINERPROFILES_TRAININGTYPES;
-import static org.ccjmne.orca.jooq.classes.Tables.USERS;
-import static org.ccjmne.orca.jooq.classes.Tables.USERS_CERTIFICATES;
-import static org.ccjmne.orca.jooq.classes.Tables.USERS_ROLES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAINERPROFILES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAINERPROFILES_TRAININGTYPES;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.USERS_ROLES;
 
 import java.util.List;
 import java.util.Map;
