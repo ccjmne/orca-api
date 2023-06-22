@@ -41,7 +41,7 @@
 	<properties>
 		<jackson.version>2.15.2</jackson.version>
 		<jersey.version>2.15</jersey.version>
-		<jooq.version>3.11.9</jooq.version>
+		<jooq.version>3.13.4</jooq.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
