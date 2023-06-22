@@ -106,9 +106,10 @@ public class FakeRecords {
     final boolean isMale = RANDOM.nextBoolean();
     final String firstName = FakeRecords.anyFrom(FakeRecords.FIRST_NAMES.get(isMale ? "male" : "female"));
     final String surname = FakeRecords.anyFrom(FakeRecords.LAST_NAMES);
+    final String birthName = RANDOM.nextFloat() > .9 ? FakeRecords.anyFrom(FakeRecords.LAST_NAMES) : null;
     return new EmployeesRecord(null, firstName, surname, FakeRecords.anyWithin(this.dobRange), Boolean.valueOf(RANDOM.nextBoolean()),
                                FakeRecords.asEmail(String.format("%s.%s", firstName, surname)), "", Boolean.valueOf(isMale),
-                               String.format("E%04d", uniqueId));
+                               String.format("E%04d", uniqueId), birthName, FakeRecords.anyFrom(FakeRecords.CITIES), "France");
   }
 
   public Table<Record4<Integer, LocalDate, String, String>> sessions(final String outcome, final int amount) {
