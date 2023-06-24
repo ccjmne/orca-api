@@ -49,12 +49,12 @@ public class EmployeesNotesEndpoint {
 	public void optOut(
 						@PathParam("empl_pk") final Integer empl_pk,
 						@QueryParam("cert_pk") final Integer cert_pk,
-						@QueryParam("date") final LocalDate date,
+						@QueryParam("date") final String date,
 						final Map<String, String> data) {
 		if (this.ctx.fetchExists(DSL.selectFrom(EMPLOYEES_VOIDINGS).where(EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(empl_pk))
 				.and(EMPLOYEES_VOIDINGS.EMVO_CERT_FK.eq(cert_pk)))) {
 			this.ctx.update(EMPLOYEES_VOIDINGS)
-					.set(EMPLOYEES_VOIDINGS.EMVO_DATE, date)
+					.set(EMPLOYEES_VOIDINGS.EMVO_DATE, LocalDate.parse(date))
 					.set(EMPLOYEES_VOIDINGS.EMVO_REASON, data.get(EMPLOYEES_VOIDINGS.EMVO_REASON.getName()))
 					.where(EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(empl_pk)).and(EMPLOYEES_VOIDINGS.EMVO_CERT_FK.eq(cert_pk))
 					.execute();
@@ -65,7 +65,7 @@ public class EmployeesNotesEndpoint {
 								EMPLOYEES_VOIDINGS.EMVO_CERT_FK,
 								EMPLOYEES_VOIDINGS.EMVO_DATE,
 								EMPLOYEES_VOIDINGS.EMVO_REASON)
-					.values(empl_pk, cert_pk, date, data.get(EMPLOYEES_VOIDINGS.EMVO_REASON.getName())).execute();
+					.values(empl_pk, cert_pk, LocalDate.parse(date), data.get(EMPLOYEES_VOIDINGS.EMVO_REASON.getName())).execute();
 		}
 	}
 
