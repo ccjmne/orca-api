@@ -1,0 +1,5 @@
+{
+  "java.format.settings.url": "java-formatter-ccjmne.xml",
+  "java.format.enabled": true,
+  "java.format.settings.profile": "orca-api:pre-revamp"
+}
