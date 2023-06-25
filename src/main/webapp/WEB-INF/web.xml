@@ -115,6 +115,7 @@
 		<web-resource-collection>
 			<web-resource-name>Data fetching API</web-resource-name>
 
+			<url-pattern>/annual-reports/*</url-pattern>
 			<url-pattern>/statistics/*</url-pattern>
 			<url-pattern>/sessions-dashboard/*</url-pattern>
 			<url-pattern>/resources/*</url-pattern>
