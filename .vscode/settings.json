@@ -1,5 +1,6 @@
 {
   "java.format.settings.url": "java-formatter-ccjmne.xml",
   "java.format.enabled": true,
-  "java.format.settings.profile": "orca-api:pre-revamp"
+  "java.format.settings.profile": "orca-api:pre-revamp",
+  "rsp-ui.rsp.java.home": "/home/ccjmne/.sdkman/candidates/java/11.0.17-tem"
 }
