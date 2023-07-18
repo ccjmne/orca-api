@@ -12,7 +12,6 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
 
-import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,7 +38,6 @@ import org.ccjmne.orca.api.rest.resources.TrainingsStatistics.TrainingsStatistic
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
 import org.ccjmne.orca.api.utils.RestrictedResourcesAccess;
-import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.StatisticsHelper;
 import org.jooq.DSLContext;
 import org.jooq.Record;
@@ -88,8 +86,7 @@ public class StatisticsEndpoint {
 	public Map<Integer, Iterable<TrainingsStatistics>> getTrainingsStats(
 																			@QueryParam("from") final String fromStr,
 																			@QueryParam("to") final String toStr,
-																			@QueryParam("interval") final List<Integer> intervals)
-			throws ParseException {
+																			@QueryParam("interval") final List<Integer> intervals) {
 		if (!this.restrictions.canAccessTrainings()) {
 			throw new ForbiddenException();
 		}
@@ -174,8 +171,7 @@ public class StatisticsEndpoint {
 															@QueryParam("from") final String from,
 															@QueryParam("to") final String to,
 															@QueryParam("interval") final Integer interval,
-															@Context final UriInfo uriInfo)
-			throws ParseException {
+															@Context final UriInfo uriInfo) {
 		return StatisticsEndpoint.computeDates(from, to, interval).stream()
 				.map(date -> Collections.singletonMap(date, this.getSitesGroupsStats(null, date.toString(), uriInfo)
 						.getOrDefault(Constants.TAGS_VALUE_UNIVERSAL, Collections.emptyMap())))
@@ -193,8 +189,7 @@ public class StatisticsEndpoint {
 															@PathParam("sita_value") final String sita_value,
 															@QueryParam("from") final String from,
 															@QueryParam("to") final String to,
-															@QueryParam("interval") final Integer interval)
-			throws ParseException {
+															@QueryParam("interval") final Integer interval) {
 		return StatisticsEndpoint.computeDates(from, to, interval).stream()
 				.map(date -> Collections.singletonMap(date, this.getSitesGroupStats(tags_pk, sita_value, date.toString())))
 				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
@@ -277,8 +272,7 @@ public class StatisticsEndpoint {
 													@PathParam("site_pk") final Integer site_pk,
 													@QueryParam("from") final String from,
 													@QueryParam("to") final String to,
-													@QueryParam("interval") final Integer interval)
-			throws ParseException {
+													@QueryParam("interval") final Integer interval) {
 		return StatisticsEndpoint.computeDates(from, to, interval).stream()
 				.map(date -> Collections.singletonMap(date, this.getSiteStats(site_pk, date.toString())))
 				.reduce(ImmutableMap.<Object, Object> builder(), (res, entry) -> res.putAll(entry), (m1, m2) -> m1.putAll(m2.build())).build();
@@ -385,15 +379,14 @@ public class StatisticsEndpoint {
 		}
 	}
 
-	public static List<LocalDate> computeDates(final String fromStr, final String toStr, final Integer intervalRaw)
-			throws ParseException {
+	public static List<LocalDate> computeDates(final String fromStr, final String toStr, final Integer intervalRaw) {
 		final LocalDate utmost = (toStr == null) ? LocalDate.now() : LocalDate.parse(toStr);
 		if (fromStr == null) {
 			return Collections.singletonList(utmost);
 		}
 
 		final int interval = (intervalRaw != null ? intervalRaw : DEFAULT_INTERVAL).intValue();
-		LocalDate cur = SafeDateFormat.parseAsSql(fromStr).toLocalDate();
+		LocalDate cur = LocalDate.parse(fromStr);
 		if (interval == 0) {
 			return ImmutableList.<LocalDate> of(cur, utmost);
 		}

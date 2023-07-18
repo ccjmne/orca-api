@@ -28,7 +28,6 @@ public class CustomObjectMapper extends ObjectMapper {
 
     public CustomObjectMapper() {
         disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        setDateFormat(SafeDateFormat.getDateFormat());
         registerModule(new AllKindsOfDatesSerialiserModule());
         registerModule(new JOOQResultsSerialiserModule());
         registerModule(new AfterburnerModule());
@@ -45,13 +44,13 @@ public class CustomObjectMapper extends ObjectMapper {
 
                       @Override
                       public void serialize(final java.sql.Date value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException {
-                          provider.findValueSerializer(java.util.Date.class).serialize(new java.util.Date(value.getTime()), jgen, provider);
+                          provider.findValueSerializer(LocalDate.class).serialize(value.toLocalDate(), jgen, provider);
                       }
                   }, new StdSerializer<LocalDate>(LocalDate.class, false) {
 
                       @Override
                       public void serialize(final LocalDate value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException {
-                          provider.findValueSerializer(java.sql.Date.class).serialize(java.sql.Date.valueOf(value), jgen, provider);
+                          jgen.writeString(Constants.DATE_INFINITY.equals(value) ? Constants.DATE_INFINITY_LITERAL : value.toString());
                       }
                   }));
         }

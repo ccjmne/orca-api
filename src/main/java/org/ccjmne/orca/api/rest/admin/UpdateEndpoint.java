@@ -5,7 +5,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.SITES_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
-import java.text.ParseException;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +22,6 @@ import javax.ws.rs.core.MediaType;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
-import org.ccjmne.orca.api.utils.SafeDateFormat;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.ccjmne.orca.jooq.codegen.Sequences;
 import org.ccjmne.orca.jooq.codegen.tables.records.SitesEmployeesRecord;
@@ -68,8 +67,6 @@ public class UpdateEndpoint {
 				}
 
 				query.execute();
-			} catch (final ParseException e) {
-				throw new RuntimeException(e);
 			}
 
 			// Remove all privileges of the unassigned employees
@@ -105,12 +102,12 @@ public class UpdateEndpoint {
 		return res.toString();
 	}
 
-	private static Integer updateEmployee(final Map<String, Object> employee, final DSLContext context) throws ParseException {
+	private static Integer updateEmployee(final Map<String, Object> employee, final DSLContext context) {
 		final Integer empl_pk = (Integer) employee.get(EMPLOYEES.EMPL_PK.getName());
 		final Map<TableField<?, ?>, Object> record = new HashMap<>();
 		record.put(EMPLOYEES.EMPL_FIRSTNAME, UpdateEndpoint.titleCase((String) employee.get(EMPLOYEES.EMPL_FIRSTNAME.getName())));
 		record.put(EMPLOYEES.EMPL_SURNAME, ((String) employee.get(EMPLOYEES.EMPL_SURNAME.getName())).toUpperCase());
-		record.put(EMPLOYEES.EMPL_DOB, SafeDateFormat.parseAsSql((String) employee.get(EMPLOYEES.EMPL_DOB.getName())));
+		record.put(EMPLOYEES.EMPL_DOB, LocalDate.parse((String) employee.get(EMPLOYEES.EMPL_DOB.getName())));
 		record.put(EMPLOYEES.EMPL_PERMANENT, Boolean.valueOf("CDI".equalsIgnoreCase((String) employee.get(EMPLOYEES.EMPL_PERMANENT.getName()))));
 		record.put(EMPLOYEES.EMPL_GENDER, Boolean.valueOf(GENDER_REGEX.matcher((String) employee.get(EMPLOYEES.EMPL_GENDER.getName())).find(0)));
 		record.put(EMPLOYEES.EMPL_ADDRESS, employee.get(EMPLOYEES.EMPL_ADDRESS.getName()));
