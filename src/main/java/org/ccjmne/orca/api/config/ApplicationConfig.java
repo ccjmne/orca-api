@@ -10,14 +10,15 @@ import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.utils.CustomObjectMapper;
 import org.ccjmne.orca.api.utils.PostgresDSLContext;
 import org.ccjmne.orca.api.utils.RestrictedResourcesAccess;
-import org.ccjmne.orca.api.utils.S3Client;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.process.internal.RequestScoped;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.jooq.DSLContext;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ApplicationConfig extends ResourceConfig {
@@ -35,7 +36,10 @@ public class ApplicationConfig extends ResourceConfig {
 				bind(ResourcesUnrestricted.class).to(ResourcesUnrestricted.class).in(Singleton.class);
 				bind(RestrictedResourcesAccess.class).to(RestrictedResourcesAccess.class).in(RequestScoped.class);
 				bind(Restrictions.class).to(Restrictions.class).in(RequestScoped.class);
-				bind(S3Client.class).to(AmazonS3Client.class).in(Singleton.class);
+				bind(AmazonS3ClientBuilder.standard()
+                    .withRegion(Regions.EU_WEST_1)
+                    .withDualstackEnabled(Boolean.TRUE)
+                    .build()).to(AmazonS3.class);
 			}
 		});
 
