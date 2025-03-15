@@ -12,7 +12,7 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - ./orca-schema-2025-03-15.sql:/docker-entrypoint-initdb.d/orca-schema.sql
+      - ./initdb.d:/docker-entrypoint-initdb.d
       - orca-db-volume:/var/lib/postgresql/data
 
 volumes:
