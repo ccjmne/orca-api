@@ -10,8 +10,9 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: orca
     ports:
-      - "5432:5432"
+      - 5432:5432
     volumes:
+      - ./orca-schema-2025-03-15.sql:/docker-entrypoint-initdb.d/orca-schema.sql
       - orca-db-volume:/var/lib/postgresql/data
 
 volumes:
