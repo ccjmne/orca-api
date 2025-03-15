@@ -16,17 +16,122 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS users_sites_fk;
+ALTER TABLE IF EXISTS ONLY public.users_roles DROP CONSTRAINT IF EXISTS users_roles_users_fk;
+ALTER TABLE IF EXISTS ONLY public.users_roles DROP CONSTRAINT IF EXISTS users_roles_trainerprofiles_fk;
+ALTER TABLE IF EXISTS ONLY public.users_certificates DROP CONSTRAINT IF EXISTS users_certificates_users_fk;
+ALTER TABLE IF EXISTS ONLY public.users_certificates DROP CONSTRAINT IF EXISTS users_certificates_certificates_fk;
+ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS user_empl_fk;
+ALTER TABLE IF EXISTS ONLY public.trainings_trainers DROP CONSTRAINT IF EXISTS trtr_trng_fk;
+ALTER TABLE IF EXISTS ONLY public.trainings_trainers DROP CONSTRAINT IF EXISTS trtr_empl_fk;
+ALTER TABLE IF EXISTS ONLY public.trainings_employees DROP CONSTRAINT IF EXISTS trem_trng_fk;
+ALTER TABLE IF EXISTS ONLY public.trainings_employees DROP CONSTRAINT IF EXISTS trem_empl_fk;
+ALTER TABLE IF EXISTS ONLY public.trainerprofiles_trainingtypes DROP CONSTRAINT IF EXISTS trainerprofiles_trainingtypes_trainingtypes_fk;
+ALTER TABLE IF EXISTS ONLY public.trainerprofiles_trainingtypes DROP CONSTRAINT IF EXISTS trainerprofiles_trainingtypes_trainerprofiles_fk;
+ALTER TABLE IF EXISTS ONLY public.sites_tags DROP CONSTRAINT IF EXISTS "sita_tags_fk -> tags";
+ALTER TABLE IF EXISTS ONLY public.sites_tags DROP CONSTRAINT IF EXISTS "sita_site_fk -> sites";
+ALTER TABLE IF EXISTS ONLY public.sites_employees DROP CONSTRAINT IF EXISTS siem_site_fk;
+ALTER TABLE IF EXISTS ONLY public.sites_employees DROP CONSTRAINT IF EXISTS siem_empl_fk;
+ALTER TABLE IF EXISTS ONLY public.sites_employees DROP CONSTRAINT IF EXISTS fk_updates_updt_pk;
+ALTER TABLE IF EXISTS ONLY public.trainings DROP CONSTRAINT IF EXISTS fk_trainingtypes_trty_pk;
+ALTER TABLE IF EXISTS ONLY public.trainingtypes_certificates DROP CONSTRAINT IF EXISTS fk_trainingtypes_trty_pk;
+ALTER TABLE IF EXISTS ONLY public.trainingtypes_certificates DROP CONSTRAINT IF EXISTS fk_certificates_cert_pk;
+ALTER TABLE IF EXISTS ONLY public.employees_voidings DROP CONSTRAINT IF EXISTS emvo_empl_fk;
+ALTER TABLE IF EXISTS ONLY public.employees_voidings DROP CONSTRAINT IF EXISTS emvo_cert_fk;
+DROP INDEX IF EXISTS public.updt_date_idx;
+DROP INDEX IF EXISTS public.trng_date_idx;
+DROP INDEX IF EXISTS public.site_pk_idx;
+DROP INDEX IF EXISTS public.fki_trng_trty_fk;
+DROP INDEX IF EXISTS public.fki_trem_trng_fk;
+DROP INDEX IF EXISTS public.fki_siem_updt_fk;
+DROP INDEX IF EXISTS public.fki_siem_site_fk;
+DROP INDEX IF EXISTS public.fki_siem_empl_fk;
+DROP INDEX IF EXISTS public.empl_pk_idx;
+ALTER TABLE IF EXISTS ONLY public.users_roles DROP CONSTRAINT IF EXISTS users_roles_pk;
+ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS user_site_fk_uniq;
+ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS user_pk;
+ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS user_empl_fk_uniq;
+ALTER TABLE IF EXISTS ONLY public.updates DROP CONSTRAINT IF EXISTS updt_pk;
+ALTER TABLE IF EXISTS ONLY public.sites_employees DROP CONSTRAINT IF EXISTS updt_empl_uniq;
+ALTER TABLE IF EXISTS ONLY public.sites DROP CONSTRAINT IF EXISTS uniq_site_external_id;
+ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS uniq_empl_external_id;
+ALTER TABLE IF EXISTS ONLY public.configs DROP CONSTRAINT IF EXISTS "uniq on conf_type & conf_name";
+ALTER TABLE IF EXISTS ONLY public.sites_tags DROP CONSTRAINT IF EXISTS "uniq (sita_site_fk, sita_tags_fk)";
+ALTER TABLE IF EXISTS ONLY public.trainingtypes DROP CONSTRAINT IF EXISTS trty_pk;
+ALTER TABLE IF EXISTS ONLY public.trainings_employees DROP CONSTRAINT IF EXISTS trng_trem_uniq;
+ALTER TABLE IF EXISTS ONLY public.trainings DROP CONSTRAINT IF EXISTS trng_pk;
+ALTER TABLE IF EXISTS ONLY public.trainings_trainers DROP CONSTRAINT IF EXISTS trng_empl_uniq;
+ALTER TABLE IF EXISTS ONLY public.trainings_employees DROP CONSTRAINT IF EXISTS trem_pk;
+ALTER TABLE IF EXISTS ONLY public.trainerprofiles_trainingtypes DROP CONSTRAINT IF EXISTS trainerprofiles_trainingtypes_pk;
+ALTER TABLE IF EXISTS ONLY public.trainerprofiles DROP CONSTRAINT IF EXISTS trainerprofiles_pk;
+ALTER TABLE IF EXISTS ONLY public.tags DROP CONSTRAINT IF EXISTS tags_pk;
+ALTER TABLE IF EXISTS ONLY public.tags DROP CONSTRAINT IF EXISTS tags_order_uniq;
+ALTER TABLE IF EXISTS ONLY public.sites DROP CONSTRAINT IF EXISTS site_pk;
+ALTER TABLE IF EXISTS ONLY public.sites_tags DROP CONSTRAINT IF EXISTS sita_pk;
+ALTER TABLE IF EXISTS ONLY public.trainingtypes DROP CONSTRAINT IF EXISTS order_uniq;
+ALTER TABLE IF EXISTS ONLY public.trainingtypes_certificates DROP CONSTRAINT IF EXISTS fk_combination_uniq;
+ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS empl_pk;
+ALTER TABLE IF EXISTS ONLY public.employees_voidings DROP CONSTRAINT IF EXISTS emce_pk;
+ALTER TABLE IF EXISTS ONLY public.configs DROP CONSTRAINT IF EXISTS conf_pk;
+ALTER TABLE IF EXISTS ONLY public.client DROP CONSTRAINT IF EXISTS client_pk;
+ALTER TABLE IF EXISTS ONLY public.certificates DROP CONSTRAINT IF EXISTS cert_pk;
+ALTER TABLE IF EXISTS ONLY public.certificates DROP CONSTRAINT IF EXISTS cert_order_uniq;
+ALTER TABLE IF EXISTS public.updates ALTER COLUMN updt_pk DROP DEFAULT;
+ALTER TABLE IF EXISTS public.trainingtypes ALTER COLUMN trty_pk DROP DEFAULT;
+ALTER TABLE IF EXISTS public.trainings_employees ALTER COLUMN trem_pk DROP DEFAULT;
+ALTER TABLE IF EXISTS public.trainings ALTER COLUMN trng_pk DROP DEFAULT;
+ALTER TABLE IF EXISTS public.trainerprofiles ALTER COLUMN trpr_pk DROP DEFAULT;
+ALTER TABLE IF EXISTS public.tags ALTER COLUMN tags_pk DROP DEFAULT;
+ALTER TABLE IF EXISTS public.sites ALTER COLUMN site_pk DROP DEFAULT;
+ALTER TABLE IF EXISTS public.employees ALTER COLUMN empl_pk DROP DEFAULT;
+ALTER TABLE IF EXISTS public.configs ALTER COLUMN conf_pk DROP DEFAULT;
+ALTER TABLE IF EXISTS public.certificates ALTER COLUMN cert_pk DROP DEFAULT;
+DROP TABLE IF EXISTS public.users_roles;
+DROP TABLE IF EXISTS public.users_certificates;
+DROP TABLE IF EXISTS public.users;
+DROP SEQUENCE IF EXISTS public.updates_updt_pk_seq;
+DROP TABLE IF EXISTS public.updates;
+DROP SEQUENCE IF EXISTS public.trainingtypes_trty_pk_seq;
+DROP TABLE IF EXISTS public.trainingtypes_certificates;
+DROP TABLE IF EXISTS public.trainingtypes;
+DROP SEQUENCE IF EXISTS public.trty_order_seq;
+DROP SEQUENCE IF EXISTS public.trainings_trng_pk_seq;
+DROP TABLE IF EXISTS public.trainings_trainers;
+DROP SEQUENCE IF EXISTS public.trainings_employees_trem_pk_seq;
+DROP TABLE IF EXISTS public.trainings_employees;
+DROP TABLE IF EXISTS public.trainings;
+DROP SEQUENCE IF EXISTS public.trainerprofiles_trpr_pk2_seq;
+DROP TABLE IF EXISTS public.trainerprofiles_trainingtypes;
+DROP TABLE IF EXISTS public.trainerprofiles;
+DROP SEQUENCE IF EXISTS public.tags_tags_pk_seq;
+DROP TABLE IF EXISTS public.tags;
+DROP SEQUENCE IF EXISTS public.tags_order_seq;
+DROP TABLE IF EXISTS public.sites_tags;
+DROP SEQUENCE IF EXISTS public.sites_site_pk_seq;
+DROP TABLE IF EXISTS public.sites_employees;
+DROP TABLE IF EXISTS public.sites;
+DROP TABLE IF EXISTS public.employees_voidings;
+DROP SEQUENCE IF EXISTS public.employees_empl_pk_seq;
+DROP TABLE IF EXISTS public.employees;
+DROP SEQUENCE IF EXISTS public.configs_conf_pk_seq;
+DROP TABLE IF EXISTS public.configs;
+DROP TABLE IF EXISTS public.client;
+DROP SEQUENCE IF EXISTS public.certificates_cert_pk_seq;
+DROP TABLE IF EXISTS public.certificates;
+DROP SEQUENCE IF EXISTS public.cert_order_seq;
+DROP FUNCTION IF EXISTS public.make_into_serial(table_name text, column_name text);
+DROP FUNCTION IF EXISTS public.f_unaccent(text);
+DROP FUNCTION IF EXISTS public.f_concat_ws(VARIADIC text[]);
+-- *not* dropping schema, since initdb creates it
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: orcadb_root
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
 -- *not* creating schema, since initdb creates it
 
 
-ALTER SCHEMA public OWNER TO orcadb_root;
-
 --
--- Name: f_concat_ws(text[]); Type: FUNCTION; Schema: public; Owner: orcadb_root
+-- Name: f_concat_ws(text[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.f_concat_ws(VARIADIC text[]) RETURNS text
@@ -36,10 +141,8 @@ SELECT pg_catalog.concat_ws(' '::text, VARIADIC $1)  -- schema-qualify function 
 $_$;
 
 
-ALTER FUNCTION public.f_concat_ws(VARIADIC text[]) OWNER TO orcadb_root;
-
 --
--- Name: f_unaccent(text); Type: FUNCTION; Schema: public; Owner: orcadb_root
+-- Name: f_unaccent(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.f_unaccent(text) RETURNS text
@@ -49,10 +152,8 @@ SELECT public.unaccent('public.unaccent', $1)  -- schema-qualify function and di
 $_$;
 
 
-ALTER FUNCTION public.f_unaccent(text) OWNER TO orcadb_root;
-
 --
--- Name: make_into_serial(text, text); Type: FUNCTION; Schema: public; Owner: orcadb_root
+-- Name: make_into_serial(text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.make_into_serial(table_name text, column_name text) RETURNS integer
@@ -75,10 +176,8 @@ END;
 $$;
 
 
-ALTER FUNCTION public.make_into_serial(table_name text, column_name text) OWNER TO orcadb_root;
-
 --
--- Name: cert_order_seq; Type: SEQUENCE; Schema: public; Owner: orcadb_root
+-- Name: cert_order_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.cert_order_seq
@@ -89,14 +188,12 @@ CREATE SEQUENCE public.cert_order_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.cert_order_seq OWNER TO orcadb_root;
-
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
--- Name: certificates; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: certificates; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.certificates (
@@ -109,10 +206,8 @@ CREATE TABLE public.certificates (
 );
 
 
-ALTER TABLE public.certificates OWNER TO orcadb_root;
-
 --
--- Name: certificates_cert_pk_seq; Type: SEQUENCE; Schema: public; Owner: orcadb_root
+-- Name: certificates_cert_pk_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.certificates_cert_pk_seq
@@ -123,17 +218,15 @@ CREATE SEQUENCE public.certificates_cert_pk_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.certificates_cert_pk_seq OWNER TO orcadb_root;
-
 --
--- Name: certificates_cert_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: orcadb_root
+-- Name: certificates_cert_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.certificates_cert_pk_seq OWNED BY public.certificates.cert_pk;
 
 
 --
--- Name: client; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: client; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.client (
@@ -145,10 +238,8 @@ CREATE TABLE public.client (
 );
 
 
-ALTER TABLE public.client OWNER TO orcadb_root;
-
 --
--- Name: configs; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: configs; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.configs (
@@ -160,10 +251,8 @@ CREATE TABLE public.configs (
 );
 
 
-ALTER TABLE public.configs OWNER TO orcadb_root;
-
 --
--- Name: configs_conf_pk_seq; Type: SEQUENCE; Schema: public; Owner: orcadb_root
+-- Name: configs_conf_pk_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.configs_conf_pk_seq
@@ -174,17 +263,15 @@ CREATE SEQUENCE public.configs_conf_pk_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.configs_conf_pk_seq OWNER TO orcadb_root;
-
 --
--- Name: configs_conf_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: orcadb_root
+-- Name: configs_conf_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.configs_conf_pk_seq OWNED BY public.configs.conf_pk;
 
 
 --
--- Name: employees; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: employees; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.employees (
@@ -203,10 +290,8 @@ CREATE TABLE public.employees (
 );
 
 
-ALTER TABLE public.employees OWNER TO orcadb_root;
-
 --
--- Name: employees_empl_pk_seq; Type: SEQUENCE; Schema: public; Owner: orcadb_root
+-- Name: employees_empl_pk_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.employees_empl_pk_seq
@@ -217,17 +302,15 @@ CREATE SEQUENCE public.employees_empl_pk_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.employees_empl_pk_seq OWNER TO orcadb_root;
-
 --
--- Name: employees_empl_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: orcadb_root
+-- Name: employees_empl_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.employees_empl_pk_seq OWNED BY public.employees.empl_pk;
 
 
 --
--- Name: employees_voidings; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: employees_voidings; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.employees_voidings (
@@ -238,10 +321,8 @@ CREATE TABLE public.employees_voidings (
 );
 
 
-ALTER TABLE public.employees_voidings OWNER TO orcadb_root;
-
 --
--- Name: sites; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: sites; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.sites (
@@ -253,10 +334,8 @@ CREATE TABLE public.sites (
 );
 
 
-ALTER TABLE public.sites OWNER TO orcadb_root;
-
 --
--- Name: sites_employees; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: sites_employees; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.sites_employees (
@@ -266,10 +345,8 @@ CREATE TABLE public.sites_employees (
 );
 
 
-ALTER TABLE public.sites_employees OWNER TO orcadb_root;
-
 --
--- Name: sites_site_pk_seq; Type: SEQUENCE; Schema: public; Owner: orcadb_root
+-- Name: sites_site_pk_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.sites_site_pk_seq
@@ -280,17 +357,15 @@ CREATE SEQUENCE public.sites_site_pk_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.sites_site_pk_seq OWNER TO orcadb_root;
-
 --
--- Name: sites_site_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: orcadb_root
+-- Name: sites_site_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.sites_site_pk_seq OWNED BY public.sites.site_pk;
 
 
 --
--- Name: sites_tags; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: sites_tags; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.sites_tags (
@@ -300,10 +375,8 @@ CREATE TABLE public.sites_tags (
 );
 
 
-ALTER TABLE public.sites_tags OWNER TO orcadb_root;
-
 --
--- Name: tags_order_seq; Type: SEQUENCE; Schema: public; Owner: orcadb_root
+-- Name: tags_order_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.tags_order_seq
@@ -314,10 +387,8 @@ CREATE SEQUENCE public.tags_order_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.tags_order_seq OWNER TO orcadb_root;
-
 --
--- Name: tags; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: tags; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.tags (
@@ -331,10 +402,8 @@ CREATE TABLE public.tags (
 );
 
 
-ALTER TABLE public.tags OWNER TO orcadb_root;
-
 --
--- Name: tags_tags_pk_seq; Type: SEQUENCE; Schema: public; Owner: orcadb_root
+-- Name: tags_tags_pk_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.tags_tags_pk_seq
@@ -345,17 +414,15 @@ CREATE SEQUENCE public.tags_tags_pk_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.tags_tags_pk_seq OWNER TO orcadb_root;
-
 --
--- Name: tags_tags_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: orcadb_root
+-- Name: tags_tags_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.tags_tags_pk_seq OWNED BY public.tags.tags_pk;
 
 
 --
--- Name: trainerprofiles; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: trainerprofiles; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.trainerprofiles (
@@ -365,10 +432,8 @@ CREATE TABLE public.trainerprofiles (
 );
 
 
-ALTER TABLE public.trainerprofiles OWNER TO orcadb_root;
-
 --
--- Name: trainerprofiles_trainingtypes; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: trainerprofiles_trainingtypes; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.trainerprofiles_trainingtypes (
@@ -377,10 +442,8 @@ CREATE TABLE public.trainerprofiles_trainingtypes (
 );
 
 
-ALTER TABLE public.trainerprofiles_trainingtypes OWNER TO orcadb_root;
-
 --
--- Name: trainerprofiles_trpr_pk2_seq; Type: SEQUENCE; Schema: public; Owner: orcadb_root
+-- Name: trainerprofiles_trpr_pk2_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.trainerprofiles_trpr_pk2_seq
@@ -391,17 +454,15 @@ CREATE SEQUENCE public.trainerprofiles_trpr_pk2_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.trainerprofiles_trpr_pk2_seq OWNER TO orcadb_root;
-
 --
--- Name: trainerprofiles_trpr_pk2_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: orcadb_root
+-- Name: trainerprofiles_trpr_pk2_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.trainerprofiles_trpr_pk2_seq OWNED BY public.trainerprofiles.trpr_pk;
 
 
 --
--- Name: trainings; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: trainings; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.trainings (
@@ -416,10 +477,8 @@ CREATE TABLE public.trainings (
 );
 
 
-ALTER TABLE public.trainings OWNER TO orcadb_root;
-
 --
--- Name: trainings_employees; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: trainings_employees; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.trainings_employees (
@@ -432,10 +491,8 @@ CREATE TABLE public.trainings_employees (
 );
 
 
-ALTER TABLE public.trainings_employees OWNER TO orcadb_root;
-
 --
--- Name: trainings_employees_trem_pk_seq; Type: SEQUENCE; Schema: public; Owner: orcadb_root
+-- Name: trainings_employees_trem_pk_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.trainings_employees_trem_pk_seq
@@ -446,17 +503,15 @@ CREATE SEQUENCE public.trainings_employees_trem_pk_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.trainings_employees_trem_pk_seq OWNER TO orcadb_root;
-
 --
--- Name: trainings_employees_trem_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: orcadb_root
+-- Name: trainings_employees_trem_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.trainings_employees_trem_pk_seq OWNED BY public.trainings_employees.trem_pk;
 
 
 --
--- Name: trainings_trainers; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: trainings_trainers; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.trainings_trainers (
@@ -465,10 +520,8 @@ CREATE TABLE public.trainings_trainers (
 );
 
 
-ALTER TABLE public.trainings_trainers OWNER TO orcadb_root;
-
 --
--- Name: trainings_trng_pk_seq; Type: SEQUENCE; Schema: public; Owner: orcadb_root
+-- Name: trainings_trng_pk_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.trainings_trng_pk_seq
@@ -479,17 +532,15 @@ CREATE SEQUENCE public.trainings_trng_pk_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.trainings_trng_pk_seq OWNER TO orcadb_root;
-
 --
--- Name: trainings_trng_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: orcadb_root
+-- Name: trainings_trng_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.trainings_trng_pk_seq OWNED BY public.trainings.trng_pk;
 
 
 --
--- Name: trty_order_seq; Type: SEQUENCE; Schema: public; Owner: orcadb_root
+-- Name: trty_order_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.trty_order_seq
@@ -500,10 +551,8 @@ CREATE SEQUENCE public.trty_order_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.trty_order_seq OWNER TO orcadb_root;
-
 --
--- Name: trainingtypes; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: trainingtypes; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.trainingtypes (
@@ -514,10 +563,8 @@ CREATE TABLE public.trainingtypes (
 );
 
 
-ALTER TABLE public.trainingtypes OWNER TO orcadb_root;
-
 --
--- Name: trainingtypes_certificates; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: trainingtypes_certificates; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.trainingtypes_certificates (
@@ -527,10 +574,8 @@ CREATE TABLE public.trainingtypes_certificates (
 );
 
 
-ALTER TABLE public.trainingtypes_certificates OWNER TO orcadb_root;
-
 --
--- Name: trainingtypes_trty_pk_seq; Type: SEQUENCE; Schema: public; Owner: orcadb_root
+-- Name: trainingtypes_trty_pk_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.trainingtypes_trty_pk_seq
@@ -541,17 +586,15 @@ CREATE SEQUENCE public.trainingtypes_trty_pk_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.trainingtypes_trty_pk_seq OWNER TO orcadb_root;
-
 --
--- Name: trainingtypes_trty_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: orcadb_root
+-- Name: trainingtypes_trty_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.trainingtypes_trty_pk_seq OWNED BY public.trainingtypes.trty_pk;
 
 
 --
--- Name: updates; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: updates; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.updates (
@@ -560,10 +603,8 @@ CREATE TABLE public.updates (
 );
 
 
-ALTER TABLE public.updates OWNER TO orcadb_root;
-
 --
--- Name: updates_updt_pk_seq; Type: SEQUENCE; Schema: public; Owner: orcadb_root
+-- Name: updates_updt_pk_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.updates_updt_pk_seq
@@ -574,17 +615,15 @@ CREATE SEQUENCE public.updates_updt_pk_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.updates_updt_pk_seq OWNER TO orcadb_root;
-
 --
--- Name: updates_updt_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: orcadb_root
+-- Name: updates_updt_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.updates_updt_pk_seq OWNED BY public.updates.updt_pk;
 
 
 --
--- Name: users; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.users (
@@ -602,17 +641,15 @@ CREATE TABLE public.users (
 );
 
 
-ALTER TABLE public.users OWNER TO orcadb_root;
-
 --
--- Name: COLUMN users.user_newspull_version; Type: COMMENT; Schema: public; Owner: orcadb_root
+-- Name: COLUMN users.user_newspull_version; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.users.user_newspull_version IS 'Follows Semantic Versioning 2.0.0';
 
 
 --
--- Name: users_certificates; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: users_certificates; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.users_certificates (
@@ -621,10 +658,8 @@ CREATE TABLE public.users_certificates (
 );
 
 
-ALTER TABLE public.users_certificates OWNER TO orcadb_root;
-
 --
--- Name: users_roles; Type: TABLE; Schema: public; Owner: orcadb_root
+-- Name: users_roles; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.users_roles (
@@ -638,80 +673,78 @@ CREATE TABLE public.users_roles (
 );
 
 
-ALTER TABLE public.users_roles OWNER TO orcadb_root;
-
 --
--- Name: certificates cert_pk; Type: DEFAULT; Schema: public; Owner: orcadb_root
+-- Name: certificates cert_pk; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.certificates ALTER COLUMN cert_pk SET DEFAULT nextval('public.certificates_cert_pk_seq'::regclass);
 
 
 --
--- Name: configs conf_pk; Type: DEFAULT; Schema: public; Owner: orcadb_root
+-- Name: configs conf_pk; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.configs ALTER COLUMN conf_pk SET DEFAULT nextval('public.configs_conf_pk_seq'::regclass);
 
 
 --
--- Name: employees empl_pk; Type: DEFAULT; Schema: public; Owner: orcadb_root
+-- Name: employees empl_pk; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees ALTER COLUMN empl_pk SET DEFAULT nextval('public.employees_empl_pk_seq'::regclass);
 
 
 --
--- Name: sites site_pk; Type: DEFAULT; Schema: public; Owner: orcadb_root
+-- Name: sites site_pk; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sites ALTER COLUMN site_pk SET DEFAULT nextval('public.sites_site_pk_seq'::regclass);
 
 
 --
--- Name: tags tags_pk; Type: DEFAULT; Schema: public; Owner: orcadb_root
+-- Name: tags tags_pk; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tags ALTER COLUMN tags_pk SET DEFAULT nextval('public.tags_tags_pk_seq'::regclass);
 
 
 --
--- Name: trainerprofiles trpr_pk; Type: DEFAULT; Schema: public; Owner: orcadb_root
+-- Name: trainerprofiles trpr_pk; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainerprofiles ALTER COLUMN trpr_pk SET DEFAULT nextval('public.trainerprofiles_trpr_pk2_seq'::regclass);
 
 
 --
--- Name: trainings trng_pk; Type: DEFAULT; Schema: public; Owner: orcadb_root
+-- Name: trainings trng_pk; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainings ALTER COLUMN trng_pk SET DEFAULT nextval('public.trainings_trng_pk_seq'::regclass);
 
 
 --
--- Name: trainings_employees trem_pk; Type: DEFAULT; Schema: public; Owner: orcadb_root
+-- Name: trainings_employees trem_pk; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainings_employees ALTER COLUMN trem_pk SET DEFAULT nextval('public.trainings_employees_trem_pk_seq'::regclass);
 
 
 --
--- Name: trainingtypes trty_pk; Type: DEFAULT; Schema: public; Owner: orcadb_root
+-- Name: trainingtypes trty_pk; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainingtypes ALTER COLUMN trty_pk SET DEFAULT nextval('public.trainingtypes_trty_pk_seq'::regclass);
 
 
 --
--- Name: updates updt_pk; Type: DEFAULT; Schema: public; Owner: orcadb_root
+-- Name: updates updt_pk; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.updates ALTER COLUMN updt_pk SET DEFAULT nextval('public.updates_updt_pk_seq'::regclass);
 
 
 --
--- Name: certificates cert_order_uniq; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: certificates cert_order_uniq; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.certificates
@@ -719,7 +752,7 @@ ALTER TABLE ONLY public.certificates
 
 
 --
--- Name: certificates cert_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: certificates cert_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.certificates
@@ -727,7 +760,7 @@ ALTER TABLE ONLY public.certificates
 
 
 --
--- Name: client client_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: client client_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.client
@@ -735,7 +768,7 @@ ALTER TABLE ONLY public.client
 
 
 --
--- Name: configs conf_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: configs conf_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.configs
@@ -743,7 +776,7 @@ ALTER TABLE ONLY public.configs
 
 
 --
--- Name: employees_voidings emce_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: employees_voidings emce_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees_voidings
@@ -751,7 +784,7 @@ ALTER TABLE ONLY public.employees_voidings
 
 
 --
--- Name: employees empl_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: employees empl_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -759,7 +792,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: trainingtypes_certificates fk_combination_uniq; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainingtypes_certificates fk_combination_uniq; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainingtypes_certificates
@@ -767,7 +800,7 @@ ALTER TABLE ONLY public.trainingtypes_certificates
 
 
 --
--- Name: trainingtypes order_uniq; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainingtypes order_uniq; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainingtypes
@@ -775,7 +808,7 @@ ALTER TABLE ONLY public.trainingtypes
 
 
 --
--- Name: sites_tags sita_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: sites_tags sita_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sites_tags
@@ -783,7 +816,7 @@ ALTER TABLE ONLY public.sites_tags
 
 
 --
--- Name: sites site_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: sites site_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sites
@@ -791,7 +824,7 @@ ALTER TABLE ONLY public.sites
 
 
 --
--- Name: tags tags_order_uniq; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: tags tags_order_uniq; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tags
@@ -799,7 +832,7 @@ ALTER TABLE ONLY public.tags
 
 
 --
--- Name: tags tags_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: tags tags_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tags
@@ -807,7 +840,7 @@ ALTER TABLE ONLY public.tags
 
 
 --
--- Name: trainerprofiles trainerprofiles_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainerprofiles trainerprofiles_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainerprofiles
@@ -815,7 +848,7 @@ ALTER TABLE ONLY public.trainerprofiles
 
 
 --
--- Name: trainerprofiles_trainingtypes trainerprofiles_trainingtypes_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainerprofiles_trainingtypes trainerprofiles_trainingtypes_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainerprofiles_trainingtypes
@@ -823,7 +856,7 @@ ALTER TABLE ONLY public.trainerprofiles_trainingtypes
 
 
 --
--- Name: trainings_employees trem_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainings_employees trem_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainings_employees
@@ -831,7 +864,7 @@ ALTER TABLE ONLY public.trainings_employees
 
 
 --
--- Name: trainings_trainers trng_empl_uniq; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainings_trainers trng_empl_uniq; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainings_trainers
@@ -839,7 +872,7 @@ ALTER TABLE ONLY public.trainings_trainers
 
 
 --
--- Name: trainings trng_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainings trng_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainings
@@ -847,7 +880,7 @@ ALTER TABLE ONLY public.trainings
 
 
 --
--- Name: trainings_employees trng_trem_uniq; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainings_employees trng_trem_uniq; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainings_employees
@@ -855,7 +888,7 @@ ALTER TABLE ONLY public.trainings_employees
 
 
 --
--- Name: trainingtypes trty_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainingtypes trty_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainingtypes
@@ -863,7 +896,7 @@ ALTER TABLE ONLY public.trainingtypes
 
 
 --
--- Name: sites_tags uniq (sita_site_fk, sita_tags_fk); Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: sites_tags uniq (sita_site_fk, sita_tags_fk); Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sites_tags
@@ -871,7 +904,7 @@ ALTER TABLE ONLY public.sites_tags
 
 
 --
--- Name: configs uniq on conf_type & conf_name; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: configs uniq on conf_type & conf_name; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.configs
@@ -879,7 +912,7 @@ ALTER TABLE ONLY public.configs
 
 
 --
--- Name: employees uniq_empl_external_id; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: employees uniq_empl_external_id; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees
@@ -887,7 +920,7 @@ ALTER TABLE ONLY public.employees
 
 
 --
--- Name: sites uniq_site_external_id; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: sites uniq_site_external_id; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sites
@@ -895,7 +928,7 @@ ALTER TABLE ONLY public.sites
 
 
 --
--- Name: sites_employees updt_empl_uniq; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: sites_employees updt_empl_uniq; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sites_employees
@@ -903,7 +936,7 @@ ALTER TABLE ONLY public.sites_employees
 
 
 --
--- Name: updates updt_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: updates updt_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.updates
@@ -911,7 +944,7 @@ ALTER TABLE ONLY public.updates
 
 
 --
--- Name: users user_empl_fk_uniq; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: users user_empl_fk_uniq; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
@@ -919,7 +952,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users user_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: users user_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
@@ -927,7 +960,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users user_site_fk_uniq; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: users user_site_fk_uniq; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
@@ -935,7 +968,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users_roles users_roles_pk; Type: CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: users_roles users_roles_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users_roles
@@ -943,70 +976,70 @@ ALTER TABLE ONLY public.users_roles
 
 
 --
--- Name: empl_pk_idx; Type: INDEX; Schema: public; Owner: orcadb_root
+-- Name: empl_pk_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX empl_pk_idx ON public.employees USING btree (empl_pk);
 
 
 --
--- Name: fki_siem_empl_fk; Type: INDEX; Schema: public; Owner: orcadb_root
+-- Name: fki_siem_empl_fk; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX fki_siem_empl_fk ON public.sites_employees USING btree (siem_empl_fk);
 
 
 --
--- Name: fki_siem_site_fk; Type: INDEX; Schema: public; Owner: orcadb_root
+-- Name: fki_siem_site_fk; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX fki_siem_site_fk ON public.sites_employees USING btree (siem_site_fk);
 
 
 --
--- Name: fki_siem_updt_fk; Type: INDEX; Schema: public; Owner: orcadb_root
+-- Name: fki_siem_updt_fk; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX fki_siem_updt_fk ON public.sites_employees USING btree (siem_updt_fk);
 
 
 --
--- Name: fki_trem_trng_fk; Type: INDEX; Schema: public; Owner: orcadb_root
+-- Name: fki_trem_trng_fk; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX fki_trem_trng_fk ON public.trainings_employees USING btree (trem_trng_fk);
 
 
 --
--- Name: fki_trng_trty_fk; Type: INDEX; Schema: public; Owner: orcadb_root
+-- Name: fki_trng_trty_fk; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX fki_trng_trty_fk ON public.trainings USING btree (trng_trty_fk);
 
 
 --
--- Name: site_pk_idx; Type: INDEX; Schema: public; Owner: orcadb_root
+-- Name: site_pk_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX site_pk_idx ON public.sites USING btree (site_pk);
 
 
 --
--- Name: trng_date_idx; Type: INDEX; Schema: public; Owner: orcadb_root
+-- Name: trng_date_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX trng_date_idx ON public.trainings USING btree (trng_date);
 
 
 --
--- Name: updt_date_idx; Type: INDEX; Schema: public; Owner: orcadb_root
+-- Name: updt_date_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX updt_date_idx ON public.updates USING btree (updt_date);
 
 
 --
--- Name: employees_voidings emvo_cert_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: employees_voidings emvo_cert_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees_voidings
@@ -1014,7 +1047,7 @@ ALTER TABLE ONLY public.employees_voidings
 
 
 --
--- Name: employees_voidings emvo_empl_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: employees_voidings emvo_empl_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.employees_voidings
@@ -1022,7 +1055,7 @@ ALTER TABLE ONLY public.employees_voidings
 
 
 --
--- Name: trainingtypes_certificates fk_certificates_cert_pk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainingtypes_certificates fk_certificates_cert_pk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainingtypes_certificates
@@ -1030,7 +1063,7 @@ ALTER TABLE ONLY public.trainingtypes_certificates
 
 
 --
--- Name: trainingtypes_certificates fk_trainingtypes_trty_pk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainingtypes_certificates fk_trainingtypes_trty_pk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainingtypes_certificates
@@ -1038,7 +1071,7 @@ ALTER TABLE ONLY public.trainingtypes_certificates
 
 
 --
--- Name: trainings fk_trainingtypes_trty_pk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainings fk_trainingtypes_trty_pk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainings
@@ -1046,7 +1079,7 @@ ALTER TABLE ONLY public.trainings
 
 
 --
--- Name: sites_employees fk_updates_updt_pk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: sites_employees fk_updates_updt_pk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sites_employees
@@ -1054,7 +1087,7 @@ ALTER TABLE ONLY public.sites_employees
 
 
 --
--- Name: sites_employees siem_empl_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: sites_employees siem_empl_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sites_employees
@@ -1062,7 +1095,7 @@ ALTER TABLE ONLY public.sites_employees
 
 
 --
--- Name: sites_employees siem_site_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: sites_employees siem_site_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sites_employees
@@ -1070,7 +1103,7 @@ ALTER TABLE ONLY public.sites_employees
 
 
 --
--- Name: sites_tags sita_site_fk -> sites; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: sites_tags sita_site_fk -> sites; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sites_tags
@@ -1078,7 +1111,7 @@ ALTER TABLE ONLY public.sites_tags
 
 
 --
--- Name: sites_tags sita_tags_fk -> tags; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: sites_tags sita_tags_fk -> tags; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sites_tags
@@ -1086,7 +1119,7 @@ ALTER TABLE ONLY public.sites_tags
 
 
 --
--- Name: trainerprofiles_trainingtypes trainerprofiles_trainingtypes_trainerprofiles_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainerprofiles_trainingtypes trainerprofiles_trainingtypes_trainerprofiles_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainerprofiles_trainingtypes
@@ -1094,7 +1127,7 @@ ALTER TABLE ONLY public.trainerprofiles_trainingtypes
 
 
 --
--- Name: trainerprofiles_trainingtypes trainerprofiles_trainingtypes_trainingtypes_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainerprofiles_trainingtypes trainerprofiles_trainingtypes_trainingtypes_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainerprofiles_trainingtypes
@@ -1102,7 +1135,7 @@ ALTER TABLE ONLY public.trainerprofiles_trainingtypes
 
 
 --
--- Name: trainings_employees trem_empl_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainings_employees trem_empl_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainings_employees
@@ -1110,7 +1143,7 @@ ALTER TABLE ONLY public.trainings_employees
 
 
 --
--- Name: trainings_employees trem_trng_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainings_employees trem_trng_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainings_employees
@@ -1118,7 +1151,7 @@ ALTER TABLE ONLY public.trainings_employees
 
 
 --
--- Name: trainings_trainers trtr_empl_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainings_trainers trtr_empl_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainings_trainers
@@ -1126,7 +1159,7 @@ ALTER TABLE ONLY public.trainings_trainers
 
 
 --
--- Name: trainings_trainers trtr_trng_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: trainings_trainers trtr_trng_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.trainings_trainers
@@ -1134,7 +1167,7 @@ ALTER TABLE ONLY public.trainings_trainers
 
 
 --
--- Name: users user_empl_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: users user_empl_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
@@ -1142,7 +1175,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users_certificates users_certificates_certificates_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: users_certificates users_certificates_certificates_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users_certificates
@@ -1150,7 +1183,7 @@ ALTER TABLE ONLY public.users_certificates
 
 
 --
--- Name: users_certificates users_certificates_users_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: users_certificates users_certificates_users_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users_certificates
@@ -1158,7 +1191,7 @@ ALTER TABLE ONLY public.users_certificates
 
 
 --
--- Name: users_roles users_roles_trainerprofiles_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: users_roles users_roles_trainerprofiles_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users_roles
@@ -1166,7 +1199,7 @@ ALTER TABLE ONLY public.users_roles
 
 
 --
--- Name: users_roles users_roles_users_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: users_roles users_roles_users_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users_roles
@@ -1174,7 +1207,7 @@ ALTER TABLE ONLY public.users_roles
 
 
 --
--- Name: users users_sites_fk; Type: FK CONSTRAINT; Schema: public; Owner: orcadb_root
+-- Name: users users_sites_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
@@ -1182,7 +1215,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: orcadb_root
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: -
 --
 
 REVOKE USAGE ON SCHEMA public FROM PUBLIC;
