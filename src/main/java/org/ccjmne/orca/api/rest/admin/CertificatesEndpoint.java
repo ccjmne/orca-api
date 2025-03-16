@@ -114,8 +114,9 @@ public class CertificatesEndpoint {
 			final boolean exists = this.ctx.fetchExists(TRAININGTYPES, TRAININGTYPES.TRTY_PK.eq(trty_pk));
 			if (exists) {
 				transactionCtx.update(TRAININGTYPES)
-						.set(TRAININGTYPES.TRTY_NAME, String.valueOf(trty.get(TRAININGTYPES.TRTY_NAME.getName())))
-						.set(TRAININGTYPES.TRTY_PRESENCEONLY, Boolean.valueOf(String.valueOf(trty.get(TRAININGTYPES.TRTY_PRESENCEONLY.getName()))))
+						.set(TRAININGTYPES.TRTY_NAME,           (String)  trty.get(TRAININGTYPES.TRTY_NAME.getName()))
+						.set(TRAININGTYPES.TRTY_PRESENCEONLY,   (Boolean) trty.get(TRAININGTYPES.TRTY_PRESENCEONLY.getName()))
+						.set(TRAININGTYPES.TRTY_EXTENDVALIDITY, (Boolean) trty.get(TRAININGTYPES.TRTY_EXTENDVALIDITY.getName()))
 						.where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
 
 				// If "presenceOnly" training type, replace "FLUNKED" outcomes w/ "MISSING"
@@ -133,11 +134,13 @@ public class CertificatesEndpoint {
 											TRAININGTYPES.TRTY_PK,
 											TRAININGTYPES.TRTY_NAME,
 											TRAININGTYPES.TRTY_PRESENCEONLY,
+											TRAININGTYPES.TRTY_EXTENDVALIDITY,
 											TRAININGTYPES.TRTY_ORDER)
 						.values(
 								trty_pk,
-								trty.get(TRAININGTYPES.TRTY_NAME.getName()).toString(),
-								Boolean.valueOf(String.valueOf(trty.get(TRAININGTYPES.TRTY_PRESENCEONLY.getName()))),
+								(String)  trty.get(TRAININGTYPES.TRTY_NAME.getName()),
+								(Boolean) trty.get(TRAININGTYPES.TRTY_PRESENCEONLY.getName()),
+								(Boolean) trty.get(TRAININGTYPES.TRTY_EXTENDVALIDITY.getName()),
 								transactionCtx
 										.select(DSL.coalesce(DSL.max(TRAININGTYPES.TRTY_ORDER), Integer.valueOf(0)).add(Integer.valueOf(1)).as("order"))
 										.from(TRAININGTYPES)
