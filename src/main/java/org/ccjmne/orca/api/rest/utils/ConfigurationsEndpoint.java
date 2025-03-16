@@ -64,7 +64,7 @@ public class ConfigurationsEndpoint {
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Integer createConfig(@QueryParam("type") final String type, @QueryParam("name") final String name, final JSONB config) {
-		final Integer key = new Integer(this.ctx.nextval(Sequences.CONFIGS_CONF_PK_SEQ).intValue());
+		final Integer key = Integer.valueOf(this.ctx.nextval(Sequences.CONFIGS_CONF_PK_SEQ).intValue());
 		this.updateConfig(key, type, name, config);
 		return key;
 	}
