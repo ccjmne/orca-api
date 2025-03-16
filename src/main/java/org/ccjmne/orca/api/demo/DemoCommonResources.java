@@ -95,15 +95,20 @@ public class DemoCommonResources {
 				.values(Constants.USER_ROOT, CERT_EVAC)
 				.execute();
 
-		ctx.insertInto(TRAININGTYPES, TRAININGTYPES.TRTY_ORDER, TRAININGTYPES.TRTY_NAME)
-				.values(TRTY_SSTI, "SST Initiale")
-				.values(TRTY_SSTR, "Renouvellement SST")
-				.values(TRTY_EPI, "Manipulation Extincteurs")
-				.values(TRTY_DAE, "Sensibilisation Défibrillation")
-				.values(TRTY_H0B0, "Habilitation Électrique")
-				.values(TRTY_EVAC, "Agent d'Évacuation")
-				.values(TRTY_FSSTI, "Formateur SST Initiale")
-				.values(TRTY_FSSTR, "Renouvellement Formateur SST")
+		ctx.insertInto(
+            TRAININGTYPES,
+            TRAININGTYPES.TRTY_ORDER,
+            TRAININGTYPES.TRTY_NAME,
+            TRAININGTYPES.TRTY_PRESENCEONLY,
+            TRAININGTYPES.TRTY_EXTENDVALIDITY)
+				.values(TRTY_SSTI,  "SST Initiale",                   Boolean.FALSE, Boolean.FALSE)
+				.values(TRTY_SSTR,  "Renouvellement SST",             Boolean.FALSE, Boolean.TRUE)
+				.values(TRTY_EPI,   "Manipulation Extincteurs",       Boolean.TRUE,  Boolean.FALSE)
+				.values(TRTY_DAE,   "Sensibilisation Défibrillation", Boolean.TRUE,  Boolean.FALSE)
+				.values(TRTY_H0B0,  "Habilitation Électrique",        Boolean.FALSE, Boolean.FALSE)
+				.values(TRTY_EVAC,  "Agent d'Évacuation",             Boolean.TRUE,  Boolean.FALSE)
+				.values(TRTY_FSSTI, "Formateur SST Initiale",         Boolean.FALSE, Boolean.FALSE)
+				.values(TRTY_FSSTR, "Renouvellement Formateur SST",   Boolean.FALSE, Boolean.TRUE)
 				.execute();
 
 		ctx.insertInto(
