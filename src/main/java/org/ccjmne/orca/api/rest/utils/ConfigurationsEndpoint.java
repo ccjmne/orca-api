@@ -92,7 +92,7 @@ public class ConfigurationsEndpoint {
 
 				final boolean exists = 1 == transactionCtx.deleteFrom(CONFIGS).where(CONFIGS.CONF_PK.eq(key)).execute();
 				transactionCtx.insertInto(CONFIGS, CONFIGS.CONF_PK, CONFIGS.CONF_TYPE, CONFIGS.CONF_NAME, CONFIGS.CONF_DATA)
-						.values(key, type, trimmed, config)
+						.values(key, type, trimmed, config.data()) // TODO: revert .data() call when switching column to JSONB
 						.execute();
 
 				return Boolean.valueOf(exists);
