@@ -2,12 +2,13 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 16.4
--- Dumped by pg_dump version 16.8
+-- Dumped from database version 16.8 (Debian 16.8-1.pgdg120+1)
+-- Dumped by pg_dump version 17.2
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -122,14 +123,6 @@ DROP SEQUENCE IF EXISTS public.cert_order_seq;
 DROP FUNCTION IF EXISTS public.make_into_serial(table_name text, column_name text);
 DROP FUNCTION IF EXISTS public.f_unaccent(text);
 DROP FUNCTION IF EXISTS public.f_concat_ws(VARIADIC text[]);
--- *not* dropping schema, since initdb creates it
---
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
--- *not* creating schema, since initdb creates it
-
-
 --
 -- Name: f_concat_ws(text[]); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -559,8 +552,16 @@ CREATE TABLE public.trainingtypes (
     trty_pk integer NOT NULL,
     trty_name character varying(128) NOT NULL,
     trty_order integer DEFAULT nextval('public.trty_order_seq'::regclass) NOT NULL,
-    trty_presenceonly boolean DEFAULT false NOT NULL
+    trty_presenceonly boolean DEFAULT false NOT NULL,
+    trty_extendvalidity boolean DEFAULT false NOT NULL
 );
+
+
+--
+-- Name: COLUMN trainingtypes.trty_extendvalidity; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.trainingtypes.trty_extendvalidity IS 'Whether the certificates granted by that training type should merely be renewed for the duration set up, or their validity be *extended* by that amount.';
 
 
 --
