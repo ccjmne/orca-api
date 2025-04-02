@@ -6,7 +6,7 @@
 
 	<groupId>org.ccjmne.orca</groupId>
 	<artifactId>orca-api</artifactId>
-	<version>1.8.15</version>
+	<version>1.8.16</version>
 	<packaging>war</packaging>
 	<name>Orca API</name>
 
