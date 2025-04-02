@@ -23,6 +23,7 @@ import org.jooq.Select;
 import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
+import org.jooq.impl.SQLDataType;
 import org.jooq.types.DayToSecond;
 import org.jooq.types.YearToMonth;
 
@@ -30,15 +31,13 @@ public class StatisticsHelper {
 
 	private static final Integer DURATION_INFINITE = Integer.valueOf(0);
 
-	private static final Field<LocalDate> MAX_EXPIRY = DSL.max(DSL
-			.when(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.eq(StatisticsHelper.DURATION_INFINITE), DSL.localDate(Constants.DATE_INFINITY))
-			.otherwise(TRAININGS.TRNG_DATE.plus(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.mul(new YearToMonth(0, 1)))));
-
-	private static final Field<LocalDate> EXPIRY = DSL
-			.when(
-					EMPLOYEES_VOIDINGS.EMVO_DATE.le(StatisticsHelper.MAX_EXPIRY),
-					EMPLOYEES_VOIDINGS.EMVO_DATE.sub(new DayToSecond(1)))
-			.otherwise(StatisticsHelper.MAX_EXPIRY);
+	private static Field<LocalDate> EXPIRY = DSL.field(
+			"expiryAgg({0}, {1}, {2}, {3} ORDER BY {0})",
+			SQLDataType.LOCALDATE,
+			TRAININGS.TRNG_DATE,
+			TRAININGTYPES_CERTIFICATES.TTCE_DURATION,
+			TRAININGTYPES.TRTY_EXTENDVALIDITY,
+			EMPLOYEES_VOIDINGS.EMVO_DATE);
 
 	private static Field<String> fieldValidity(final String dateStr) {
 		return DSL
