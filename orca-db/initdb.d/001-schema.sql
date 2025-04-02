@@ -271,7 +271,7 @@ CREATE TABLE public.configs (
     conf_pk integer NOT NULL,
     conf_type character varying(16) NOT NULL,
     conf_name character varying NOT NULL,
-    conf_data text NOT NULL,
+    conf_data jsonb NOT NULL,
     CONSTRAINT conf_type CHECK (((conf_type)::text = ANY (ARRAY[('import-employees'::character varying)::text, ('import-sites'::character varying)::text, ('pdf-site'::character varying)::text])))
 );
 
