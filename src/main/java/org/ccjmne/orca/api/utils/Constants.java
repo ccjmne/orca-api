@@ -3,9 +3,9 @@ package org.ccjmne.orca.api.utils;
 import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.Month;
-import java.time.temporal.TemporalAdjusters;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 
@@ -21,18 +21,14 @@ import org.jooq.impl.DSL;
 public class Constants {
 
 	/**
-	 * If you are trying to use the maximum value as some kind of flag such as
-	 * "undetermined future date" to avoid a NULL, instead choose some arbitrary
-	 * date far enough in the future to exceed any legitimate value but not so
-	 * far as to exceed the limits of any database you are possibly going to
-	 * use. Define a constant for this value in your Java code and in your
-	 * database, and document thoroughly.
+	 * Postgres will yield 'infinity' for dates that are infinitely far in time,
+	 * and Java will interpret these as approximately +292278994-08-17 07:12:55,
+	 * which is the UTC date of 2^63-1 milliseconds since the epoch.
 	 *
-	 * @see <a href=
-	 *      "http://stackoverflow.com/questions/41301892/insert-the-max-date-independent-from-database">
-	 *      Insert the max date (independent from database)</a>
+	 * It isn't however equal to LocalDate.MAX, which is +999999999-12-31, nor
+	 * to Instant.MAX, which would be 1000000000-12-31T23:59:59.999999999Z.
 	 */
-	public static final LocalDate DATE_INFINITY = LocalDate.of(9999, Month.JANUARY, 1).with(TemporalAdjusters.lastDayOfYear());
+	public static final LocalDate DATE_INFINITY = Instant.ofEpochMilli(Long.MAX_VALUE).atZone(ZoneId.of("UTC")).toLocalDate();
 
 	// ---- API CONSTANTS
 	public static final String FIELDS_ALL = "all";
