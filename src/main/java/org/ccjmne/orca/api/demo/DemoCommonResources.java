@@ -66,7 +66,7 @@ public class DemoCommonResources {
 																						.put("cert", CERT_FSST)
 																						.put("columns", Integer.valueOf(1)).build())))
 									.build()))
-							.build())).data()) // TODO: revert .data() call when switching column to JSONB
+							.build())))
 					.execute();
 		} catch (final JsonProcessingException e) {
 			// Can not happen
