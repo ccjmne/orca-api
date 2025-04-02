@@ -120,9 +120,31 @@ DROP TABLE IF EXISTS public.client;
 DROP SEQUENCE IF EXISTS public.certificates_cert_pk_seq;
 DROP TABLE IF EXISTS public.certificates;
 DROP SEQUENCE IF EXISTS public.cert_order_seq;
+DROP AGGREGATE IF EXISTS public.expiryagg(date, integer, boolean, date);
 DROP FUNCTION IF EXISTS public.make_into_serial(table_name text, column_name text);
 DROP FUNCTION IF EXISTS public.f_unaccent(text);
 DROP FUNCTION IF EXISTS public.f_concat_ws(VARIADIC text[]);
+DROP FUNCTION IF EXISTS public.expiryfn(acc date, date date, duration integer, extendvalidity boolean, voiding date);
+--
+-- Name: expiryfn(date, date, integer, boolean, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.expiryfn(acc date, date date, duration integer, extendvalidity boolean, voiding date) RETURNS date
+    LANGUAGE sql
+    AS $$
+SELECT
+  LEAST(
+    CASE
+        WHEN duration = 0 THEN 'infinity' :: DATE
+        WHEN acc IS NULL OR extendvalidity IS FALSE OR acc <= date
+        THEN date + (duration * INTERVAL '1 month')
+        ELSE acc + (duration * INTERVAL '1 month')
+    END,
+    voiding
+  );
+$$;
+
+
 --
 -- Name: f_concat_ws(text[]); Type: FUNCTION; Schema: public; Owner: -
 --
@@ -167,6 +189,16 @@ BEGIN
     RETURN start_with;
 END;
 $$;
+
+
+--
+-- Name: expiryagg(date, integer, boolean, date); Type: AGGREGATE; Schema: public; Owner: -
+--
+
+CREATE AGGREGATE public.expiryagg(date, integer, boolean, date) (
+    SFUNC = public.expiryfn,
+    STYPE = date
+);
 
 
 --
