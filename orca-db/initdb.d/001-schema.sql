@@ -3,7 +3,7 @@
 --
 
 -- Dumped from database version 16.8 (Debian 16.8-1.pgdg120+1)
--- Dumped by pg_dump version 17.2
+-- Dumped by pg_dump version 17.4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -132,16 +132,18 @@ DROP FUNCTION IF EXISTS public.expiryfn(acc date, date date, duration integer, e
 CREATE FUNCTION public.expiryfn(acc date, date date, duration integer, extendvalidity boolean, voiding date) RETURNS date
     LANGUAGE sql
     AS $$
-SELECT
-  LEAST(
+WITH vars AS (SELECT
+	date + duration * INTERVAL '1 month' AS natural_expiry
+)
+SELECT LEAST(
     CASE
-        WHEN duration = 0 THEN 'infinity' :: DATE
-        WHEN acc IS NULL OR extendvalidity IS FALSE OR acc <= date
-        THEN date + (duration * INTERVAL '1 month')
-        ELSE acc + (duration * INTERVAL '1 month')
+        WHEN duration = 0 THEN 'infinity'::DATE
+        WHEN extendvalidity AND acc > date
+        THEN GREATEST(acc, natural_expiry + LEAST(AGE(acc, date), '3 months'))
+        ELSE natural_expiry
     END,
     voiding
-  );
+) AS expiry FROM vars;
 $$;
 
 
