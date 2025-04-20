@@ -10,6 +10,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_TRAINERS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,19 +25,16 @@ import org.jooq.SelectQuery;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
-import org.jooq.types.DayToSecond;
 import org.jooq.types.YearToMonth;
 
 public class StatisticsHelper {
-
-	private static final Integer DURATION_INFINITE = Integer.valueOf(0);
 
 	private static Field<LocalDate> EXPIRY = DSL.field(
 			"expiryAgg({0}, {1}, {2}, {3} ORDER BY {0})",
 			SQLDataType.LOCALDATE,
 			TRAININGS.TRNG_DATE,
 			TRAININGTYPES_CERTIFICATES.TTCE_DURATION,
-			TRAININGTYPES.TRTY_EXTENDVALIDITY,
+			TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY,
 			EMPLOYEES_VOIDINGS.EMVO_DATE);
 
 	private static Field<String> fieldValidity(final String dateStr) {
@@ -69,8 +67,9 @@ public class StatisticsHelper {
 						StatisticsHelper.EXPIRY.as("expiry"),
 						StatisticsHelper.fieldOptedOut(dateStr).as("opted_out"),
 						StatisticsHelper.fieldValidity(dateStr).as("validity"))
-				.from(TRAININGTYPES_CERTIFICATES)
-				.join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK))
+                .from(TRAININGTYPES_DEFS)
+				.join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK.eq(TRAININGTYPES_DEFS.TTDF_PK))
+				.join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_DEFS.TTDF_TRTY_FK))
 				.join(TRAININGS).on(TRAININGS.TRNG_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
 				.join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
 				.leftJoin(EMPLOYEES_VOIDINGS)
@@ -80,6 +79,7 @@ public class StatisticsHelper {
 				.on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(TRAININGS_EMPLOYEES.TREM_EMPL_FK)
 						.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))))
 				.where(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_VALIDATED))
+                .and(TRAININGTYPES_DEFS.TTDF_PK.in(Constants.effectiveTypeDefs(Constants.fieldDate(dateStr))))
 				.and(TRAININGS.TRNG_DATE.le(Constants.fieldDate(dateStr)))
 				.and(employeesSelection)
 				.groupBy(

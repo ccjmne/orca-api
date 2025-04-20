@@ -3,7 +3,7 @@ package org.ccjmne.orca.api.rest.edit;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_TRAINERS;
-import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -104,9 +104,10 @@ public class TrainingsEndpoint {
 			throw new ForbiddenException();
 		}
 
-		TrainingsEndpoint.validateOutcomes(map, transactionContext.selectFrom(TRAININGTYPES)
-				.where(TRAININGTYPES.TRTY_PK.eq(Integer.valueOf(map.get(TRAININGS.TRNG_TRTY_FK.getName()).toString())))
-				.fetchOne(TRAININGTYPES.TRTY_PRESENCEONLY).booleanValue());
+		TrainingsEndpoint.validateOutcomes(map, transactionContext.selectFrom(TRAININGTYPES_DEFS)
+                .where(TRAININGTYPES_DEFS.TTDF_TRTY_FK.eq((Integer) map.get(TRAININGS.TRNG_TRTY_FK.getName()))
+                .and(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.le(LocalDate.parse(map.get(TRAININGS.TRNG_DATE.getName()).toString()))))
+				.fetchOne(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY).booleanValue());
 
 		transactionContext
 				.insertInto(

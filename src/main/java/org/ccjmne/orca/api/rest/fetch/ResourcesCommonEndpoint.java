@@ -6,6 +6,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.QueryParam;
 
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.jooq.codegen.tables.records.CertificatesRecord;
@@ -28,8 +29,8 @@ public class ResourcesCommonEndpoint {
 
 	@GET
 	@Path("trainingtypes")
-	public List<Map<String, Object>> listTrainingTypes() {
-		return this.delegate.listTrainingTypes();
+	public List<Map<String, Object>> listTrainingTypes(@QueryParam("date") final String dateStr) {
+		return this.delegate.listTrainingTypes(dateStr);
 	}
 
 	@GET

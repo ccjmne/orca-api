@@ -93,7 +93,9 @@ public class StatisticsEndpoint {
 
 		final List<Record> trainings = this.resources.listTrainings(null, Collections.EMPTY_LIST, null, null, null, Boolean.TRUE);
 
-		final Map<Integer, Set<Integer>> certs = Maps.transformValues(	this.commonResources.listTrainingTypes(),
+        // TODO: Should use the *historical* certificates at any given time, rather than the current ones.
+        // This computation here is incorrect, but... let's try to deprecate this module instead.
+		final Map<Integer, Set<Integer>> certs = Maps.transformValues(	this.commonResources.listTrainingTypes(null),
 																		trty -> ((Map<Integer, Object>) trty.get("certificates")).keySet());
 		final Map<Integer, Iterable<TrainingsStatistics>> res = new HashMap<>();
 
