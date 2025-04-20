@@ -6,12 +6,15 @@ import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import javax.inject.Inject;
+import javax.ws.rs.QueryParam;
 
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
@@ -44,13 +47,15 @@ public class ResourcesUnrestricted {
 		this.restrictedResourcesAccess = restrictedResourcesAccess;
 	}
 
-	public List<Map<String, Object>> listTrainingTypes() {
-		return this.ctx.select(TRAININGTYPES.fields())
+    // Only lists the latest definition of each training type
+	public List<Map<String, Object>> listTrainingTypes(@QueryParam("date") final String dateStr) {
+		return this.ctx.select(Stream.concat(TRAININGTYPES.fieldStream(), TRAININGTYPES_DEFS.fieldStream()).toArray(Field[]::new))
 				.select(ResourcesHelper.arrayAgg(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK),
 						ResourcesHelper.arrayAgg(TRAININGTYPES_CERTIFICATES.TTCE_DURATION))
 				.from(TRAININGTYPES)
-				.join(TRAININGTYPES_CERTIFICATES, JoinType.LEFT_OUTER_JOIN).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
-				.groupBy(TRAININGTYPES.fields())
+                .join(TRAININGTYPES_DEFS).on(TRAININGTYPES_DEFS.TTDF_PK.eq(Constants.selectTypeDef(TRAININGTYPES.TRTY_PK, Constants.fieldDate(dateStr))))
+				.join(TRAININGTYPES_CERTIFICATES, JoinType.LEFT_OUTER_JOIN).on(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK.eq(TRAININGTYPES_DEFS.TTDF_PK))
+				.groupBy(Stream.concat(TRAININGTYPES.fieldStream(), TRAININGTYPES_DEFS.fieldStream()).toArray(Field[]::new))
 				.orderBy(TRAININGTYPES.TRTY_ORDER)
 				.fetch(ResourcesHelper
 						.getMapperWithZip(	ResourcesHelper.getZipMapper(false,

@@ -10,6 +10,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
 
 import java.time.LocalDate;
@@ -94,12 +95,19 @@ public class ResourcesEndpoint {
 																@QueryParam("training") final Integer trng_pk,
 																@QueryParam("date") final String dateStr,
 																@Context final UriInfo uriInfo) {
-		return this.ctx
+		return this.ctx.with("ttdf").as(DSL.select(TRAININGTYPES_DEFS.TTDF_TRTY_FK, TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM)
+				.from(TRAININGTYPES_DEFS)
+				.where(DSL.row(TRAININGTYPES_DEFS.TTDF_TRTY_FK, TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM).in(
+					DSL.select(TRAININGTYPES_DEFS.TTDF_TRTY_FK, DSL.max(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM))
+						.from(TRAININGTYPES_DEFS)
+						.groupBy(TRAININGTYPES_DEFS.TTDF_TRTY_FK)
+				)))
 				.select(TRAININGS_EMPLOYEES.TREM_EMPL_FK, TRAININGS_EMPLOYEES.TREM_OUTCOME, TRAININGS.TRNG_DATE)
 				.select(DSL.arrayAgg(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK).as("certificates"))
 				.from(TRAININGS_EMPLOYEES)
 				.join(TRAININGS).on(TRAININGS.TRNG_PK.eq(TRAININGS_EMPLOYEES.TREM_TRNG_FK))
-				.join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGS.TRNG_TRTY_FK))
+				.join(DSL.table("ttdf")).on(DSL.field(DSL.name("ttdf", "ttdf_trty_fk")).eq(TRAININGS.TRNG_TRTY_FK))
+				.join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK.eq(TRAININGS.TRNG_TRTY_FK))
 				.where(TRAININGS_EMPLOYEES.TREM_EMPL_FK
 						.in(Constants.select(	EMPLOYEES.EMPL_PK,
 												this.restrictedResourcesAccess

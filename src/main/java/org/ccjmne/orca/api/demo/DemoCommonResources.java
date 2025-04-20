@@ -6,6 +6,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAINERPROFILES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAINERPROFILES_TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 import static org.ccjmne.orca.jooq.codegen.Tables.USERS_CERTIFICATES;
 
 import java.util.Arrays;
@@ -98,42 +99,54 @@ public class DemoCommonResources {
 		ctx.insertInto(
             TRAININGTYPES,
             TRAININGTYPES.TRTY_ORDER,
-            TRAININGTYPES.TRTY_NAME,
-            TRAININGTYPES.TRTY_PRESENCEONLY,
-            TRAININGTYPES.TRTY_EXTENDVALIDITY)
-				.values(TRTY_SSTI,  "SST Initiale",                   Boolean.FALSE, Boolean.FALSE)
-				.values(TRTY_SSTR,  "Renouvellement SST",             Boolean.FALSE, Boolean.TRUE)
-				.values(TRTY_EPI,   "Manipulation Extincteurs",       Boolean.TRUE,  Boolean.FALSE)
-				.values(TRTY_DAE,   "Sensibilisation Défibrillation", Boolean.TRUE,  Boolean.FALSE)
-				.values(TRTY_H0B0,  "Habilitation Électrique",        Boolean.FALSE, Boolean.FALSE)
-				.values(TRTY_EVAC,  "Agent d'Évacuation",             Boolean.TRUE,  Boolean.FALSE)
-				.values(TRTY_FSSTI, "Formateur SST Initiale",         Boolean.FALSE, Boolean.FALSE)
-				.values(TRTY_FSSTR, "Renouvellement Formateur SST",   Boolean.FALSE, Boolean.TRUE)
+            TRAININGTYPES.TRTY_NAME)
+				.values(TRTY_SSTI,  "SST Initiale")
+				.values(TRTY_SSTR,  "Renouvellement SST")
+				.values(TRTY_EPI,   "Manipulation Extincteurs")
+				.values(TRTY_DAE,   "Sensibilisation Défibrillation")
+				.values(TRTY_H0B0,  "Habilitation Électrique")
+				.values(TRTY_EVAC,  "Agent d'Évacuation")
+				.values(TRTY_FSSTI, "Formateur SST Initiale")
+				.values(TRTY_FSSTR, "Renouvellement Formateur SST")
+				.execute();
+
+		ctx.insertInto(
+            TRAININGTYPES_DEFS,
+            TRAININGTYPES_DEFS.TTDF_PRESENCEONLY,
+            TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY)
+				.values(Boolean.FALSE, Boolean.FALSE)
+				.values(Boolean.FALSE, Boolean.TRUE)
+				.values(Boolean.TRUE,  Boolean.FALSE)
+				.values(Boolean.TRUE,  Boolean.FALSE)
+				.values(Boolean.FALSE, Boolean.FALSE)
+				.values(Boolean.TRUE,  Boolean.FALSE)
+				.values(Boolean.FALSE, Boolean.FALSE)
+				.values(Boolean.FALSE, Boolean.TRUE)
 				.execute();
 
 		ctx.insertInto(
 						TRAININGTYPES_CERTIFICATES,
-						TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK,
+						TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK,
 						TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
 						TRAININGTYPES_CERTIFICATES.TTCE_DURATION)
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_SSTI), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(12)))
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_SSTI), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(48)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_SSTI),  getCertificate(CERT_SST),  Integer.valueOf(12)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_SSTI),  getCertificate(CERT_DAE),  Integer.valueOf(48)))
 
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_SSTR), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(24)))
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_SSTR), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(48)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_SSTR),  getCertificate(CERT_SST),  Integer.valueOf(24)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_SSTR),  getCertificate(CERT_DAE),  Integer.valueOf(48)))
 
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_EPI), DemoCommonResources.getCertificate(CERT_EPI), Integer.valueOf(36)))
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_DAE), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(24)))
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_H0B0), DemoCommonResources.getCertificate(CERT_H0B0), Integer.valueOf(24)))
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_EVAC), DemoCommonResources.getCertificate(CERT_EVAC), Integer.valueOf(12)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_EPI),   getCertificate(CERT_EPI),  Integer.valueOf(36)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_DAE),   getCertificate(CERT_DAE),  Integer.valueOf(24)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_H0B0),  getCertificate(CERT_H0B0), Integer.valueOf(24)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_EVAC),  getCertificate(CERT_EVAC), Integer.valueOf(12)))
 
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTI), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(12)))
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTI), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(48)))
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTI), DemoCommonResources.getCertificate(CERT_FSST), Integer.valueOf(12)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_FSSTI), getCertificate(CERT_SST),  Integer.valueOf(12)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_FSSTI), getCertificate(CERT_DAE),  Integer.valueOf(48)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_FSSTI), getCertificate(CERT_FSST), Integer.valueOf(12)))
 
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(24)))
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(0)))
-				.values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_FSST), Integer.valueOf(24)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_FSSTR), getCertificate(CERT_SST),  Integer.valueOf(24)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_FSSTR), getCertificate(CERT_DAE),  Integer.valueOf(0)))
+				.values(FakeRecords.asFields(getTypeDef(TRTY_FSSTR), getCertificate(CERT_FSST), Integer.valueOf(24)))
 				.execute();
 
 		ctx.insertInto(TRAINERPROFILES, TRAINERPROFILES.TRPR_ID)
@@ -141,19 +154,19 @@ public class DemoCommonResources {
 				.execute();
 
 		ctx.insertInto(TRAINERPROFILES_TRAININGTYPES, TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK, TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK)
-				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_SSTI))
-				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_SSTR))
-				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_EPI))
-				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_DAE))
-				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_H0B0))
-				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_EVAC))
-				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_FSSTI))
-				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_FSSTR))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), getType(TRTY_SSTI))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), getType(TRTY_SSTR))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), getType(TRTY_EPI))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), getType(TRTY_DAE))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), getType(TRTY_H0B0))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), getType(TRTY_EVAC))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), getType(TRTY_FSSTI))
+				.values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), getType(TRTY_FSSTR))
 
-				.values(DemoCommonResources.getTrainerProfile(TRAINERPROFILE_ALTERNATE), DemoCommonResources.getType(TRTY_EPI))
-				.values(DemoCommonResources.getTrainerProfile(TRAINERPROFILE_ALTERNATE), DemoCommonResources.getType(TRTY_DAE))
-				.values(DemoCommonResources.getTrainerProfile(TRAINERPROFILE_ALTERNATE), DemoCommonResources.getType(TRTY_H0B0))
-				.values(DemoCommonResources.getTrainerProfile(TRAINERPROFILE_ALTERNATE), DemoCommonResources.getType(TRTY_EVAC))
+				.values(getTrainerProfile(TRAINERPROFILE_ALTERNATE), getType(TRTY_EPI))
+				.values(getTrainerProfile(TRAINERPROFILE_ALTERNATE), getType(TRTY_DAE))
+				.values(getTrainerProfile(TRAINERPROFILE_ALTERNATE), getType(TRTY_H0B0))
+				.values(getTrainerProfile(TRAINERPROFILE_ALTERNATE), getType(TRTY_EVAC))
 				.execute();
 	}
 
@@ -167,5 +180,12 @@ public class DemoCommonResources {
 
 	private static Field<Integer> getTrainerProfile(final String id) {
 		return DSL.select(TRAINERPROFILES.TRPR_PK).from(TRAINERPROFILES).where(TRAINERPROFILES.TRPR_ID.eq(id)).asField();
+	}
+
+	private static Field<Integer> getTypeDef(final Integer order) {
+		return DSL.select(TRAININGTYPES_DEFS.TTDF_PK)
+            .from(TRAININGTYPES_DEFS)
+            .join(TRAININGTYPES).on(TRAININGTYPES_DEFS.TTDF_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
+            .where(TRAININGTYPES.TRTY_ORDER.eq(order)).asField();
 	}
 }

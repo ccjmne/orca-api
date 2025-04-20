@@ -1,5 +1,6 @@
 package org.ccjmne.orca.api.utils;
 
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
@@ -13,8 +14,10 @@ import org.ccjmne.orca.jooq.codegen.tables.records.UpdatesRecord;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Record1;
+import org.jooq.Record2;
 import org.jooq.Select;
 import org.jooq.SelectQuery;
+import org.jooq.Table;
 import org.jooq.TableLike;
 import org.jooq.impl.DSL;
 
@@ -105,6 +108,31 @@ public class Constants {
 	public static Field<LocalDate> fieldDate(final String dateStr) {
 		return dateStr != null ? DSL.localDate(dateStr) : DSL.currentLocalDate();
 	}
+
+	public static Field<Integer> selectTypeDef(final Field<Integer> trty, final Field<LocalDate> date) {
+		return DSL.select(TRAININGTYPES_DEFS.TTDF_PK)
+			.from(TRAININGTYPES_DEFS)
+			.where(TRAININGTYPES_DEFS.TTDF_TRTY_FK.eq(trty))
+			.and(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.le(date))
+			.orderBy(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.desc())
+			.limit(1)
+			.asField();
+	}
+
+    public static Field<Integer> effectiveTypeDefs(Field<LocalDate> date) {
+        final Table<Record2<Integer, Integer>> cte = DSL.select(
+            TRAININGTYPES_DEFS.TTDF_PK,
+            DSL.rowNumber().over(DSL.partitionBy(TRAININGTYPES_DEFS.TTDF_TRTY_FK).orderBy(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.desc()))
+        )
+            .from(TRAININGTYPES_DEFS)
+            .where(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.le(date))
+            .asTable("defs_chrono", "pk", "rn");
+
+        return DSL.select(cte.field("pk", Integer.class))
+            .from(cte)
+            .where(cte.field("rn", Integer.class).eq(Integer.valueOf(1)))
+            .asField();
+    }
 
 	/**
 	 * Returns a sub-query selecting the <strong>primary key</strong> of the

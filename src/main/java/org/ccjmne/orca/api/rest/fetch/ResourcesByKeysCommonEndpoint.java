@@ -9,6 +9,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.QueryParam;
 
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
 import org.ccjmne.orca.jooq.codegen.tables.records.CertificatesRecord;
@@ -35,8 +36,8 @@ public class ResourcesByKeysCommonEndpoint {
 
 	@GET
 	@Path("trainingtypes")
-	public Map<Integer, Map<String, Object>> listTrainingTypes() {
-		return Maps.uniqueIndex(this.resources.listTrainingTypes(), trty -> (Integer) trty.get(TRAININGTYPES.TRTY_PK.getName()));
+	public Map<Integer, Map<String, Object>> listTrainingTypes(@QueryParam("date") final String dateStr) {
+		return Maps.uniqueIndex(this.resources.listTrainingTypes(dateStr), trty -> (Integer) trty.get(TRAININGTYPES.TRTY_PK.getName()));
 	}
 
 	@GET
