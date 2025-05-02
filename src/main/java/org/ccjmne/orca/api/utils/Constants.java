@@ -33,9 +33,15 @@ public class Constants {
 	 */
 	public static final LocalDate DATE_INFINITY = Instant.ofEpochMilli(Long.MAX_VALUE).atZone(ZoneId.of("UTC")).toLocalDate();
 
+	// TODO: Figure out why that date.
+	// It's not quite Long.MIN_VALUE, nor JDBC's DATE_NEGATIVE_INFINITY either:
+	// https://github.com/pgjdbc/pgjdbc/blob/bac3d0add5626006ce41db53618da2190bf00910/pgjdbc/src/main/java/org/postgresql/PGStatement.java#L22
+	public static final LocalDate DATE_NEGATIVE_INFINITY = LocalDate.of(292269055, 12, 03);
+
 	// ---- API CONSTANTS
 	public static final String FIELDS_ALL = "all";
 	public static final String DATE_INFINITY_LITERAL = "infinity";
+	public static final String DATE_NEGATIVE_INFINITY_LITERAL = "-infinity";
 	private static final Integer NO_UPDATE = Integer.valueOf(-1);
 
 	public static final String STATUS_SUCCESS = "success";
