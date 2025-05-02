@@ -10,6 +10,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -115,23 +116,17 @@ public class CertificatesEndpoint {
 			final boolean exists = this.ctx.fetchExists(TRAININGTYPES, TRAININGTYPES.TRTY_PK.eq(trty_pk));
 			if (exists) {
 				transactionCtx.update(TRAININGTYPES)
-						.set(TRAININGTYPES.TRTY_NAME,           (String)  trty.get(TRAININGTYPES.TRTY_NAME.getName()))
-						// .set(TRAININGTYPES.TRTY_PRESENCEONLY,   (Boolean) trty.get(TRAININGTYPES.TRTY_PRESENCEONLY.getName()))
-						// .set(TRAININGTYPES.TRTY_EXTENDVALIDITY, (Boolean) trty.get(TRAININGTYPES.TRTY_EXTENDVALIDITY.getName()))
+						.set(TRAININGTYPES.TRTY_NAME, (String) trty.get(TRAININGTYPES.TRTY_NAME.getName()))
 						.where(TRAININGTYPES.TRTY_PK.eq(trty_pk)).execute();
 			} else {
 				transactionCtx.insertInto(
 											TRAININGTYPES,
 											TRAININGTYPES.TRTY_PK,
 											TRAININGTYPES.TRTY_NAME,
-											// TRAININGTYPES.TRTY_PRESENCEONLY,
-											// TRAININGTYPES.TRTY_EXTENDVALIDITY,
 											TRAININGTYPES.TRTY_ORDER)
 						.values(
 								trty_pk,
 								(String)  trty.get(TRAININGTYPES.TRTY_NAME.getName()),
-								// (Boolean) trty.get(TRAININGTYPES.TRTY_PRESENCEONLY.getName()),
-								// (Boolean) trty.get(TRAININGTYPES.TRTY_EXTENDVALIDITY.getName()),
 								transactionCtx
 										.select(DSL.coalesce(DSL.max(TRAININGTYPES.TRTY_ORDER), Integer.valueOf(0)).add(Integer.valueOf(1)).as("order"))
 										.from(TRAININGTYPES)
@@ -142,56 +137,68 @@ public class CertificatesEndpoint {
 						.insertInto(TRAINERPROFILES_TRAININGTYPES, TRAINERPROFILES_TRAININGTYPES.TPTT_TRPR_FK, TRAINERPROFILES_TRAININGTYPES.TPTT_TRTY_FK)
 						.values(Constants.DEFAULT_TRAINERPROFILE, trty_pk).execute();
 			}
+			this.udpateTtdf(trty_pk, trty, transactionCtx);
 			return Boolean.valueOf(!exists);
 		});
 	}
 
-	/**
-	 * @return <code>true</code> iff a new {@link Record} was created
-	 */
-    public Boolean udpateTtdf(final Integer ttdf_pk, final Map<String, Object> ttdf) {
-        return Transactions.with(this.ctx, transactionCtx -> {
-			final boolean exists = this.ctx.fetchExists(TRAININGTYPES_DEFS, TRAININGTYPES_DEFS.TTDF_PK.eq(ttdf_pk));
-            if (exists) {
-				transactionCtx.update(TRAININGTYPES_DEFS)
-						.set(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM,           DSL.localDate((String) ttdf.get(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.getName())))
-						.set(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY,   (Boolean) ttdf.get(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY.getName()))
-						.set(TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY, (Boolean) ttdf.get(TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY.getName()))
-						.where(TRAININGTYPES_DEFS.TTDF_PK.eq(ttdf_pk)).execute();
+	@DELETE
+	@Path("trainingtypes/{trty_pk}/defs/{ttdf_pk}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public boolean createTrty(@PathParam("trty_pk") final Integer trty_pk, @PathParam("ttdf_pk") final Integer ttdf_pk) {
+		return this.ctx.delete(TRAININGTYPES_DEFS)
+				.where(TRAININGTYPES_DEFS.TTDF_TRTY_FK.eq(trty_pk))
+				.and(TRAININGTYPES_DEFS.TTDF_PK.eq(ttdf_pk))
+				.execute() == 1;
+	}
 
-                transactionCtx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK.eq(ttdf_pk)).execute();
-                @SuppressWarnings("unchecked")
-                final Row2<Integer, Integer>[] certificates = ((Map<String, Integer>) ttdf.getOrDefault("certificates", Collections.EMPTY_MAP)).entrySet()
-                        .stream().map((entry) -> DSL.row(Integer.valueOf(entry.getKey()), entry.getValue())).toArray(Row2[]::new);
+	public void udpateTtdf(final Integer trty_pk, final Map<String, Object> ttdf, final DSLContext transactionCtx) {
+		final Integer ttdf_pk = Optional.ofNullable((Integer) ttdf.get(TRAININGTYPES_DEFS.TTDF_PK.getName()))
+			.map(pk -> transactionCtx.update(TRAININGTYPES_DEFS)
+				.set(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM, Constants.fieldDate((String)  ttdf.get(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.getName())))
+				.set(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY,   DSL.val(            (Boolean) ttdf.get(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY.getName())))
+				.set(TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY, DSL.val(            (Boolean) ttdf.get(TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY.getName())))
+				.where(TRAININGTYPES_DEFS.TTDF_PK.eq(pk))
+				.returning(TRAININGTYPES_DEFS.TTDF_PK)
+				.fetchOne().get(TRAININGTYPES_DEFS.TTDF_PK)
+			).orElseGet(() -> transactionCtx.insertInto(TRAININGTYPES_DEFS)
+				.columns(TRAININGTYPES_DEFS.TTDF_TRTY_FK, TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM, TRAININGTYPES_DEFS.TTDF_PRESENCEONLY, TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY)
+				.values(
+					DSL.val(trty_pk),
+					Constants.fieldDate((String)  ttdf.get(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.getName())),
+					DSL.val(            (Boolean) ttdf.get(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY.getName())),
+					DSL.val(            (Boolean) ttdf.get(TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY.getName()))
+				)
+				.returning(TRAININGTYPES_DEFS.TTDF_PK)
+				.fetchOne().get(TRAININGTYPES_DEFS.TTDF_PK));
 
-                if (certificates.length > 0) {
-                    transactionCtx.insertInto(
-                                                TRAININGTYPES_CERTIFICATES,
-                                                TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK,
-                                                TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
-                                                TRAININGTYPES_CERTIFICATES.TTCE_DURATION)
-                            .select(DSL.select(
-                                                DSL.val(ttdf_pk),
-                                                DSL.field("cert_pk", Integer.class),
-                                                DSL.field("duration", Integer.class))
-                                    .from(DSL.values(certificates).as("unused", "cert_pk", "duration")))
-                            .execute();
-                }
-				// If "presenceOnly" definition, replace "FLUNKED" outcomes w/ "MISSING"
-				if (Boolean.valueOf(String.valueOf(ttdf.get(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY.getName()))).booleanValue()) {
-					transactionCtx.update(TRAININGS_EMPLOYEES)
-							.set(TRAININGS_EMPLOYEES.TREM_OUTCOME, Constants.EMPL_OUTCOME_MISSING)
-							.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.in(DSL.select(TRAININGS.TRNG_PK).from(TRAININGS).where(TRAININGS.TRNG_TRTY_FK.eq((Integer) ttdf.get(TRAININGTYPES_DEFS.TTDF_TRTY_FK.getName())))))
-							.and(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_FLUNKED))
-							.execute();
-				}
-            } else {
-                // TODO: Create a new definition
-                throw new UnsupportedOperationException("Not yet implemented");
-            }
-            return Boolean.valueOf(!exists);
-        });
-    }
+		transactionCtx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK.eq(ttdf_pk)).execute();
+		@SuppressWarnings("unchecked")
+		final Row2<Integer, Integer>[] certificates = ((Map<String, Integer>) ttdf.getOrDefault("certificates", Collections.EMPTY_MAP)).entrySet()
+				.stream().map((entry) -> DSL.row(Integer.valueOf(entry.getKey()), entry.getValue())).toArray(Row2[]::new);
+
+		if (certificates.length > 0) {
+			transactionCtx.insertInto(
+										TRAININGTYPES_CERTIFICATES,
+										TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK,
+										TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
+										TRAININGTYPES_CERTIFICATES.TTCE_DURATION)
+					.select(DSL.select(
+										DSL.val(ttdf_pk),
+										DSL.field("cert_pk", Integer.class),
+										DSL.field("duration", Integer.class))
+							.from(DSL.values(certificates).as("unused", "cert_pk", "duration")))
+					.execute();
+		}
+		// If "presenceOnly" definition, replace "FLUNKED" outcomes w/ "MISSING"
+		if (Boolean.valueOf(String.valueOf(ttdf.get(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY.getName()))).booleanValue()) {
+			transactionCtx.update(TRAININGS_EMPLOYEES)
+					.set(TRAININGS_EMPLOYEES.TREM_OUTCOME, Constants.EMPL_OUTCOME_MISSING)
+					.where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.in(DSL.select(TRAININGS.TRNG_PK).from(TRAININGS).where(TRAININGS.TRNG_TRTY_FK.eq(trty_pk))))
+					.and(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_FLUNKED))
+					.execute();
+		}
+	}
 
 	@POST
 	@SuppressWarnings({ "unchecked", "null" })
