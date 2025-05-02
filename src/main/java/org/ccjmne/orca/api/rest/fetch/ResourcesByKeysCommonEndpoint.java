@@ -3,12 +3,15 @@ package org.ccjmne.orca.api.rest.fetch;
 import static org.ccjmne.orca.jooq.codegen.Tables.CERTIFICATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
@@ -32,6 +35,12 @@ public class ResourcesByKeysCommonEndpoint {
 	@Inject
 	public ResourcesByKeysCommonEndpoint(final ResourcesUnrestricted resources) {
 		this.resources = resources;
+	}
+
+	@GET
+	@Path("trainingtypes/{trty_pk}/defs")
+	public Map<LocalDate, Map<String, Object>> listTypeDefs(@PathParam("trty_pk") final Integer trty_pk) {
+        return Maps.uniqueIndex(this.resources.listTypesDefs(trty_pk), trty -> (LocalDate) trty.get(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.getName()));
 	}
 
 	@GET

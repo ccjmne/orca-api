@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import javax.inject.Inject;
-import javax.ws.rs.QueryParam;
 
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.api.utils.ResourcesHelper;
@@ -47,8 +46,20 @@ public class ResourcesUnrestricted {
 		this.restrictedResourcesAccess = restrictedResourcesAccess;
 	}
 
+	public List<Map<String, Object>> listTypesDefs(final Integer trty) {
+		return this.ctx.select(TRAININGTYPES_DEFS.fields())
+				.select(ResourcesHelper.arrayAgg(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK),
+						ResourcesHelper.arrayAgg(TRAININGTYPES_CERTIFICATES.TTCE_DURATION))
+                .from(TRAININGTYPES_DEFS)
+				.join(TRAININGTYPES_CERTIFICATES, JoinType.LEFT_OUTER_JOIN).on(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK.eq(TRAININGTYPES_DEFS.TTDF_PK))
+                .where(TRAININGTYPES_DEFS.TTDF_TRTY_FK.eq(trty))
+				.groupBy(TRAININGTYPES_DEFS.fields())
+				.orderBy(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.desc())
+				.fetch(ResourcesHelper.getMapperWithZip(ResourcesHelper.getZipMapper(false, TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK, TRAININGTYPES_CERTIFICATES.TTCE_DURATION), "certificates"));
+	}
+
     // Only lists the latest definition of each training type
-	public List<Map<String, Object>> listTrainingTypes(@QueryParam("date") final String dateStr) {
+	public List<Map<String, Object>> listTrainingTypes(final String dateStr) {
 		return this.ctx.select(Stream.concat(TRAININGTYPES.fieldStream(), TRAININGTYPES_DEFS.fieldStream()).toArray(Field[]::new))
 				.select(ResourcesHelper.arrayAgg(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK),
 						ResourcesHelper.arrayAgg(TRAININGTYPES_CERTIFICATES.TTCE_DURATION))
