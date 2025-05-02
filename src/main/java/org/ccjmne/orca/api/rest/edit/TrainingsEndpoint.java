@@ -26,6 +26,7 @@ import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.jooq.codegen.Sequences;
 import org.ccjmne.orca.jooq.codegen.tables.records.TrainingsRecord;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.impl.DSL;
 
 @Path("trainings")
@@ -105,8 +106,8 @@ public class TrainingsEndpoint {
 		}
 
 		TrainingsEndpoint.validateOutcomes(map, transactionContext.selectFrom(TRAININGTYPES_DEFS)
-                .where(TRAININGTYPES_DEFS.TTDF_TRTY_FK.eq((Integer) map.get(TRAININGS.TRNG_TRTY_FK.getName()))
-                .and(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.le(LocalDate.parse(map.get(TRAININGS.TRNG_DATE.getName()).toString()))))
+				.where(TRAININGTYPES_DEFS.TTDF_TRTY_FK.eq((Integer) map.get(TRAININGS.TRNG_TRTY_FK.getName())))
+				.and(TRAININGTYPES_DEFS.TTDF_PK.in(Constants.effectiveTypeDefs(Constants.fieldDate((String) map.get(TRAININGS.TRNG_DATE.getName())))))
 				.fetchOne(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY).booleanValue());
 
 		transactionContext
@@ -121,8 +122,8 @@ public class TrainingsEndpoint {
 				.values(
 						trng_pk,
 						(Integer) map.get(TRAININGS.TRNG_TRTY_FK.getName()),
-						map.get(TRAININGS.TRNG_START.getName()) != null ? LocalDate.parse(map.get(TRAININGS.TRNG_START.getName()).toString()) : null,
-						LocalDate.parse(map.get(TRAININGS.TRNG_DATE.getName()).toString()),
+						map.get(TRAININGS.TRNG_START.getName()) != null ? LocalDate.parse((String) map.get(TRAININGS.TRNG_START.getName())) : null,
+						LocalDate.parse((String) map.get(TRAININGS.TRNG_DATE.getName())),
 						(String) map.get(TRAININGS.TRNG_OUTCOME.getName()),
 						(String) map.get(TRAININGS.TRNG_COMMENT.getName()))
 				.execute();
