@@ -79,7 +79,7 @@ public class StatisticsHelper {
 				.on(SITES_EMPLOYEES.SIEM_EMPL_FK.eq(TRAININGS_EMPLOYEES.TREM_EMPL_FK)
 						.and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Constants.selectUpdate(dateStr))))
 				.where(TRAININGS_EMPLOYEES.TREM_OUTCOME.eq(Constants.EMPL_OUTCOME_VALIDATED))
-                .and(TRAININGTYPES_DEFS.TTDF_PK.in(Constants.effectiveTypeDefs(Constants.fieldDate(dateStr))))
+                .and(TRAININGTYPES_DEFS.TTDF_PK.in(Constants.effectiveTypeDefs(TRAININGS.TRNG_DATE)))
 				.and(TRAININGS.TRNG_DATE.le(Constants.fieldDate(dateStr)))
 				.and(employeesSelection)
 				.groupBy(
