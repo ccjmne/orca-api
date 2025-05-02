@@ -6,6 +6,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
 import org.ccjmne.orca.api.modules.ResourcesUnrestricted;
@@ -25,6 +26,12 @@ public class ResourcesCommonEndpoint {
 	@Inject
 	public ResourcesCommonEndpoint(final ResourcesUnrestricted delegate) {
 		this.delegate = delegate;
+	}
+
+	@GET
+	@Path("trainingtypes/{trty_pk}/defs")
+	public List<Map<String, Object>> listTypesDefs(@PathParam("trty_pk") final Integer trty_pk) {
+		return this.delegate.listTypesDefs(trty_pk);
 	}
 
 	@GET
