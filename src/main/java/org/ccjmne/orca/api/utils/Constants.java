@@ -111,8 +111,14 @@ public class Constants {
 		return DSL.select(table.field(field)).from(table);
 	}
 
+	/**
+	 * Unlike DSL#localDate, this handles `-infinity` and `infinity`.
+	 */
 	public static Field<LocalDate> fieldDate(final String dateStr) {
-		return dateStr != null ? DSL.localDate(dateStr) : DSL.currentLocalDate();
+		if (dateStr == null) {
+			return DSL.currentLocalDate();
+		}
+		return DSL.cast(DSL.val(dateStr), LocalDate.class);
 	}
 
 	public static Field<Integer> selectTypeDef(final Field<Integer> trty, final Field<LocalDate> date) {
@@ -125,18 +131,18 @@ public class Constants {
 			.asField();
 	}
 
-    public static Field<Integer> effectiveTypeDefs(Field<LocalDate> date) {
+    public static Field<Integer> effectiveTypeDefs(final Field<LocalDate> date) {
         final Table<Record2<Integer, Integer>> cte = DSL.select(
             TRAININGTYPES_DEFS.TTDF_PK,
             DSL.rowNumber().over(DSL.partitionBy(TRAININGTYPES_DEFS.TTDF_TRTY_FK).orderBy(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.desc()))
         )
             .from(TRAININGTYPES_DEFS)
             .where(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.le(date))
-            .asTable("defs_chrono", "pk", "rn");
+            .asTable("defs_chrono", "pk", "rank");
 
         return DSL.select(cte.field("pk", Integer.class))
             .from(cte)
-            .where(cte.field("rn", Integer.class).eq(Integer.valueOf(1)))
+            .where(cte.field("rank", Integer.class).eq(Integer.valueOf(1)))
             .asField();
     }
 
