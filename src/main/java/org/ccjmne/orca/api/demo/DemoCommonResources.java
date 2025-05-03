@@ -112,16 +112,17 @@ public class DemoCommonResources {
 
 		ctx.insertInto(
             TRAININGTYPES_DEFS,
+            TRAININGTYPES_DEFS.TTDF_TRTY_FK,
             TRAININGTYPES_DEFS.TTDF_PRESENCEONLY,
             TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY)
-				.values(Boolean.FALSE, Boolean.FALSE)
-				.values(Boolean.FALSE, Boolean.TRUE)
-				.values(Boolean.TRUE,  Boolean.FALSE)
-				.values(Boolean.TRUE,  Boolean.FALSE)
-				.values(Boolean.FALSE, Boolean.FALSE)
-				.values(Boolean.TRUE,  Boolean.FALSE)
-				.values(Boolean.FALSE, Boolean.FALSE)
-				.values(Boolean.FALSE, Boolean.TRUE)
+				.values(getType(TRTY_SSTI),  DSL.val(Boolean.FALSE), DSL.val(Boolean.FALSE))
+				.values(getType(TRTY_SSTR),  DSL.val(Boolean.FALSE), DSL.val(Boolean.TRUE))
+				.values(getType(TRTY_EPI),   DSL.val(Boolean.TRUE),  DSL.val(Boolean.FALSE))
+				.values(getType(TRTY_DAE),   DSL.val(Boolean.TRUE),  DSL.val(Boolean.FALSE))
+				.values(getType(TRTY_H0B0),  DSL.val(Boolean.FALSE), DSL.val(Boolean.FALSE))
+				.values(getType(TRTY_EVAC),  DSL.val(Boolean.TRUE),  DSL.val(Boolean.FALSE))
+				.values(getType(TRTY_FSSTI), DSL.val(Boolean.FALSE), DSL.val(Boolean.FALSE))
+				.values(getType(TRTY_FSSTR), DSL.val(Boolean.FALSE), DSL.val(Boolean.TRUE))
 				.execute();
 
 		ctx.insertInto(
