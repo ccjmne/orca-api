@@ -4,9 +4,9 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
-import java.time.Instant;
+import java.sql.Date;
 import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -23,20 +23,21 @@ import org.jooq.impl.DSL;
 
 public class Constants {
 
-	/**
-	 * Postgres will yield 'infinity' for dates that are infinitely far in time,
-	 * and Java will interpret these as approximately +292278994-08-17 07:12:55,
-	 * which is the UTC date of 2^63-1 milliseconds since the epoch.
-	 *
-	 * It isn't however equal to LocalDate.MAX, which is +999999999-12-31, nor
-	 * to Instant.MAX, which would be 1000000000-12-31T23:59:59.999999999Z.
-	 */
-	public static final LocalDate DATE_INFINITY = Instant.ofEpochMilli(Long.MAX_VALUE).atZone(ZoneId.of("UTC")).toLocalDate();
-
-	// TODO: Figure out why that date.
-	// It's not quite Long.MIN_VALUE, nor JDBC's DATE_NEGATIVE_INFINITY either:
-	// https://github.com/pgjdbc/pgjdbc/blob/bac3d0add5626006ce41db53618da2190bf00910/pgjdbc/src/main/java/org/postgresql/PGStatement.java#L22
-	public static final LocalDate DATE_NEGATIVE_INFINITY = LocalDate.of(292269055, 12, 03);
+        /**
+         * Postgres will yield 'infinity' for dates that are infinitely far in time,
+         * and Java will interpret these as approximately +292278994-08-17 07:12:55,
+         * which is the UTC date of 2^63-1 milliseconds since the epoch.
+         *
+         * It isn't however equal to LocalDate.MAX, which is +999999999-12-31,
+         * nor to Instant.MAX, which would be 1000000000-12-31T23:59:59.999999999Z.
+         *
+         * For some reason (most likely time zones configuration), these
+         * dates may be off by one. We remedy this issue by comparing the
+         * Duration#between the LocalDateTimes: if they're within a day; that's
+         * infinity (positive or negative).
+         */
+	public static final LocalDateTime DATE_INFINITY = new Date(Long.MAX_VALUE).toLocalDate().atStartOfDay();
+	public static final LocalDateTime DATE_NEGATIVE_INFINITY = new Date(Long.MIN_VALUE).toLocalDate().atStartOfDay();
 
 	// ---- API CONSTANTS
 	public static final String FIELDS_ALL = "all";
