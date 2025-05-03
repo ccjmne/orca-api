@@ -23,6 +23,8 @@ ALTER TABLE IF EXISTS ONLY public.users_roles DROP CONSTRAINT IF EXISTS users_ro
 ALTER TABLE IF EXISTS ONLY public.users_certificates DROP CONSTRAINT IF EXISTS users_certificates_users_fk;
 ALTER TABLE IF EXISTS ONLY public.users_certificates DROP CONSTRAINT IF EXISTS users_certificates_certificates_fk;
 ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS user_empl_fk;
+ALTER TABLE IF EXISTS ONLY public.trainingtypes_defs DROP CONSTRAINT IF EXISTS ttdf_trty_fk;
+ALTER TABLE IF EXISTS ONLY public.trainingtypes_certificates DROP CONSTRAINT IF EXISTS ttce_ttdf_fk;
 ALTER TABLE IF EXISTS ONLY public.trainings_trainers DROP CONSTRAINT IF EXISTS trtr_trng_fk;
 ALTER TABLE IF EXISTS ONLY public.trainings_trainers DROP CONSTRAINT IF EXISTS trtr_empl_fk;
 ALTER TABLE IF EXISTS ONLY public.trainings_employees DROP CONSTRAINT IF EXISTS trem_trng_fk;
@@ -35,13 +37,13 @@ ALTER TABLE IF EXISTS ONLY public.sites_employees DROP CONSTRAINT IF EXISTS siem
 ALTER TABLE IF EXISTS ONLY public.sites_employees DROP CONSTRAINT IF EXISTS siem_empl_fk;
 ALTER TABLE IF EXISTS ONLY public.sites_employees DROP CONSTRAINT IF EXISTS fk_updates_updt_pk;
 ALTER TABLE IF EXISTS ONLY public.trainings DROP CONSTRAINT IF EXISTS fk_trainingtypes_trty_pk;
-ALTER TABLE IF EXISTS ONLY public.trainingtypes_certificates DROP CONSTRAINT IF EXISTS fk_trainingtypes_trty_pk;
 ALTER TABLE IF EXISTS ONLY public.trainingtypes_certificates DROP CONSTRAINT IF EXISTS fk_certificates_cert_pk;
 ALTER TABLE IF EXISTS ONLY public.employees_voidings DROP CONSTRAINT IF EXISTS emvo_empl_fk;
 ALTER TABLE IF EXISTS ONLY public.employees_voidings DROP CONSTRAINT IF EXISTS emvo_cert_fk;
 DROP INDEX IF EXISTS public.updt_date_idx;
 DROP INDEX IF EXISTS public.trng_date_idx;
 DROP INDEX IF EXISTS public.site_pk_idx;
+DROP INDEX IF EXISTS public.idx_trainingtypes_defs_trty_effective_from;
 DROP INDEX IF EXISTS public.fki_trng_trty_fk;
 DROP INDEX IF EXISTS public.fki_trem_trng_fk;
 DROP INDEX IF EXISTS public.fki_siem_updt_fk;
@@ -54,6 +56,7 @@ ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS user_pk;
 ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS user_empl_fk_uniq;
 ALTER TABLE IF EXISTS ONLY public.updates DROP CONSTRAINT IF EXISTS updt_pk;
 ALTER TABLE IF EXISTS ONLY public.sites_employees DROP CONSTRAINT IF EXISTS updt_empl_uniq;
+ALTER TABLE IF EXISTS ONLY public.trainingtypes_defs DROP CONSTRAINT IF EXISTS unique_trty_effective_from;
 ALTER TABLE IF EXISTS ONLY public.sites DROP CONSTRAINT IF EXISTS uniq_site_external_id;
 ALTER TABLE IF EXISTS ONLY public.employees DROP CONSTRAINT IF EXISTS uniq_empl_external_id;
 ALTER TABLE IF EXISTS ONLY public.configs DROP CONSTRAINT IF EXISTS "uniq on conf_type & conf_name";
@@ -63,6 +66,7 @@ ALTER TABLE IF EXISTS ONLY public.trainings_employees DROP CONSTRAINT IF EXISTS 
 ALTER TABLE IF EXISTS ONLY public.trainings DROP CONSTRAINT IF EXISTS trng_pk;
 ALTER TABLE IF EXISTS ONLY public.trainings_trainers DROP CONSTRAINT IF EXISTS trng_empl_uniq;
 ALTER TABLE IF EXISTS ONLY public.trainings_employees DROP CONSTRAINT IF EXISTS trem_pk;
+ALTER TABLE IF EXISTS ONLY public.trainingtypes_defs DROP CONSTRAINT IF EXISTS trainingtypes_defs_pkey;
 ALTER TABLE IF EXISTS ONLY public.trainerprofiles_trainingtypes DROP CONSTRAINT IF EXISTS trainerprofiles_trainingtypes_pk;
 ALTER TABLE IF EXISTS ONLY public.trainerprofiles DROP CONSTRAINT IF EXISTS trainerprofiles_pk;
 ALTER TABLE IF EXISTS ONLY public.tags DROP CONSTRAINT IF EXISTS tags_pk;
@@ -78,6 +82,7 @@ ALTER TABLE IF EXISTS ONLY public.client DROP CONSTRAINT IF EXISTS client_pk;
 ALTER TABLE IF EXISTS ONLY public.certificates DROP CONSTRAINT IF EXISTS cert_pk;
 ALTER TABLE IF EXISTS ONLY public.certificates DROP CONSTRAINT IF EXISTS cert_order_uniq;
 ALTER TABLE IF EXISTS public.updates ALTER COLUMN updt_pk DROP DEFAULT;
+ALTER TABLE IF EXISTS public.trainingtypes_defs ALTER COLUMN ttdf_pk DROP DEFAULT;
 ALTER TABLE IF EXISTS public.trainingtypes ALTER COLUMN trty_pk DROP DEFAULT;
 ALTER TABLE IF EXISTS public.trainings_employees ALTER COLUMN trem_pk DROP DEFAULT;
 ALTER TABLE IF EXISTS public.trainings ALTER COLUMN trng_pk DROP DEFAULT;
@@ -93,6 +98,8 @@ DROP TABLE IF EXISTS public.users;
 DROP SEQUENCE IF EXISTS public.updates_updt_pk_seq;
 DROP TABLE IF EXISTS public.updates;
 DROP SEQUENCE IF EXISTS public.trainingtypes_trty_pk_seq;
+DROP SEQUENCE IF EXISTS public.trainingtypes_defs_ttdf_pk_seq;
+DROP TABLE IF EXISTS public.trainingtypes_defs;
 DROP TABLE IF EXISTS public.trainingtypes_certificates;
 DROP TABLE IF EXISTS public.trainingtypes;
 DROP SEQUENCE IF EXISTS public.trty_order_seq;
@@ -585,17 +592,8 @@ CREATE SEQUENCE public.trty_order_seq
 CREATE TABLE public.trainingtypes (
     trty_pk integer NOT NULL,
     trty_name character varying(128) NOT NULL,
-    trty_order integer DEFAULT nextval('public.trty_order_seq'::regclass) NOT NULL,
-    trty_presenceonly boolean DEFAULT false NOT NULL,
-    trty_extendvalidity boolean DEFAULT false NOT NULL
+    trty_order integer DEFAULT nextval('public.trty_order_seq'::regclass) NOT NULL
 );
-
-
---
--- Name: COLUMN trainingtypes.trty_extendvalidity; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.trainingtypes.trty_extendvalidity IS 'Whether the certificates granted by that training type should merely be renewed for the duration set up, or their validity be *extended* by that amount.';
 
 
 --
@@ -603,10 +601,50 @@ COMMENT ON COLUMN public.trainingtypes.trty_extendvalidity IS 'Whether the certi
 --
 
 CREATE TABLE public.trainingtypes_certificates (
-    ttce_trty_fk integer NOT NULL,
     ttce_cert_fk integer NOT NULL,
-    ttce_duration integer DEFAULT 0 NOT NULL
+    ttce_duration integer DEFAULT 0 NOT NULL,
+    ttce_ttdf_fk integer NOT NULL
 );
+
+
+--
+-- Name: trainingtypes_defs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.trainingtypes_defs (
+    ttdf_pk integer NOT NULL,
+    ttdf_trty_fk integer NOT NULL,
+    ttdf_effective_from date DEFAULT '-infinity'::date NOT NULL,
+    ttdf_presenceonly boolean DEFAULT false NOT NULL,
+    ttdf_extendvalidity boolean DEFAULT false NOT NULL
+);
+
+
+--
+-- Name: COLUMN trainingtypes_defs.ttdf_extendvalidity; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.trainingtypes_defs.ttdf_extendvalidity IS 'Whether the certificates granted by that training type should merely be renewed for the duration set up, or their validity be *extended* by that amount.';
+
+
+--
+-- Name: trainingtypes_defs_ttdf_pk_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.trainingtypes_defs_ttdf_pk_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: trainingtypes_defs_ttdf_pk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.trainingtypes_defs_ttdf_pk_seq OWNED BY public.trainingtypes_defs.ttdf_pk;
 
 
 --
@@ -772,6 +810,13 @@ ALTER TABLE ONLY public.trainingtypes ALTER COLUMN trty_pk SET DEFAULT nextval('
 
 
 --
+-- Name: trainingtypes_defs ttdf_pk; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trainingtypes_defs ALTER COLUMN ttdf_pk SET DEFAULT nextval('public.trainingtypes_defs_ttdf_pk_seq'::regclass);
+
+
+--
 -- Name: updates updt_pk; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -831,7 +876,7 @@ ALTER TABLE ONLY public.employees
 --
 
 ALTER TABLE ONLY public.trainingtypes_certificates
-    ADD CONSTRAINT fk_combination_uniq UNIQUE (ttce_trty_fk, ttce_cert_fk);
+    ADD CONSTRAINT fk_combination_uniq UNIQUE (ttce_ttdf_fk, ttce_cert_fk);
 
 
 --
@@ -888,6 +933,14 @@ ALTER TABLE ONLY public.trainerprofiles
 
 ALTER TABLE ONLY public.trainerprofiles_trainingtypes
     ADD CONSTRAINT trainerprofiles_trainingtypes_pk PRIMARY KEY (tptt_trpr_fk, tptt_trty_fk);
+
+
+--
+-- Name: trainingtypes_defs trainingtypes_defs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trainingtypes_defs
+    ADD CONSTRAINT trainingtypes_defs_pkey PRIMARY KEY (ttdf_pk);
 
 
 --
@@ -960,6 +1013,14 @@ ALTER TABLE ONLY public.employees
 
 ALTER TABLE ONLY public.sites
     ADD CONSTRAINT uniq_site_external_id UNIQUE (site_external_id);
+
+
+--
+-- Name: trainingtypes_defs unique_trty_effective_from; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trainingtypes_defs
+    ADD CONSTRAINT unique_trty_effective_from UNIQUE (ttdf_trty_fk, ttdf_effective_from);
 
 
 --
@@ -1053,6 +1114,13 @@ CREATE INDEX fki_trng_trty_fk ON public.trainings USING btree (trng_trty_fk);
 
 
 --
+-- Name: idx_trainingtypes_defs_trty_effective_from; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_trainingtypes_defs_trty_effective_from ON public.trainingtypes_defs USING btree (ttdf_trty_fk, ttdf_effective_from DESC);
+
+
+--
 -- Name: site_pk_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1095,14 +1163,6 @@ ALTER TABLE ONLY public.employees_voidings
 
 ALTER TABLE ONLY public.trainingtypes_certificates
     ADD CONSTRAINT fk_certificates_cert_pk FOREIGN KEY (ttce_cert_fk) REFERENCES public.certificates(cert_pk) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: trainingtypes_certificates fk_trainingtypes_trty_pk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.trainingtypes_certificates
-    ADD CONSTRAINT fk_trainingtypes_trty_pk FOREIGN KEY (ttce_trty_fk) REFERENCES public.trainingtypes(trty_pk) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -1199,6 +1259,22 @@ ALTER TABLE ONLY public.trainings_trainers
 
 ALTER TABLE ONLY public.trainings_trainers
     ADD CONSTRAINT trtr_trng_fk FOREIGN KEY (trtr_trng_fk) REFERENCES public.trainings(trng_pk) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: trainingtypes_certificates ttce_ttdf_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trainingtypes_certificates
+    ADD CONSTRAINT ttce_ttdf_fk FOREIGN KEY (ttce_ttdf_fk) REFERENCES public.trainingtypes_defs(ttdf_pk) ON DELETE CASCADE;
+
+
+--
+-- Name: trainingtypes_defs ttdf_trty_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trainingtypes_defs
+    ADD CONSTRAINT ttdf_trty_fk FOREIGN KEY (ttdf_trty_fk) REFERENCES public.trainingtypes(trty_pk) ON DELETE CASCADE;
 
 
 --
