@@ -97,9 +97,9 @@ public class DemoCommonResources {
 				.execute();
 
 		ctx.insertInto(
-            TRAININGTYPES,
-            TRAININGTYPES.TRTY_ORDER,
-            TRAININGTYPES.TRTY_NAME)
+			TRAININGTYPES,
+			TRAININGTYPES.TRTY_ORDER,
+			TRAININGTYPES.TRTY_NAME)
 				.values(TRTY_SSTI,  "SST Initiale")
 				.values(TRTY_SSTR,  "Renouvellement SST")
 				.values(TRTY_EPI,   "Manipulation Extincteurs")
@@ -111,10 +111,10 @@ public class DemoCommonResources {
 				.execute();
 
 		ctx.insertInto(
-            TRAININGTYPES_DEFS,
-            TRAININGTYPES_DEFS.TTDF_TRTY_FK,
-            TRAININGTYPES_DEFS.TTDF_PRESENCEONLY,
-            TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY)
+			TRAININGTYPES_DEFS,
+			TRAININGTYPES_DEFS.TTDF_TRTY_FK,
+			TRAININGTYPES_DEFS.TTDF_PRESENCEONLY,
+			TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY)
 				.values(getType(TRTY_SSTI),  DSL.val(Boolean.FALSE), DSL.val(Boolean.FALSE))
 				.values(getType(TRTY_SSTR),  DSL.val(Boolean.FALSE), DSL.val(Boolean.TRUE))
 				.values(getType(TRTY_EPI),   DSL.val(Boolean.TRUE),  DSL.val(Boolean.FALSE))
@@ -122,7 +122,7 @@ public class DemoCommonResources {
 				.values(getType(TRTY_H0B0),  DSL.val(Boolean.FALSE), DSL.val(Boolean.FALSE))
 				.values(getType(TRTY_EVAC),  DSL.val(Boolean.TRUE),  DSL.val(Boolean.FALSE))
 				.values(getType(TRTY_FSSTI), DSL.val(Boolean.FALSE), DSL.val(Boolean.FALSE))
-				.values(getType(TRTY_FSSTR), DSL.val(Boolean.FALSE), DSL.val(Boolean.TRUE))
+				.values(getType(TRTY_FSSTR), DSL.val(Boolean.FALSE), DSL.val(Boolean.FALSE))
 				.execute();
 
 		ctx.insertInto(
@@ -148,6 +148,25 @@ public class DemoCommonResources {
 				.values(FakeRecords.asFields(getTypeDef(TRTY_FSSTR), getCertificate(CERT_SST),  Integer.valueOf(24)))
 				.values(FakeRecords.asFields(getTypeDef(TRTY_FSSTR), getCertificate(CERT_DAE),  Integer.valueOf(0)))
 				.values(FakeRecords.asFields(getTypeDef(TRTY_FSSTR), getCertificate(CERT_FSST), Integer.valueOf(24)))
+				.execute();
+
+		// From 2024-01-01, MAC FSST will *extend* the current validity of the certificates
+		final Integer sstmac2 = ctx.insertInto(
+			TRAININGTYPES_DEFS,
+			TRAININGTYPES_DEFS.TTDF_TRTY_FK,
+			TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM,
+			TRAININGTYPES_DEFS.TTDF_PRESENCEONLY,
+			TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY)
+				.values(getType(TRTY_FSSTR), Constants.fieldDate("2024-01-01"), DSL.val(Boolean.FALSE), DSL.val(Boolean.TRUE))
+				.returning(TRAININGTYPES_DEFS.TTDF_PK).fetchOne().get(TRAININGTYPES_DEFS.TTDF_PK);
+		ctx.insertInto(
+						TRAININGTYPES_CERTIFICATES,
+						TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK,
+						TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
+						TRAININGTYPES_CERTIFICATES.TTCE_DURATION)
+				.values(FakeRecords.asFields(sstmac2, getCertificate(CERT_SST),  Integer.valueOf(24)))
+				.values(FakeRecords.asFields(sstmac2, getCertificate(CERT_DAE),  Integer.valueOf(0)))
+				.values(FakeRecords.asFields(sstmac2, getCertificate(CERT_FSST), Integer.valueOf(24)))
 				.execute();
 
 		ctx.insertInto(TRAINERPROFILES, TRAINERPROFILES.TRPR_ID)
@@ -185,8 +204,8 @@ public class DemoCommonResources {
 
 	private static Field<Integer> getTypeDef(final Integer order) {
 		return DSL.select(TRAININGTYPES_DEFS.TTDF_PK)
-            .from(TRAININGTYPES_DEFS)
-            .join(TRAININGTYPES).on(TRAININGTYPES_DEFS.TTDF_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
-            .where(TRAININGTYPES.TRTY_ORDER.eq(order)).asField();
+			.from(TRAININGTYPES_DEFS)
+			.join(TRAININGTYPES).on(TRAININGTYPES_DEFS.TTDF_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
+			.where(TRAININGTYPES.TRTY_ORDER.eq(order)).asField();
 	}
 }
