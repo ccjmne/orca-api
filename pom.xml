@@ -148,19 +148,6 @@
 			<version>0.9.0</version>
 		</dependency>
 
-		<!-- PDF GENERATION -->
-		<dependency>
-			<groupId>org.apache.pdfbox</groupId>
-			<artifactId>pdfbox</artifactId>
-			<version>2.0.8</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.github.jhonnymertz</groupId>
-			<artifactId>java-wkhtmltopdf-wrapper</artifactId>
-			<version>1.1.0-RELEASE</version>
-		</dependency>
-
 		<!-- OTHERS -->
 		<dependency>
 			<groupId>org.eclipse.jdt</groupId>
