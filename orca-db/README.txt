@@ -15,4 +15,11 @@ Restore with:
         --username orcadb_root --dbname peidf \
         --file peidf-schema-$(date -I).sql
 
+Apply patch with:
+
+    psql \
+        --host orca-november-2023.c43s9fxu21fi.eu-west-1.rds.amazonaws.com --port 5432 \
+        --username orcadb_root --dbname peidf \
+        --file patches/x.x.x.sql
+
 vim: textwidth=80 expandtab shiftwidth=4 smarttab
