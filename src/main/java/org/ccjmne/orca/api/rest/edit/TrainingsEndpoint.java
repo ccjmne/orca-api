@@ -26,7 +26,6 @@ import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.jooq.codegen.Sequences;
 import org.ccjmne.orca.jooq.codegen.tables.records.TrainingsRecord;
 import org.jooq.DSLContext;
-import org.jooq.Field;
 import org.jooq.impl.DSL;
 
 @Path("trainings")

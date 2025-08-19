@@ -6,6 +6,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -18,7 +19,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.lang3.ObjectUtils;
 import org.ccjmne.orca.api.modules.Restrictions;
 import org.ccjmne.orca.api.rest.fetch.ResourcesEndpoint;
 import org.ccjmne.orca.api.utils.Constants;
@@ -59,7 +59,7 @@ public class SitesEndpoint {
 	public Boolean updateSite(@PathParam("site_pk") final Integer site_pk, final Map<String, Object> siteDefinition) {
 		return Transactions.with(this.ctx, transactionCtx -> {
 			@SuppressWarnings("unchecked")
-			final Map<String, Object> tags = ObjectUtils.defaultIfNull((Map<String, Object>) siteDefinition.remove("tags"), Collections.emptyMap());
+			final Map<String, Object> tags = Optional.ofNullable((Map<String, Object>) siteDefinition.remove("tags")).orElseGet(Collections::emptyMap);
 			final boolean exists = transactionCtx.fetchExists(SITES, SITES.SITE_PK.eq(site_pk));
 			if (exists) {
 				transactionCtx.update(SITES).set(siteDefinition).where(SITES.SITE_PK.eq(site_pk)).execute();

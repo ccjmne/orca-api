@@ -2,6 +2,7 @@ package org.ccjmne.orca.api.demo;
 
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -10,7 +11,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.apache.commons.lang3.StringUtils;
 import org.ccjmne.orca.api.utils.Constants;
 import org.ccjmne.orca.jooq.codegen.tables.Employees;
 import org.ccjmne.orca.jooq.codegen.tables.Sites;
@@ -138,10 +138,11 @@ public class FakeRecords {
 
 	private static String asEmail(final String userName) {
 		return String.format(	"%s@demo.orca-solution.com",
-								StringUtils
-										.stripAccents(userName)
-										.replaceAll("[ ']+", "-")
-										.replaceAll("[^a-zA-Z.-]", "").toLowerCase());
+					Normalizer.normalize(userName, Normalizer.Form.NFD)
+						.replaceAll("\\p{M}", "")            // remove accents/diacritics
+						.replaceAll("[ ']+", "-")            // collapse spaces and apostrophes into "-"
+						.replaceAll("[^a-zA-Z.-]", "")       // keep only letters, dot, hyphen
+						.toLowerCase());
 	}
 
 	private static String anyFrom(final List<String> source) {
