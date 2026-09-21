@@ -197,6 +197,21 @@ docker exec orca-db-test createdb --username postgres orca_test
 
 Then run the restore pipeline above.
 
+Database extensions are not included by this dump. Recreate them after every
+database replacement:
+
+```bash
+PGPASSWORD=postgres psql \
+  --host 127.0.0.1 \
+  --port 5433 \
+  --username postgres \
+  --dbname orca_test \
+  --no-psqlrc \
+  --set ON_ERROR_STOP=1 \
+  --command='CREATE EXTENSION IF NOT EXISTS unaccent;' \
+  --command='CREATE EXTENSION IF NOT EXISTS pg_trgm;'
+```
+
 Basic post-restore checks:
 
 ```bash
@@ -215,6 +230,11 @@ PGPASSWORD=postgres psql \
     SELECT count(*) AS unmapped_certificate_links
     FROM trainingtypes_certificates
     WHERE ttce_ttdf_fk IS NULL;
+
+    SELECT extname
+    FROM pg_extension
+    WHERE extname IN ('unaccent', 'pg_trgm')
+    ORDER BY extname;
   "
 ```
 

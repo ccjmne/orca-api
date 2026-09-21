@@ -164,6 +164,13 @@ public class ResourcesSelection {
         query.addGroupBy(TRAININGS_EMPLOYEES.fields());
       }
 
+      if (this.parameters.has(QueryParams.FILTER_EMPLOYEE)) {
+        query.addSelect(TRAININGS_EMPLOYEES.fields());
+        query.addJoin(TRAININGS_EMPLOYEES, TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK)
+            .and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(this.parameters.get(QueryParams.FILTER_EMPLOYEE))));
+        query.addGroupBy(TRAININGS_EMPLOYEES.fields());
+      }
+
       return query;
     }
   }
@@ -189,6 +196,11 @@ public class ResourcesSelection {
       if (this.parameters.has(QueryParams.TRAINER)) {
         query.addConditions(DSL.exists(DSL.selectFrom(TRAININGS_TRAINERS).where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK)
             .and(TRAININGS_TRAINERS.TRTR_EMPL_FK.eq(this.parameters.get(QueryParams.TRAINER))))));
+      }
+
+      if (this.parameters.has(QueryParams.FILTER_TRAINER)) {
+        query.addConditions(DSL.exists(DSL.selectFrom(TRAININGS_TRAINERS).where(TRAININGS_TRAINERS.TRTR_TRNG_FK.eq(TRAININGS.TRNG_PK)
+            .and(TRAININGS_TRAINERS.TRTR_EMPL_FK.eq(this.parameters.get(QueryParams.FILTER_TRAINER))))));
       }
 
       if (!this.parameters.isDefault(QueryParams.FROM) || !this.parameters.isDefault(QueryParams.TO)) {

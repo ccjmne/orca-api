@@ -31,6 +31,7 @@ import org.ccjmne.orca.api.utils.RecordMappers;
 import org.ccjmne.orca.api.utils.Transactions;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.JSONB;
 import org.jooq.Record;
 import org.jooq.Row1;
 import org.jooq.impl.DSL;
@@ -142,13 +143,15 @@ public class UsersEndpoint {
     return Transactions.with(this.ctx, transactionCtx -> {
       final String password;
       if (!transactionCtx.fetchExists(USERS, USERS.USER_ID.eq(user_id))) {
-        transactionCtx.insertInto(USERS, USERS.USER_ID, USERS.USER_PWD, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK)
+        final Integer employeePk = (Integer) data.get(USERS.USER_EMPL_FK.getName());
+        transactionCtx.insertInto(USERS, USERS.USER_ID, USERS.USER_PWD, USERS.USER_TYPE, USERS.USER_EMPL_FK, USERS.USER_SITE_FK, USERS.USER_CONFIG)
             .values(
                     DSL.val(user_id),
                     DSL.md5(password = UsersEndpoint.generatePassword()),
                     DSL.val((String) data.get(USERS.USER_TYPE.getName())),
-                    DSL.val((Integer) data.get(USERS.USER_EMPL_FK.getName())),
-                    DSL.val((Integer) data.get(USERS.USER_SITE_FK.getName())))
+                    DSL.val(employeePk),
+                    DSL.val((Integer) data.get(USERS.USER_SITE_FK.getName())),
+                    DSL.val(UsersEndpoint.defaultUserConfig(employeePk)))
             .execute();
       } else {
         password = null;
@@ -195,6 +198,20 @@ public class UsersEndpoint {
 
       return password;
     });
+  }
+
+  private static JSONB defaultUserConfig(final Integer employeePk) {
+    final String personalSearches = employeePk == null ? "" : String.format(
+            ", {\"name\":\"Dont je suis formateur\",\"params\":{\"filter[trainer]\":[\"%1$d\"],\"sort\":\"trng_date:desc\"}}"
+                + ", {\"name\":\"Que j'ai suivies\",\"params\":{\"filter[employee]\":[\"%1$d\"],\"sort\":\"trng_date:desc\"}}",
+            employeePk);
+
+    return JSONB.valueOf("{\"search:sessions\":["
+        + "{\"name\":\"Avec agents recalés\",\"params\":{\"filter[number:stats.FLUNKED]\":[\"gt:0\"],\"sort\":\"stats.FLUNKED:desc\"}},"
+        + "{\"name\":\"Avec agents absents\",\"params\":{\"filter[number:stats.MISSING]\":[\"gt:0\"],\"sort\":\"stats.MISSING:desc\"}},"
+        + "{\"name\":\"À venir, en petit effectif\",\"params\":{\"filter[trng_outcome]\":[\"SCHEDULED\"],\"filter[trainees_count]\":[\"lt:5\"],\"sort\":\"trng_date:asc\"}},"
+        + "{\"name\":\"Passées, non finalisées\",\"params\":{\"filter[trng_outcome]\":[\"SCHEDULED\"],\"filter[to]\":\"-1 day\",\"sort\":\"trng_date:desc\"}}"
+        + personalSearches + "]}");
   }
 
   @PUT
