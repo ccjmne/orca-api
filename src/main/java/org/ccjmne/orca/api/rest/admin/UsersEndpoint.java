@@ -203,7 +203,7 @@ public class UsersEndpoint {
   private static JSONB defaultUserConfig(final Integer employeePk) {
     final String personalSearches = employeePk == null ? "" : String.format(
             ", {\"name\":\"Dont je suis formateur\",\"params\":{\"filter[trainer]\":[\"%1$d\"],\"sort\":\"trng_date:desc\"}}"
-                + ", {\"name\":\"Que j'ai suivies\",\"params\":{\"filter[employee]\":[\"%1$d\"],\"sort\":\"trng_date:desc\"}}",
+                + ", {\"name\":\"Que j'ai suivies\",\"params\":{\"filter[trainees]\":[\"%1$d\"],\"sort\":\"trng_date:desc\"}}",
             employeePk);
 
     return JSONB.valueOf("{\"search:sessions\":["

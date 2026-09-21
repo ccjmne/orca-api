@@ -164,6 +164,9 @@ public class ResourcesSelection {
         query.addGroupBy(TRAININGS_EMPLOYEES.fields());
       }
 
+      this.parameters.get(QueryParams.TRAINEES).forEach(t -> query.addConditions(DSL.exists(DSL.selectFrom(TRAININGS_EMPLOYEES)
+          .where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK).and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.eq(t))))));
+
       return query;
     }
   }

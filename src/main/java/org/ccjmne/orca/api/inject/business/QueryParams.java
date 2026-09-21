@@ -43,6 +43,9 @@ public class QueryParams {
   // Resources identifiers
   public static final FieldType<Integer> SITE         = new FieldType<>("site", Integer.class);
   public static final FieldType<Integer> EMPLOYEE     = new FieldType<>("employee", Integer.class);
+  public static final AllParamsType<List<Integer>> TRAINEES = new AllParamsType<>("trainees",
+                                                                                  v -> v.stream().map(Integer::valueOf).collect(Collectors.toList()),
+                                                                                  Collections.emptyList());
   public static final FieldType<Integer> TRAINER      = new FieldType<>("trainer", Integer.class);
   public static final FieldType<Integer> SESSION      = new FieldType<>("session", Integer.class);
   public static final FieldType<Integer> CERTIFICATE  = new FieldType<>("certificate", Integer.class);
