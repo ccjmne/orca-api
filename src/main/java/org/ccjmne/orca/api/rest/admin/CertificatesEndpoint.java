@@ -1,10 +1,12 @@
 package org.ccjmne.orca.api.rest.admin;
 
 import static org.ccjmne.orca.jooq.codegen.Tables.CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +18,7 @@ import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 
 import org.ccjmne.orca.api.inject.business.QueryParams;
@@ -23,6 +26,7 @@ import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.ParamsAssertion;
 import org.ccjmne.orca.api.utils.Transactions;
+import org.ccjmne.orca.jooq.codegen.tables.records.TrainingtypesDefsRecord;
 import org.jooq.DSLContext;
 import org.jooq.Param;
 import org.jooq.Row1;
@@ -131,19 +135,7 @@ public class CertificatesEndpoint {
           .returning(TRAININGTYPES_DEFS.TTDF_PK)
           .fetchOne().getValue(TRAININGTYPES_DEFS.TTDF_PK);
 
-      final Row3<Integer, Integer, Integer>[] certs = ((List<Map<String, Integer>>) type.getOrDefault("certificates", Collections.EMPTY_LIST)).stream()
-          .map(c -> DSL.row(definition, c.get(CERTIFICATES.CERT_PK.getName()), c.get(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.getName())))
-          .toArray(Row3[]::new);
-
-      if (certs.length > 0) {
-        transactionCtx
-            .insertInto(TRAININGTYPES_CERTIFICATES)
-            .select(DSL.selectFrom(DSL.values(certs).as(DSL.table(),
-                                                        TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK,
-                                                        TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
-                                                        TRAININGTYPES_CERTIFICATES.TTCE_DURATION)))
-            .execute();
-      }
+      CertificatesEndpoint.replaceDefinition(transactionCtx, definition, type);
 
       return id;
     });
@@ -152,7 +144,6 @@ public class CertificatesEndpoint {
   @PUT
   @Path("session-types/{session-type}")
   @Consumes(MediaType.APPLICATION_JSON)
-  @SuppressWarnings("unchecked")
   public void updateSessionType(final Map<String, Object> type) {
     Transactions.with(this.ctx, transactionCtx -> {
       this.ensure.resourceExists(QueryParams.SESSION_TYPE, transactionCtx);
@@ -162,23 +153,61 @@ public class CertificatesEndpoint {
           .set(TRAININGTYPES.TRTY_NAME, (String) type.get(TRAININGTYPES.TRTY_NAME.getName()))
           .where(TRAININGTYPES.TRTY_PK.eq(this.sessionType))
           .execute();
+    });
+  }
 
-      final org.jooq.Field<Integer> definition = Fields.selectTypeDefinition(this.sessionType, DSL.currentLocalDate());
-      transactionCtx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK.eq(definition)).execute();
-
-      final Row3<Integer, Integer, Integer>[] certs = ((List<Map<String, Integer>>) type.getOrDefault("certificates", Collections.EMPTY_LIST)).stream()
-          .map(c -> DSL.row(definition, c.get(CERTIFICATES.CERT_PK.getName()), c.get(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.getName())))
-          .toArray(Row3[]::new);
-
-      if (certs.length > 0) {
-        transactionCtx
-            .insertInto(TRAININGTYPES_CERTIFICATES)
-            .select(DSL.selectFrom(DSL.values(certs).as(DSL.table(),
-                                                        TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK,
-                                                        TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
-                                                        TRAININGTYPES_CERTIFICATES.TTCE_DURATION)))
-            .execute();
+  @POST
+  @Path("session-types/{session-type}/definitions")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Integer createDefinition(final Map<String, Object> definition) {
+    return Transactions.with(this.ctx, transactionCtx -> {
+      final Integer type = this.sessionType.getValue();
+      final LocalDate effectiveFrom = LocalDate.parse((String) definition.get(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.getName()));
+      final Integer id = transactionCtx.insertInto(TRAININGTYPES_DEFS)
+          .set(TRAININGTYPES_DEFS.TTDF_TRTY_FK, type)
+          .set(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM, effectiveFrom)
+          .set(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY, (Boolean) definition.get(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY.getName()))
+          .set(TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY, (Boolean) definition.get(TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY.getName()))
+          .set(TRAININGTYPES_DEFS.TTDF_CERTIFIED, (Boolean) definition.get(TRAININGTYPES_DEFS.TTDF_CERTIFIED.getName()))
+          .returning(TRAININGTYPES_DEFS.TTDF_PK)
+          .fetchOne().getValue(TRAININGTYPES_DEFS.TTDF_PK);
+      if (CertificatesEndpoint.definitionUsedBySession(transactionCtx, type, id)) {
+        throw new IllegalArgumentException("The new definition would change existing session history.");
       }
+      CertificatesEndpoint.replaceDefinition(transactionCtx, id, definition);
+      return id;
+    });
+  }
+
+  @PUT
+  @Path("session-types/{session-type}/definitions/{definition}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public void updateDefinition(@PathParam("definition") final Integer definitionId, final Map<String, Object> definition) {
+    Transactions.with(this.ctx, transactionCtx -> {
+      final TrainingtypesDefsRecord existing = CertificatesEndpoint.requireDefinition(transactionCtx, this.sessionType.getValue(), definitionId);
+      if (CertificatesEndpoint.definitionUsedBySession(transactionCtx, existing.getTtdfTrtyFk(), definitionId)) {
+        throw new IllegalArgumentException("A definition used by existing sessions cannot be changed.");
+      }
+      CertificatesEndpoint.replaceDefinition(transactionCtx, definitionId, definition);
+    });
+  }
+
+  @DELETE
+  @Path("session-types/{session-type}/definitions/{definition}")
+  public void deleteDefinition(@PathParam("definition") final Integer definitionId) {
+    Transactions.with(this.ctx, transactionCtx -> {
+      final TrainingtypesDefsRecord definition = CertificatesEndpoint.requireDefinition(transactionCtx, this.sessionType.getValue(), definitionId);
+      if (transactionCtx.fetchExists(TRAININGTYPES_DEFS,
+                                     TRAININGTYPES_DEFS.TTDF_PK.eq(definitionId)
+                                         .and(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.eq(Fields.DATE_NEGATIVE_INFINITY)))) {
+        throw new IllegalArgumentException("The baseline definition cannot be deleted.");
+      }
+      if (CertificatesEndpoint.definitionUsedBySession(transactionCtx, definition.getTtdfTrtyFk(), definitionId)) {
+        throw new IllegalArgumentException("A definition used by existing sessions cannot be deleted.");
+      }
+      transactionCtx.deleteFrom(TRAININGTYPES_DEFS)
+          .where(TRAININGTYPES_DEFS.TTDF_PK.eq(definitionId))
+          .execute();
     });
   }
 
@@ -187,6 +216,9 @@ public class CertificatesEndpoint {
   public void deleteTrty() {
     Transactions.with(this.ctx, transactionCtx -> {
       this.ensure.resourceExists(QueryParams.SESSION_TYPE, transactionCtx);
+      if (transactionCtx.fetchExists(TRAININGS, TRAININGS.TRNG_TRTY_FK.eq(this.sessionType))) {
+        throw new IllegalArgumentException("A session type with existing sessions cannot be deleted.");
+      }
 
       transactionCtx.delete(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(this.sessionType)).execute();
       transactionCtx.execute(Fields.cleanupSequence(TRAININGTYPES, TRAININGTYPES.TRTY_PK, TRAININGTYPES.TRTY_ORDER));
@@ -210,4 +242,58 @@ public class CertificatesEndpoint {
         .where(TRAININGTYPES.TRTY_PK.eq(DSL.field("key", Integer.class)))
         .execute();
   }
+
+  @SuppressWarnings("unchecked")
+  private static void replaceDefinition(final DSLContext transactionCtx, final Integer id, final Map<String, Object> definition) {
+    final List<Map<String, Integer>> certificateList = (List<Map<String, Integer>>) definition.getOrDefault("certificates", Collections.EMPTY_LIST);
+    if (certificateList.stream().anyMatch(certificate -> certificate.get(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.getName()).intValue() < 0)) {
+      throw new IllegalArgumentException("Certificate durations cannot be negative.");
+    }
+    transactionCtx.update(TRAININGTYPES_DEFS)
+        .set(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY,
+             DSL.coalesce(DSL.val((Boolean) definition.get(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY.getName())), TRAININGTYPES_DEFS.TTDF_PRESENCEONLY))
+        .set(TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY,
+             DSL.coalesce(DSL.val((Boolean) definition.get(TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY.getName())), TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY))
+        .set(TRAININGTYPES_DEFS.TTDF_CERTIFIED,
+             DSL.coalesce(DSL.val((Boolean) definition.get(TRAININGTYPES_DEFS.TTDF_CERTIFIED.getName())), TRAININGTYPES_DEFS.TTDF_CERTIFIED))
+        .where(TRAININGTYPES_DEFS.TTDF_PK.eq(id))
+        .execute();
+    transactionCtx.deleteFrom(TRAININGTYPES_CERTIFICATES)
+        .where(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK.eq(id))
+        .execute();
+
+    final Row3<Integer, Integer, Integer>[] certificates = certificateList.stream()
+        .map(certificate -> DSL.row(id,
+                                    certificate.get(CERTIFICATES.CERT_PK.getName()),
+                                    certificate.get(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.getName())))
+        .toArray(Row3[]::new);
+    if (certificates.length > 0) {
+      transactionCtx.insertInto(
+                                TRAININGTYPES_CERTIFICATES,
+                                TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK,
+                                TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
+                                TRAININGTYPES_CERTIFICATES.TTCE_DURATION)
+          .select(DSL.selectFrom(DSL.values(certificates).as(DSL.table(),
+                                                            TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK,
+                                                            TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
+                                                            TRAININGTYPES_CERTIFICATES.TTCE_DURATION)))
+          .execute();
+    }
+  }
+
+  private static TrainingtypesDefsRecord requireDefinition(final DSLContext transactionCtx, final Integer type, final Integer definition) {
+    return transactionCtx.selectFrom(TRAININGTYPES_DEFS)
+        .where(TRAININGTYPES_DEFS.TTDF_PK.eq(definition))
+        .and(TRAININGTYPES_DEFS.TTDF_TRTY_FK.eq(type))
+        .fetchOptional()
+        .orElseThrow(() -> new org.jooq.exception.NoDataFoundException("No such definition for that session type."));
+  }
+
+  private static boolean definitionUsedBySession(final DSLContext transactionCtx, final Integer type, final Integer definition) {
+    return transactionCtx.fetchExists(transactionCtx.selectOne()
+        .from(TRAININGS)
+        .where(TRAININGS.TRNG_TRTY_FK.eq(type))
+        .and(Fields.selectTypeDefinition(TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_DATE).eq(definition)));
+  }
+
 }

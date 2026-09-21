@@ -1,6 +1,7 @@
 package org.ccjmne.orca.api.utils;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.Arrays;
 
 import org.jooq.JSONB;
@@ -28,7 +29,21 @@ public class CustomObjectMapper extends ObjectMapper {
 
   public CustomObjectMapper() {
     super.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    super.registerModule(new JavaTimeModule());
+    final JavaTimeModule javaTime = new JavaTimeModule();
+    javaTime.addSerializer(LocalDate.class, new StdSerializer<LocalDate>(LocalDate.class) {
+
+      @Override
+      public void serialize(final LocalDate value, final JsonGenerator jgen, final SerializerProvider provider) throws IOException {
+        if (LocalDate.MIN.equals(value) || (value.getYear() > 100000000)) {
+          jgen.writeString("-infinity");
+        } else if (LocalDate.MAX.equals(value) || (value.getYear() < -100000000)) {
+          jgen.writeString("infinity");
+        } else {
+          jgen.writeString(value.toString());
+        }
+      }
+    });
+    super.registerModule(javaTime);
     super.registerModule(new JOOQResultsSerialiserModule());
     super.registerModule(new AfterburnerModule());
     super.registerModule(new JooqJSONBSerialiserModule());

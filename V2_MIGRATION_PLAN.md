@@ -75,6 +75,10 @@ server and basic endpoints are running.
 - Presence-only definitions reject `FLUNKED` outcomes.
 - Type/date updates revalidate existing trainee outcomes.
 - Deprecated bulk import now uses generated session IDs for related records.
+- Definition create/update/delete routes validate flags, certificates, dates,
+  and protect definitions selected by existing sessions.
+- Session-type history reads return ordered definitions with certificates.
+- PostgreSQL infinite definition dates serialize as `-infinity` or `infinity`.
 
 ## Data Model
 

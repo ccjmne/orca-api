@@ -24,8 +24,10 @@ import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.JSONFields;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.Param;
 import org.jooq.Record;
 import org.jooq.Record3;
+import org.jooq.Result;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 
@@ -44,6 +46,7 @@ public class SubResourcesEndpoint {
 
   private final boolean adminHints;
   private final Field<LocalDate> date;
+  private final Param<Integer> sessionType;
 
   @Inject
   public SubResourcesEndpoint(
@@ -56,6 +59,7 @@ public class SubResourcesEndpoint {
     this.restrictions = restrictions;
     this.adminHints = parameters.isEnabled(QueryParams.INCLUDE_ADMIN_HINTS);
     this.date = parameters.get(QueryParams.DATE);
+    this.sessionType = parameters.get(QueryParams.SESSION_TYPE);
   }
 
   /**
@@ -114,7 +118,27 @@ public class SubResourcesEndpoint {
                                .leftJoin(TRAININGS).on(TRAININGS.TRNG_TRTY_FK.eq(types.field(TRAININGTYPES.TRTY_PK)))
                                .groupBy(types.fields())
                                .fetchMap(types.field(TRAININGTYPES.TRTY_PK))
-                           : this.ctx.select(types.fields()).from(types).fetchMap(types.field(TRAININGTYPES.TRTY_PK));
+                            : this.ctx.select(types.fields()).from(types).fetchMap(types.field(TRAININGTYPES.TRTY_PK));
+  }
+
+  @GET
+  @Path("session-types/{session-type}/definitions")
+  public Result<? extends Record> getSessionTypeDefinitions() {
+    final Integer type = this.ctx.select(TRAININGTYPES.TRTY_PK)
+        .from(TRAININGTYPES)
+        .where(TRAININGTYPES.TRTY_PK.eq(this.sessionType))
+        .fetchOptional(TRAININGTYPES.TRTY_PK)
+        .orElseThrow(() -> new org.jooq.exception.NoDataFoundException("No such session type."));
+    return this.ctx.select(TRAININGTYPES_DEFS.fields())
+        .select(JSONFields.arrayAggOrderBy(CERTIFICATES.CERT_ORDER.asc(), Fields.concat(CERTIFICATES.fields(), TRAININGTYPES_CERTIFICATES.TTCE_DURATION))
+            .as("certificates"))
+        .from(TRAININGTYPES_DEFS)
+        .leftJoin(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK.eq(TRAININGTYPES_DEFS.TTDF_PK))
+        .leftJoin(CERTIFICATES).on(CERTIFICATES.CERT_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
+        .where(TRAININGTYPES_DEFS.TTDF_TRTY_FK.eq(type))
+        .groupBy(TRAININGTYPES_DEFS.fields())
+        .orderBy(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.asc())
+        .fetch();
   }
 
   @GET
