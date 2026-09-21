@@ -80,6 +80,31 @@ public class DemoDataTrainings {
             .from(TRAININGS)
             .where(TRAININGS.TRNG_COMMENT.like("Definition transition:%")))
         .execute();
+
+    final Integer presenceOnlyType = ctx.select(TRAININGTYPES.TRTY_PK).from(TRAININGTYPES)
+        .where(TRAININGTYPES.TRTY_ORDER.eq(DemoCommonResources.TRTY_PRESENCE_ONLY)).fetchOne(TRAININGTYPES.TRTY_PK);
+    final Integer certificateLessType = ctx.select(TRAININGTYPES.TRTY_PK).from(TRAININGTYPES)
+        .where(TRAININGTYPES.TRTY_ORDER.eq(DemoCommonResources.TRTY_CERTIFICATE_LESS)).fetchOne(TRAININGTYPES.TRTY_PK);
+    ctx.insertInto(TRAININGS, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_DATE, TRAININGS.TRNG_OUTCOME, TRAININGS.TRNG_COMMENT)
+        .values(presenceOnlyType, DemoCommonResources.DEFINITION_TRANSITION,
+                Constants.TRNG_OUTCOME_COMPLETED, "Presence-only definition: missing trainee")
+        .values(certificateLessType, DemoCommonResources.DEFINITION_TRANSITION,
+                Constants.TRNG_OUTCOME_COMPLETED, "Certificate-less definition: validated trainee")
+        .execute();
+    ctx.insertInto(
+                   TRAININGS_EMPLOYEES,
+                   TRAININGS_EMPLOYEES.TREM_TRNG_FK,
+                   TRAININGS_EMPLOYEES.TREM_EMPL_FK,
+                   TRAININGS_EMPLOYEES.TREM_OUTCOME)
+        .select(DSL.select(
+                           TRAININGS.TRNG_PK,
+                           DSL.val(Integer.valueOf(1)),
+                           DSL.when(TRAININGS.TRNG_TRTY_FK.eq(presenceOnlyType), Constants.EMPL_OUTCOME_MISSING)
+                               .otherwise(Constants.EMPL_OUTCOME_VALIDATED))
+            .from(TRAININGS)
+            .where(TRAININGS.TRNG_COMMENT.like("Presence-only definition:%")
+                .or(TRAININGS.TRNG_COMMENT.like("Certificate-less definition:%"))))
+        .execute();
   }
 
   @SuppressWarnings("unchecked")

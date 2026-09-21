@@ -40,6 +40,8 @@ public class DemoCommonResources {
   public static final Integer TRTY_EVAC  = Integer.valueOf(6);
   public static final Integer TRTY_FSSTI = Integer.valueOf(7);
   public static final Integer TRTY_FSSTR = Integer.valueOf(8);
+  public static final Integer TRTY_PRESENCE_ONLY = Integer.valueOf(9);
+  public static final Integer TRTY_CERTIFICATE_LESS = Integer.valueOf(10);
 
   public static final LocalDate DEFINITION_TRANSITION = LocalDate.now().minusYears(1);
 
@@ -108,6 +110,8 @@ public class DemoCommonResources {
         .values(TRTY_EVAC, "Agent d'Évacuation")
         .values(TRTY_FSSTI, "Formateur SST Initiale")
         .values(TRTY_FSSTR, "Renouvellement Formateur SST")
+        .values(TRTY_PRESENCE_ONLY, "Accueil sécurité (présence)")
+        .values(TRTY_CERTIFICATE_LESS, "Information sans certificat")
         .execute();
 
     ctx.insertInto(TRAININGTYPES_DEFS, TRAININGTYPES_DEFS.TTDF_TRTY_FK)
@@ -119,6 +123,11 @@ public class DemoCommonResources {
         .values(DemoCommonResources.getType(TRTY_EVAC))
         .values(DemoCommonResources.getType(TRTY_FSSTI))
         .values(DemoCommonResources.getType(TRTY_FSSTR))
+        .values(DemoCommonResources.getType(TRTY_CERTIFICATE_LESS))
+        .execute();
+
+    ctx.insertInto(TRAININGTYPES_DEFS, TRAININGTYPES_DEFS.TTDF_TRTY_FK, TRAININGTYPES_DEFS.TTDF_PRESENCEONLY)
+        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_PRESENCE_ONLY), Boolean.TRUE))
         .execute();
 
     ctx.insertInto(
@@ -180,6 +189,8 @@ public class DemoCommonResources {
         .values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_EVAC))
         .values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_FSSTI))
         .values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_FSSTR))
+        .values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_PRESENCE_ONLY))
+        .values(DSL.val(Constants.DEFAULT_TRAINERPROFILE), DemoCommonResources.getType(TRTY_CERTIFICATE_LESS))
 
         .values(DemoCommonResources.getTrainerProfile(TRAINERPROFILE_ALTERNATE), DemoCommonResources.getType(TRTY_EPI))
         .values(DemoCommonResources.getTrainerProfile(TRAINERPROFILE_ALTERNATE), DemoCommonResources.getType(TRTY_DAE))

@@ -104,17 +104,30 @@ month names into session-search ranges in `orca-ui-2` commit `3ad650b`.
 - Site and global site-group employee counts match the relevant update snapshot.
 - Demo transition sessions resolve the baseline before the transition and the
   new definition on and after the transition date.
+- Validity-extension statistics work end to end against isolated demo data:
+  renewal before expiry extends from the prior expiry, renewal after expiry
+  restarts from the renewal date, duration `0` remains indefinitely valid, and
+  voiding caps expiry and changes status on the voiding date.
+- `statistics-over-time` preserves the computed expiry and the existing
+  `status`, `expiry`, and `void_since` response fields across those validity
+  transitions.
+- `statistics-over-time` selects each session's historical definition across an
+  inclusive transition: the session before the transition retains its old
+  certificate and duration, sessions on and after it use the new set, and a
+  later unused definition does not appear retroactively. The `status`, `expiry`,
+  and `void_since` response shape remains unchanged.
+- Demo data includes isolated presence-only and certificate-less definitions.
+  Their deterministic completed sessions use `MISSING` and `VALIDATED`
+  respectively, both definitions remain visible with empty certificate arrays,
+  and both sessions are searchable by type name.
+- The companion frontend exposes ordered definition history and definition
+  create/update/delete controls from session-type administration, while keeping
+  type-name editing separate from effective-dated flags and certificates.
 
 ### Remaining Work
 
-- Manually verify validity-extension statistics end to end using deterministic
-  renewals before and after expiry, duration `0`, and certificate voiding.
-- Manually verify `statistics-over-time` around a definition transition and
-  confirm historical certificate sets and response fields remain stable.
-- Add deterministic demo examples for presence-only and certificate-less
-  definitions if those scenarios need regular visual inspection.
-- Review any frontend administration work needed to expose the new definition
-  history and CRUD routes cleanly.
+No core migration work remains in the agreed scope. Frontend changes still need
+their normal build and browser verification before release.
 
 There is no existing Java test suite, and adding one is not part of the current
 scope. Use disposable demo data plus repeatable SQL/API checks for verification.

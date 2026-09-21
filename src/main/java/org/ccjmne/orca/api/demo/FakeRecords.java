@@ -131,7 +131,10 @@ public class FakeRecords {
               throw new IllegalArgumentException(String.format("The outcome of a session must be one of: %s", Constants.TRAINING_OUTCOMES));
           }
 
-          return DSL.row(FakeRecords.asFields(FakeRecords.random(TRAININGTYPES, TRAININGTYPES.TRTY_PK), date, outcome, ""));
+          return DSL.row(FakeRecords.asFields(FakeRecords.random(
+              TRAININGTYPES,
+              TRAININGTYPES.TRTY_PK,
+              TRAININGTYPES.TRTY_ORDER.le(DemoCommonResources.TRTY_FSSTR)), date, outcome, ""));
         })
         .toArray(Row4[]::new));
   }
