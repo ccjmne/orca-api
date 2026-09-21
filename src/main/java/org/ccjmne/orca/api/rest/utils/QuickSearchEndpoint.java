@@ -164,15 +164,22 @@ public class QuickSearchEndpoint {
       matchedTypes.addFrom(types);
 
       final Field<Integer> dateDistance = DSL.abs(DSL.localDateDiff(sessions.field(TRAININGS.TRNG_DATE), this.sessionDate)).as(FIELD_DATE_DISTANCE);
-      return this.ctx.with("matchedTypes").as(matchedTypes)
+      final SelectQuery<Record> query = this.ctx.with("matchedTypes").as(matchedTypes)
           .select(dateDistance)
           .select(sessions.fields())
           .select(matchedTypes.field(FIELD_DISTANCE))
           .select(JSONFields.toJson(matchedTypes.fields(TRAININGTYPES.fields())).as("type"))
           .from(sessions)
           .join(matchedTypes).on(matchedTypes.field(TRAININGTYPES.TRTY_PK).eq(sessions.field(TRAININGS.TRNG_TRTY_FK)))
-          .orderBy(dateDistance)
-          .limit(LIMIT).fetch();
+          .getQuery();
+      if (!this.parameters.isDefault(QueryParams.FROM) || !this.parameters.isDefault(QueryParams.TO)) {
+        query.addConditions(sessions.field(TRAININGS.TRNG_DATE).between(
+                                                                       this.parameters.get(QueryParams.FROM),
+                                                                       this.parameters.get(QueryParams.TO)));
+      }
+      query.addOrderBy(dateDistance);
+      query.addLimit(LIMIT);
+      return query.fetch();
     }
   }
 
