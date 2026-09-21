@@ -79,6 +79,12 @@ server and basic endpoints are running.
   and protect definitions selected by existing sessions.
 - Session-type history reads return ordered definitions with certificates.
 - PostgreSQL infinite definition dates serialize as `-infinity` or `infinity`.
+- Site and site-group employee counts now use the update snapshot relevant to
+  the requested date instead of summing historical assignments.
+- Quick session search accepts frontend-provided month/year ranges and filters
+  session dates accordingly.
+- Quick session search selects certificate text from the definition effective
+  on each session's own date.
 
 ## Data Model
 

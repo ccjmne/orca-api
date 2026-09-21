@@ -41,7 +41,7 @@ public class QuickSearchEndpoint {
 
   private static final int           LIMIT                = 8;
   private static final Field<Double> FIELD_DISTANCE       = DSL.field("distance", Double.class);
-  private static final Field<String> FIELD_DATE_DISTANCE  = DSL.field("date_distance", String.class);
+  private static final Field<Integer> FIELD_DATE_DISTANCE = DSL.field("date_distance", Integer.class);
   private static final Field<String> FIELD_SITA_VALUE_RAW = SITES_TAGS.SITA_VALUE.as("value_raw");
 
   /**
@@ -136,48 +136,43 @@ public class QuickSearchEndpoint {
   private Result<Record> searchSessions() {
     final Table<Record> sessions = this.resourcesSelection.scopeSessions().asTable();
 
-    final Table<Record> types = DSL
+    final Table<Record> searchableSessions = DSL
+        .select(sessions.fields())
         .select(TRAININGTYPES.fields())
         .select(QuickSearchEndpoint.stringAgg(CERTIFICATES.CERT_SHORT).as("shorts"))
         .select(QuickSearchEndpoint.stringAgg(CERTIFICATES.CERT_NAME).as("certs"))
-        .from(TRAININGTYPES)
-        .join(TRAININGTYPES_DEFS).on(TRAININGTYPES_DEFS.TTDF_PK.eq(Fields.selectTypeDefinition(TRAININGTYPES.TRTY_PK, DSL.currentLocalDate())))
+        .from(sessions)
+        .join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(sessions.field(TRAININGS.TRNG_TRTY_FK)))
+        .join(TRAININGTYPES_DEFS).on(TRAININGTYPES_DEFS.TTDF_PK.eq(Fields
+            .selectTypeDefinition(sessions.field(TRAININGS.TRNG_TRTY_FK), sessions.field(TRAININGS.TRNG_DATE))))
         .leftJoin(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK.eq(TRAININGTYPES_DEFS.TTDF_PK))
         .leftJoin(CERTIFICATES).on(CERTIFICATES.CERT_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
-        .groupBy(TRAININGTYPES.fields())
+        .groupBy(Fields.concat(sessions.fields(), TRAININGTYPES.fields()))
         .asTable();
 
-    try (final SelectQuery<Record> matchedTypes = this.ctx.selectQuery()) {
+    try (final SelectQuery<Record> query = this.ctx.selectQuery()) {
       final Field<Double> distance;
       if (this.searchTerms.getValue().isEmpty() && !this.parameters.isDefault(QueryParams.SESSION_DATE)) {
         // if no SEARCH_TERMS but SESSION_DATE is specified, accept any session type
         distance = DSL.val(Double.valueOf(1));
       } else {
         distance = QuickSearchEndpoint
-            .wordDistance(this.searchTerms, QuickSearchEndpoint.unaccent(QuickSearchEndpoint.concatWS(types.fields("trty_name", "shorts", "certs"))));
-        matchedTypes.addConditions(distance.le(Double.valueOf(.5)));
-        matchedTypes.addOrderBy(distance);
+            .wordDistance(this.searchTerms, QuickSearchEndpoint.unaccent(QuickSearchEndpoint.concatWS(searchableSessions.fields("trty_name", "shorts", "certs"))));
+        query.addConditions(distance.le(Double.valueOf(.5)));
       }
 
-      matchedTypes.addSelect(distance.as(FIELD_DISTANCE));
-      matchedTypes.addSelect(types.fields(TRAININGTYPES.fields()));
-      matchedTypes.addFrom(types);
-
-      final Field<Integer> dateDistance = DSL.abs(DSL.localDateDiff(sessions.field(TRAININGS.TRNG_DATE), this.sessionDate)).as(FIELD_DATE_DISTANCE);
-      final SelectQuery<Record> query = this.ctx.with("matchedTypes").as(matchedTypes)
-          .select(dateDistance)
-          .select(sessions.fields())
-          .select(matchedTypes.field(FIELD_DISTANCE))
-          .select(JSONFields.toJson(matchedTypes.fields(TRAININGTYPES.fields())).as("type"))
-          .from(sessions)
-          .join(matchedTypes).on(matchedTypes.field(TRAININGTYPES.TRTY_PK).eq(sessions.field(TRAININGS.TRNG_TRTY_FK)))
-          .getQuery();
+      final Field<Integer> dateDistance = DSL.abs(DSL.localDateDiff(searchableSessions.field(TRAININGS.TRNG_DATE), this.sessionDate)).as(FIELD_DATE_DISTANCE);
+      query.addSelect(dateDistance);
+      query.addSelect(searchableSessions.fields(TRAININGS.fields()));
+      query.addSelect(distance.as(FIELD_DISTANCE));
+      query.addSelect(JSONFields.toJson(searchableSessions.fields(TRAININGTYPES.fields())).as("type"));
+      query.addFrom(searchableSessions);
       if (!this.parameters.isDefault(QueryParams.FROM) || !this.parameters.isDefault(QueryParams.TO)) {
-        query.addConditions(sessions.field(TRAININGS.TRNG_DATE).between(
-                                                                       this.parameters.get(QueryParams.FROM),
-                                                                       this.parameters.get(QueryParams.TO)));
+        query.addConditions(searchableSessions.field(TRAININGS.TRNG_DATE).between(
+                                                                                 this.parameters.get(QueryParams.FROM),
+                                                                                 this.parameters.get(QueryParams.TO)));
       }
-      query.addOrderBy(dateDistance);
+      query.addOrderBy(distance, dateDistance);
       query.addLimit(LIMIT);
       return query.fetch();
     }
