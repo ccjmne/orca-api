@@ -102,7 +102,9 @@ public class ResourcesSelection {
   public SelectQuery<Record> scopeSites() {
     final SelectQuery<Record> query = this.scopeSitesImpl();
     if (!this.parameters.isEnabled(QueryParams.INCLUDE_DECOMMISSIONED)) {
-      query.addConditions(DSL.exists(DSL.selectFrom(SITES_EMPLOYEES).where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK))));
+      query.addConditions(DSL.exists(DSL.selectFrom(SITES_EMPLOYEES)
+          .where(SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK))
+          .and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Fields.selectUpdate(this.parameters.get(QueryParams.DATE))))));
     }
 
     return query;
@@ -120,7 +122,8 @@ public class ResourcesSelection {
       query.addSelect(DSL.count(SITES_EMPLOYEES.SIEM_EMPL_FK).filterWhere(EMPLOYEES.EMPL_PERMANENT.eq(Boolean.TRUE)).as("site_permanent_count"));
       query.addJoin(SITES_EMPLOYEES.join(EMPLOYEES).on(EMPLOYEES.EMPL_PK.eq(SITES_EMPLOYEES.SIEM_EMPL_FK)),
                     this.parameters.isEnabled(QueryParams.INCLUDE_DECOMMISSIONED) ? JoinType.LEFT_OUTER_JOIN : JoinType.JOIN,
-                    SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK));
+                    SITES_EMPLOYEES.SIEM_SITE_FK.eq(SITES.SITE_PK)
+                        .and(SITES_EMPLOYEES.SIEM_UPDT_FK.eq(Fields.selectUpdate(this.parameters.get(QueryParams.DATE)))));
       query.addGroupBy(SITES.fields());
 
       final Table<Record> sites = DSL
