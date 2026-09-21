@@ -67,6 +67,15 @@ Definition administration, definition-aware session validation, explicit
 history routes, and focused transition tests remain follow-up work after the
 server and basic endpoints are running.
 
+### Progress
+
+- The bootstrap milestone is complete.
+- Session creation, type/date updates, completion, and deprecated bulk import
+  now resolve the definition effective on the session date.
+- Presence-only definitions reject `FLUNKED` outcomes.
+- Type/date updates revalidate existing trainee outcomes.
+- Deprecated bulk import now uses generated session IDs for related records.
+
 ## Data Model
 
 The target schema is already present in the restored database:

@@ -3,6 +3,7 @@ package org.ccjmne.orca.api.rest.edit;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_TRAINERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -10,7 +11,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -25,8 +25,9 @@ import javax.ws.rs.core.MediaType;
 import org.ccjmne.orca.api.inject.business.QueryParams;
 import org.ccjmne.orca.api.inject.business.Restrictions;
 import org.ccjmne.orca.api.utils.Constants;
+import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.Transactions;
-import org.ccjmne.orca.jooq.codegen.tables.records.TrainingsEmployeesRecord;
+import org.ccjmne.orca.jooq.codegen.tables.records.TrainingtypesDefsRecord;
 import org.ccjmne.orca.jooq.codegen.tables.records.TrainingsRecord;
 import org.jooq.DSLContext;
 import org.jooq.Param;
@@ -50,6 +51,8 @@ public class SessionsEndpoint {
 
   private static final List<String> COMPLETED_OUTCOMES = Arrays
       .asList(Constants.EMPL_OUTCOME_VALIDATED, Constants.EMPL_OUTCOME_FLUNKED, Constants.EMPL_OUTCOME_MISSING);
+  private static final List<String> PRESENCE_ONLY_COMPLETED_OUTCOMES = Arrays
+      .asList(Constants.EMPL_OUTCOME_VALIDATED, Constants.EMPL_OUTCOME_MISSING);
 
   private final DSLContext     ctx;
   private final Restrictions   restrictions;
@@ -73,9 +76,12 @@ public class SessionsEndpoint {
   @SuppressWarnings("unchecked")
   public Integer createSession(final Map<String, Object> session) {
     return Transactions.with(this.ctx, transactionCtx -> {
-      if (!this.restrictions.getManageableTypes().contains(session.get(TRAININGS.TRNG_TRTY_FK.getName()))) {
+      final Integer type = (Integer) session.get(TRAININGS.TRNG_TRTY_FK.getName());
+      final LocalDate date = LocalDate.parse((String) session.get(TRAININGS.TRNG_DATE.getName()));
+      if (!this.restrictions.getManageableTypes().contains(type)) {
         throw new ForbiddenException("This user account is not allowed to create sessions of that type.");
       }
+      SessionsEndpoint.effectiveDefinition(transactionCtx, type, date);
 
       final Integer id = transactionCtx
           .insertInto(
@@ -86,9 +92,9 @@ public class SessionsEndpoint {
                       TRAININGS.TRNG_OUTCOME,
                       TRAININGS.TRNG_COMMENT)
           .values(
-                  (Integer) session.get(TRAININGS.TRNG_TRTY_FK.getName()),
+                  type,
                   session.get(TRAININGS.TRNG_START.getName()) == null ? null : LocalDate.parse((String) session.get(TRAININGS.TRNG_START.getName())),
-                  LocalDate.parse((String) session.get(TRAININGS.TRNG_DATE.getName())),
+                  date,
                   Constants.TRNG_OUTCOME_SCHEDULED,
                   (String) session.get(TRAININGS.TRNG_COMMENT.getName()))
           .returningResult(TRAININGS.TRNG_PK)
@@ -114,14 +120,27 @@ public class SessionsEndpoint {
   @SuppressWarnings("unchecked")
   public void updateSession(final Map<String, Object> session) {
     Transactions.with(this.ctx, transactionCtx -> {
-      this.ensure(transactionCtx, Check.IS_EXISTING, Check.IS_MANAGEABLE, Check.IS_NOT_CANCELLED);
+      final TrainingsRecord existing = this.ensure(transactionCtx, Check.IS_EXISTING, Check.IS_MANAGEABLE, Check.IS_NOT_CANCELLED);
+      final Integer type = (Integer) session.get(TRAININGS.TRNG_TRTY_FK.getName());
+      final LocalDate date = LocalDate.parse((String) session.get(TRAININGS.TRNG_DATE.getName()));
+      if (!this.restrictions.getManageableTypes().contains(type)) {
+        throw new ForbiddenException("This user account is not allowed to manage sessions of that type.");
+      }
+      final TrainingtypesDefsRecord definition = SessionsEndpoint.effectiveDefinition(transactionCtx, type, date);
+      SessionsEndpoint.validateOutcomes(
+                                        definition,
+                                        existing.getTrngOutcome(),
+                                        transactionCtx.select(TRAININGS_EMPLOYEES.TREM_OUTCOME)
+                                            .from(TRAININGS_EMPLOYEES)
+                                            .where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(this.sessionId))
+                                            .fetch(TRAININGS_EMPLOYEES.TREM_OUTCOME));
 
       transactionCtx
           .update(TRAININGS)
-          .set(TRAININGS.TRNG_TRTY_FK, (Integer) session.get(TRAININGS.TRNG_TRTY_FK.getName()))
+          .set(TRAININGS.TRNG_TRTY_FK, type)
           .set(TRAININGS.TRNG_START, session
               .get(TRAININGS.TRNG_START.getName()) == null ? null : LocalDate.parse((String) session.get(TRAININGS.TRNG_START.getName())))
-          .set(TRAININGS.TRNG_DATE, LocalDate.parse((String) session.get(TRAININGS.TRNG_DATE.getName())))
+          .set(TRAININGS.TRNG_DATE, date)
           .set(TRAININGS.TRNG_COMMENT, (String) session.get(TRAININGS.TRNG_COMMENT.getName()))
           .where(TRAININGS.TRNG_PK.eq(this.sessionId))
           .execute();
@@ -213,29 +232,42 @@ public class SessionsEndpoint {
   @Consumes(MediaType.APPLICATION_JSON)
   public void completeSession(final List<Map<String, Object>> trainees) {
     Transactions.with(this.ctx, transactionCtx -> {
-      this.ensure(transactionCtx, Check.IS_EXISTING, Check.IS_MANAGEABLE, Check.IS_NOT_CANCELLED);
+      final TrainingsRecord session = this.ensure(transactionCtx, Check.IS_EXISTING, Check.IS_MANAGEABLE, Check.IS_NOT_CANCELLED);
+      final TrainingtypesDefsRecord definition = SessionsEndpoint
+          .effectiveDefinition(transactionCtx, session.getTrngTrtyFk(), session.getTrngDate());
+      final List<Integer> employeeIds = trainees.stream()
+          .map(t -> (Integer) t.get(TRAININGS_EMPLOYEES.TREM_EMPL_FK.getName()))
+          .collect(Collectors.toList());
+      if (employeeIds.stream().distinct().count() != employeeIds.size()) {
+        throw new IllegalArgumentException("A trainee can only occur once in a session completion request.");
+      }
+      SessionsEndpoint.validateOutcomes(
+                                        definition,
+                                        Constants.TRNG_OUTCOME_COMPLETED,
+                                        trainees.stream()
+                                            .map(t -> (String) t.get(TRAININGS_EMPLOYEES.TREM_OUTCOME.getName()))
+                                            .collect(Collectors.toList()));
 
       transactionCtx
           .update(TRAININGS)
           .set(TRAININGS.TRNG_OUTCOME, Constants.TRNG_OUTCOME_COMPLETED)
           .where(TRAININGS.TRNG_PK.eq(this.sessionId))
           .execute();
-      transactionCtx.deleteFrom(TRAININGS_EMPLOYEES).where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(this.sessionId)
-          .and(TRAININGS_EMPLOYEES.TREM_EMPL_FK.in(trainees)))
-          .execute();
-      transactionCtx.batchInsert(trainees.stream()
-          .peek(t -> {
-            if (!SessionsEndpoint.COMPLETED_OUTCOMES.contains(t.get(TRAININGS_EMPLOYEES.TREM_OUTCOME.getName()))) {
-              throw new IllegalArgumentException(String.format("Outcome for all trainees should be one of: %s", SessionsEndpoint.COMPLETED_OUTCOMES));
-            }
-          })
-          .map(t -> new TrainingsEmployeesRecord(null,
-                                                 this.sessionId.getValue(),
-                                                 (String) t.get(TRAININGS_EMPLOYEES.TREM_OUTCOME.getName()),
-                                                 (String) t.get(TRAININGS_EMPLOYEES.TREM_COMMENT.getName()),
-                                                 (Integer) t.get(TRAININGS_EMPLOYEES.TREM_EMPL_FK.getName())))
-          .collect(Collectors.toList()))
-          .execute();
+      transactionCtx.deleteFrom(TRAININGS_EMPLOYEES).where(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(this.sessionId)).execute();
+      for (final Map<String, Object> trainee : trainees) {
+        transactionCtx.insertInto(
+                                  TRAININGS_EMPLOYEES,
+                                  TRAININGS_EMPLOYEES.TREM_TRNG_FK,
+                                  TRAININGS_EMPLOYEES.TREM_OUTCOME,
+                                  TRAININGS_EMPLOYEES.TREM_COMMENT,
+                                  TRAININGS_EMPLOYEES.TREM_EMPL_FK)
+            .values(
+                    this.sessionId.getValue(),
+                    (String) trainee.get(TRAININGS_EMPLOYEES.TREM_OUTCOME.getName()),
+                    (String) trainee.get(TRAININGS_EMPLOYEES.TREM_COMMENT.getName()),
+                    (Integer) trainee.get(TRAININGS_EMPLOYEES.TREM_EMPL_FK.getName()))
+            .execute();
+      }
     });
   }
 
@@ -307,34 +339,41 @@ public class SessionsEndpoint {
   public void bulkImport(final List<Map<String, Object>> sessions) {
     Transactions.with(this.ctx, transactionCtx -> {
       for (final Map<String, Object> session : sessions) {
-        final DSLContext transactionCtx1 = transactionCtx;
-        if (!this.restrictions.getManageableTypes().contains(session.get(TRAININGS.TRNG_TRTY_FK.getName()))) {
+        final Integer type = (Integer) session.get(TRAININGS.TRNG_TRTY_FK.getName());
+        final LocalDate date = LocalDate.parse(session.get(TRAININGS.TRNG_DATE.getName()).toString());
+        final String outcome = (String) session.get(TRAININGS.TRNG_OUTCOME.getName());
+        if (!this.restrictions.getManageableTypes().contains(type)) {
           throw new ForbiddenException();
         }
 
-        SessionsEndpoint.validateOutcomes(session);
+        final TrainingtypesDefsRecord definition = SessionsEndpoint.effectiveDefinition(transactionCtx, type, date);
+        final Map<String, Map<String, String>> trainees = (Map<String, Map<String, String>>) session.getOrDefault("trainees", Collections.emptyMap());
+        SessionsEndpoint.validateOutcomes(
+                                          definition,
+                                          outcome,
+                                          trainees.values().stream()
+                                              .map(trainee -> trainee.get(TRAININGS_EMPLOYEES.TREM_OUTCOME.getName()))
+                                              .collect(Collectors.toList()));
 
-        transactionCtx1
+        final Integer id = transactionCtx
             .insertInto(
                         TRAININGS,
-                        TRAININGS.TRNG_PK,
                         TRAININGS.TRNG_TRTY_FK,
                         TRAININGS.TRNG_START,
                         TRAININGS.TRNG_DATE,
                         TRAININGS.TRNG_OUTCOME,
                         TRAININGS.TRNG_COMMENT)
             .values(
-                    null,
-                    (Integer) session.get(TRAININGS.TRNG_TRTY_FK.getName()),
+                    type,
                     session.get(TRAININGS.TRNG_START.getName()) != null ? LocalDate.parse(session.get(TRAININGS.TRNG_START.getName()).toString())
                                                                         : null,
-                    LocalDate.parse(session.get(TRAININGS.TRNG_DATE.getName()).toString()),
-                    (String) session.get(TRAININGS.TRNG_OUTCOME.getName()),
+                    date,
+                    outcome,
                     (String) session.get(TRAININGS.TRNG_COMMENT.getName()))
-            .execute();
+            .returningResult(TRAININGS.TRNG_PK)
+            .fetchOne().value1();
 
-        ((Map<String, Map<String, String>>) session.getOrDefault("trainees", Collections.emptyMap()))
-            .forEach((trem_empl_fk, data) -> transactionCtx1
+        trainees.forEach((trem_empl_fk, data) -> transactionCtx
                 .insertInto(
                             TRAININGS_EMPLOYEES,
                             TRAININGS_EMPLOYEES.TREM_TRNG_FK,
@@ -342,50 +381,55 @@ public class SessionsEndpoint {
                             TRAININGS_EMPLOYEES.TREM_OUTCOME,
                             TRAININGS_EMPLOYEES.TREM_COMMENT)
                 .values(
-                        null,
+                        id,
                         Integer.valueOf(trem_empl_fk),
                         data.get(TRAININGS_EMPLOYEES.TREM_OUTCOME.getName()),
                         data.get(TRAININGS_EMPLOYEES.TREM_COMMENT.getName()))
                 .execute());
 
         ((List<Integer>) session.getOrDefault("trainers", Collections.EMPTY_LIST))
-            .forEach(instructor -> transactionCtx1
+            .forEach(instructor -> transactionCtx
                 .insertInto(TRAININGS_TRAINERS, TRAININGS_TRAINERS.TRTR_TRNG_FK, TRAININGS_TRAINERS.TRTR_EMPL_FK)
-                .values(null, instructor).execute());
+                .values(id, instructor).execute());
       }
     });
   }
 
-  @Deprecated
-  @SuppressWarnings("unchecked")
-  private static void validateOutcomes(final Map<String, Object> session) {
-    if (!Constants.TRAINING_OUTCOMES.contains(session.get(TRAININGS.TRNG_OUTCOME.getName()))) {
+  private static void validateOutcomes(
+                                       final TrainingtypesDefsRecord definition,
+                                       final String sessionOutcome,
+                                       final Iterable<String> traineeOutcomes) {
+    if (!Constants.TRAINING_OUTCOMES.contains(sessionOutcome)) {
       throw new IllegalArgumentException(String.format("The outcome of a session must be one of: %s", Constants.TRAINING_OUTCOMES));
     }
 
-    if (!session.containsKey("trainees")) {
-      return;
-    }
-
-    final Predicate<String> predicate;
-    switch ((String) session.get(TRAININGS.TRNG_OUTCOME.getName())) {
+    final List<String> allowed;
+    switch (sessionOutcome) {
       case Constants.TRNG_OUTCOME_CANCELLED:
-        predicate = outcome -> Constants.EMPL_OUTCOME_CANCELLED.equals(outcome);
+        allowed = Collections.singletonList(Constants.EMPL_OUTCOME_CANCELLED);
         break;
       case Constants.TRNG_OUTCOME_COMPLETED:
-        predicate = outcome -> Constants.EMPL_OUTCOME_FLUNKED.equals(outcome)
-            || Constants.EMPL_OUTCOME_MISSING.equals(outcome)
-            || Constants.EMPL_OUTCOME_VALIDATED.equals(outcome);
+        allowed = Boolean.TRUE.equals(definition.getTtdfPresenceonly())
+                                                                       ? SessionsEndpoint.PRESENCE_ONLY_COMPLETED_OUTCOMES
+                                                                       : SessionsEndpoint.COMPLETED_OUTCOMES;
         break;
       default: // TRNG_OUTCOME_SCHEDULED
-        predicate = outcome -> Constants.EMPL_OUTCOME_PENDING.equals(outcome);
+        allowed = Collections.singletonList(Constants.EMPL_OUTCOME_PENDING);
     }
 
-    final Map<String, Map<String, String>> map = (Map<String, Map<String, String>>) session.get("trainees");
-    if (!map.values().stream()
-        .map(trainee -> trainee.get(TRAININGS_EMPLOYEES.TREM_OUTCOME.getName())).allMatch(predicate)) {
-      throw new IllegalArgumentException("Some trainees' statuses are incompatible with the session's outcome.");
+    for (final String outcome : traineeOutcomes) {
+      if (!allowed.contains(outcome)) {
+        throw new IllegalArgumentException(String.format("Outcome for all trainees should be one of: %s", allowed));
+      }
     }
+  }
+
+  private static TrainingtypesDefsRecord effectiveDefinition(final DSLContext transactionCtx, final Integer type, final LocalDate date) {
+    return transactionCtx.selectFrom(TRAININGTYPES_DEFS)
+        .where(TRAININGTYPES_DEFS.TTDF_PK.eq(Fields.selectTypeDefinition(DSL.val(type), DSL.val(date))))
+        .fetchOptional()
+        .orElseThrow(() -> new IllegalArgumentException(String
+            .format("No session-type definition is effective for type %s on %s.", type, date)));
   }
 
   /**
@@ -395,7 +439,7 @@ public class SessionsEndpoint {
    * Actually, always ensures the session does exist and can be managed by the
    * user account authoring the request.
    */
-  private void ensure(final DSLContext transactionCtx, final Check... checks) {
+  private TrainingsRecord ensure(final DSLContext transactionCtx, final Check... checks) {
     final Optional<TrainingsRecord> session = transactionCtx.selectFrom(TRAININGS).where(TRAININGS.TRNG_PK.eq(SessionsEndpoint.this.sessionId)).fetchOptional();
     if (!session.isPresent()) {
       throw new IllegalArgumentException("That session doesn't exist.");
@@ -417,5 +461,6 @@ public class SessionsEndpoint {
     if (checklist.contains(Check.IS_NOT_COMPLETED) && Constants.TRNG_OUTCOME_COMPLETED.equals(session.get().get(TRAININGS.TRNG_OUTCOME))) {
       throw new IllegalArgumentException("This session is already completed.");
     }
+    return session.get();
   }
 }
