@@ -17,16 +17,17 @@ reference, not as the implementation target.
 ## Current State
 
 - The main checkout is on `integrate/v2-core-master-features`.
-- No migration implementation has been written yet.
-- `develop` has the smarter `QueryParams`, `RecordsCollator`, filtering,
-  sorting, pagination, quick search, and revised v2 endpoints.
-- The branch does not currently build because
-  `org.ccjmne.orca:orca-jooq-codegen:2.4.0` is unavailable.
-- The branch expects the old `trainingtypes_certificates.ttce_trty_fk` schema.
-- The restored local database has the newer schema with
-  `trainingtypes_defs` and `trainingtypes_certificates.ttce_ttdf_fk`.
+- The branch builds against `org.ccjmne.orca:orca-jooq-codegen:2.7.0` and the
+  definition-based schema.
+- The smarter v2 `QueryParams`, `RecordsCollator`, filtering, sorting,
+  pagination, and quick search remain in place.
 - PostgreSQL is running locally as `orca-db-test` on `127.0.0.1:5433`.
-- No API server is currently running.
+- The normal API service is running against restored `orca_test` data at
+  `127.0.0.1:8080` with demo mode disabled.
+- The disposable `orca_demo` database can be recreated with
+  `./docker/init-demo-db.sh` and run through the Compose `demo` profile.
+- `orca_test` and `orca_demo` contain the required `unaccent` and `pg_trgm`
+  extensions.
 - See `AGENTS.md` for database restore, build, Docker, and safety instructions.
 
 ## Agreed Scope
@@ -40,7 +41,7 @@ Implement the coherent core migration first:
 5. Definition-aware session validation.
 6. Historically correct certificate statistics.
 7. Definition-aware session-type reads and quick search.
-8. Demo data and focused tests.
+8. Deterministic demo data and focused manual verification.
 
 Do not mix in secondary features yet:
 
@@ -50,24 +51,9 @@ Do not mix in secondary features yet:
 - S3 dual-stack
 - General dependency modernization
 
-## Current Bootstrap Milestone
+## Migration Checkpoint
 
-The immediate milestone is narrower than the full core migration: package and
-start the existing v2 API against the restored definition-based schema.
-
-For this milestone:
-
-- Use jOOQ codegen `2.7.0`.
-- Remove all references to the obsolete `ttce_trty_fk` relationship.
-- Resolve effective definitions for existing reads and statistics.
-- Keep demo code schema-compatible, but do not run demo reset.
-- Preserve existing v2 routes and response envelopes.
-
-Definition administration, definition-aware session validation, explicit
-history routes, and focused transition tests remain follow-up work after the
-server and basic endpoints are running.
-
-### Progress
+### Completed
 
 - The bootstrap milestone is complete.
 - Session creation, type/date updates, completion, and deprecated bulk import
@@ -87,6 +73,51 @@ server and basic endpoints are running.
   on each session's own date.
 - Demo data includes a dated renewal definition and deterministic sessions
   immediately before, on, and after its inclusive transition date.
+
+Relevant commits, oldest first:
+
+```text
+2333630 Bootstrap API against definition schema
+261ce95 Make session writes definition-aware
+7389a86 Add effective-dated definition administration
+b8496cf Scope site employee counts to the requested date
+1598522 Filter quick session search by date range
+c012316 Search sessions with their historical definitions
+1791859 Add deterministic demo definition transition
+```
+
+The companion frontend parses full dates, years, numeric months, and French
+month names into session-search ranges in `orca-ui-2` commit `3ad650b`.
+
+### Verified Manually
+
+- The WAR packages successfully with `mvn -T 1 -DskipTests package`.
+- Normal mode starts against `orca_test`; client, authenticated resources, and
+  quick-search requests return successful responses.
+- Presence-only completion rejects `FLUNKED` and accepts `MISSING`.
+- Changing a completed session to a presence-only definition rejects and rolls
+  back incompatible existing outcomes.
+- Definition history, CRUD, baseline retention, and historical-use protection
+  work against disposable demo data.
+- Historical quick search uses the certificate set effective on each session's
+  date.
+- Site and global site-group employee counts match the relevant update snapshot.
+- Demo transition sessions resolve the baseline before the transition and the
+  new definition on and after the transition date.
+
+### Remaining Work
+
+- Manually verify validity-extension statistics end to end using deterministic
+  renewals before and after expiry, duration `0`, and certificate voiding.
+- Manually verify `statistics-over-time` around a definition transition and
+  confirm historical certificate sets and response fields remain stable.
+- Add deterministic demo examples for presence-only and certificate-less
+  definitions if those scenarios need regular visual inspection.
+- Review any frontend administration work needed to expose the new definition
+  history and CRUD routes cleanly.
+
+There is no existing Java test suite, and adding one is not part of the current
+scope. Use disposable demo data plus repeatable SQL/API checks for verification.
 
 ## Data Model
 
@@ -388,7 +419,7 @@ Only test smart employee filtering after the v2 API is confirmed running.
 5. Enforce definition-aware session outcomes
 6. Port historical certificate statistics
 7. Make session quick search definition-aware
-8. Update demo data and tests
+8. Update demo data and verification scenarios
 ```
 
 Do not commit the database dump, production configuration, generated temporary
