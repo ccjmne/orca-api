@@ -85,6 +85,8 @@ server and basic endpoints are running.
   session dates accordingly.
 - Quick session search selects certificate text from the definition effective
   on each session's own date.
+- Demo data includes a dated renewal definition and deterministic sessions
+  immediately before, on, and after its inclusive transition date.
 
 ## Data Model
 

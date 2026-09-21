@@ -9,6 +9,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 import static org.ccjmne.orca.jooq.codegen.Tables.USERS_CERTIFICATES;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -39,6 +40,8 @@ public class DemoCommonResources {
   public static final Integer TRTY_EVAC  = Integer.valueOf(6);
   public static final Integer TRTY_FSSTI = Integer.valueOf(7);
   public static final Integer TRTY_FSSTR = Integer.valueOf(8);
+
+  public static final LocalDate DEFINITION_TRANSITION = LocalDate.now().minusYears(1);
 
   private static final String TRAINERPROFILE_ALTERNATE = "Non-SST";
 
@@ -141,6 +144,27 @@ public class DemoCommonResources {
         .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(24)))
         .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(0)))
         .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_FSST), Integer.valueOf(24)))
+        .execute();
+
+    final Integer renewalType = ctx.select(TRAININGTYPES.TRTY_PK).from(TRAININGTYPES)
+        .where(TRAININGTYPES.TRTY_ORDER.eq(TRTY_SSTR)).fetchOne(TRAININGTYPES.TRTY_PK);
+    final Integer sstCertificate = ctx.select(CERTIFICATES.CERT_PK).from(CERTIFICATES)
+        .where(CERTIFICATES.CERT_ORDER.eq(CERT_SST)).fetchOne(CERTIFICATES.CERT_PK);
+    final Integer daeCertificate = ctx.select(CERTIFICATES.CERT_PK).from(CERTIFICATES)
+        .where(CERTIFICATES.CERT_ORDER.eq(CERT_DAE)).fetchOne(CERTIFICATES.CERT_PK);
+    final Integer renewalDefinition = ctx.insertInto(TRAININGTYPES_DEFS)
+        .set(TRAININGTYPES_DEFS.TTDF_TRTY_FK, renewalType)
+        .set(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM, DEFINITION_TRANSITION)
+        .set(TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY, Boolean.TRUE)
+        .returning(TRAININGTYPES_DEFS.TTDF_PK)
+        .fetchOne().getValue(TRAININGTYPES_DEFS.TTDF_PK);
+    ctx.insertInto(
+                   TRAININGTYPES_CERTIFICATES,
+                   TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK,
+                   TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
+                   TRAININGTYPES_CERTIFICATES.TTCE_DURATION)
+        .values(renewalDefinition, sstCertificate, Integer.valueOf(24))
+        .values(renewalDefinition, daeCertificate, Integer.valueOf(0))
         .execute();
 
     ctx.insertInto(TRAINERPROFILES, TRAINERPROFILES.TRPR_ID)

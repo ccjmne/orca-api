@@ -4,6 +4,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_TRAINERS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -59,6 +60,26 @@ public class DemoDataTrainings {
 
     // Add CANCELLED trainees - 1/7 of them
     ctx.execute(DemoDataTrainings.addTrainees(7, Constants.TRNG_OUTCOME_CANCELLED, Constants.EMPL_OUTCOME_CANCELLED, ""));
+
+    final Integer renewalType = ctx.select(TRAININGTYPES.TRTY_PK).from(TRAININGTYPES)
+        .where(TRAININGTYPES.TRTY_ORDER.eq(DemoCommonResources.TRTY_SSTR)).fetchOne(TRAININGTYPES.TRTY_PK);
+    ctx.insertInto(TRAININGS, TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_DATE, TRAININGS.TRNG_OUTCOME, TRAININGS.TRNG_COMMENT)
+        .values(renewalType, DemoCommonResources.DEFINITION_TRANSITION.minusDays(1),
+                Constants.TRNG_OUTCOME_COMPLETED, "Definition transition: before")
+        .values(renewalType, DemoCommonResources.DEFINITION_TRANSITION,
+                Constants.TRNG_OUTCOME_COMPLETED, "Definition transition: on")
+        .values(renewalType, DemoCommonResources.DEFINITION_TRANSITION.plusDays(1),
+                Constants.TRNG_OUTCOME_COMPLETED, "Definition transition: after")
+        .execute();
+    ctx.insertInto(
+                   TRAININGS_EMPLOYEES,
+                   TRAININGS_EMPLOYEES.TREM_TRNG_FK,
+                   TRAININGS_EMPLOYEES.TREM_EMPL_FK,
+                   TRAININGS_EMPLOYEES.TREM_OUTCOME)
+        .select(DSL.select(TRAININGS.TRNG_PK, DSL.val(Integer.valueOf(1)), DSL.val(Constants.EMPL_OUTCOME_VALIDATED))
+            .from(TRAININGS)
+            .where(TRAININGS.TRNG_COMMENT.like("Definition transition:%")))
+        .execute();
   }
 
   @SuppressWarnings("unchecked")
