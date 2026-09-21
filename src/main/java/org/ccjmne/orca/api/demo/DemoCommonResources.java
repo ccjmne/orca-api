@@ -6,6 +6,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAINERPROFILES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAINERPROFILES_TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 import static org.ccjmne.orca.jooq.codegen.Tables.USERS_CERTIFICATES;
 
 import java.util.Arrays;
@@ -106,29 +107,40 @@ public class DemoCommonResources {
         .values(TRTY_FSSTR, "Renouvellement Formateur SST")
         .execute();
 
+    ctx.insertInto(TRAININGTYPES_DEFS, TRAININGTYPES_DEFS.TTDF_TRTY_FK)
+        .values(DemoCommonResources.getType(TRTY_SSTI))
+        .values(DemoCommonResources.getType(TRTY_SSTR))
+        .values(DemoCommonResources.getType(TRTY_EPI))
+        .values(DemoCommonResources.getType(TRTY_DAE))
+        .values(DemoCommonResources.getType(TRTY_H0B0))
+        .values(DemoCommonResources.getType(TRTY_EVAC))
+        .values(DemoCommonResources.getType(TRTY_FSSTI))
+        .values(DemoCommonResources.getType(TRTY_FSSTR))
+        .execute();
+
     ctx.insertInto(
                    TRAININGTYPES_CERTIFICATES,
-                   TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK,
+                    TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK,
                    TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
                    TRAININGTYPES_CERTIFICATES.TTCE_DURATION)
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_SSTI), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(12)))
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_SSTI), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(48)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_SSTI), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(12)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_SSTI), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(48)))
 
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_SSTR), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(24)))
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_SSTR), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(48)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_SSTR), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(24)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_SSTR), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(48)))
 
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_EPI), DemoCommonResources.getCertificate(CERT_EPI), Integer.valueOf(36)))
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_DAE), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(24)))
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_H0B0), DemoCommonResources.getCertificate(CERT_H0B0), Integer.valueOf(24)))
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_EVAC), DemoCommonResources.getCertificate(CERT_EVAC), Integer.valueOf(12)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_EPI), DemoCommonResources.getCertificate(CERT_EPI), Integer.valueOf(36)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_DAE), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(24)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_H0B0), DemoCommonResources.getCertificate(CERT_H0B0), Integer.valueOf(24)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_EVAC), DemoCommonResources.getCertificate(CERT_EVAC), Integer.valueOf(12)))
 
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTI), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(12)))
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTI), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(48)))
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTI), DemoCommonResources.getCertificate(CERT_FSST), Integer.valueOf(12)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_FSSTI), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(12)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_FSSTI), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(48)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_FSSTI), DemoCommonResources.getCertificate(CERT_FSST), Integer.valueOf(12)))
 
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(24)))
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(0)))
-        .values(FakeRecords.asFields(DemoCommonResources.getType(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_FSST), Integer.valueOf(24)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_SST), Integer.valueOf(24)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_DAE), Integer.valueOf(0)))
+        .values(FakeRecords.asFields(DemoCommonResources.getTypeDef(TRTY_FSSTR), DemoCommonResources.getCertificate(CERT_FSST), Integer.valueOf(24)))
         .execute();
 
     ctx.insertInto(TRAINERPROFILES, TRAINERPROFILES.TRPR_ID)
@@ -158,6 +170,14 @@ public class DemoCommonResources {
 
   private static Field<Integer> getCertificate(final Integer order) {
     return DSL.select(CERTIFICATES.CERT_PK).from(CERTIFICATES).where(CERTIFICATES.CERT_ORDER.eq(order)).asField();
+  }
+
+  private static Field<Integer> getTypeDef(final Integer order) {
+    return DSL.select(TRAININGTYPES_DEFS.TTDF_PK)
+        .from(TRAININGTYPES_DEFS)
+        .join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_DEFS.TTDF_TRTY_FK))
+        .where(TRAININGTYPES.TRTY_ORDER.eq(order))
+        .asField();
   }
 
   private static Field<Integer> getTrainerProfile(final String id) {

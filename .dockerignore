@@ -1,0 +1,4 @@
+*
+!target/api.war
+!docker/
+!docker/**

@@ -7,7 +7,9 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -21,6 +23,7 @@ import org.ccjmne.orca.api.inject.core.ResourcesSelection;
 import org.ccjmne.orca.api.utils.Fields;
 import org.ccjmne.orca.api.utils.JSONFields;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Record3;
 import org.jooq.Table;
@@ -40,6 +43,7 @@ public class SubResourcesEndpoint {
   private final Restrictions       restrictions;
 
   private final boolean adminHints;
+  private final Field<LocalDate> date;
 
   @Inject
   public SubResourcesEndpoint(
@@ -51,6 +55,7 @@ public class SubResourcesEndpoint {
     this.resourcesSelection = resourcesSelection;
     this.restrictions = restrictions;
     this.adminHints = parameters.isEnabled(QueryParams.INCLUDE_ADMIN_HINTS);
+    this.date = parameters.get(QueryParams.DATE);
   }
 
   /**
@@ -68,9 +73,11 @@ public class SubResourcesEndpoint {
                            ? this.ctx
                                .select(CERTIFICATES.fields())
                                .select(JSONFields.arrayAggOrderBy(TRAININGTYPES.TRTY_ORDER.asc(), TRAININGTYPES.fields()).as("session_types"))
-                               .from(CERTIFICATES)
-                               .leftJoin(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK.eq(CERTIFICATES.CERT_PK))
-                               .leftJoin(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK))
+                                .from(CERTIFICATES)
+                                .leftJoin(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK.eq(CERTIFICATES.CERT_PK))
+                                .leftJoin(TRAININGTYPES_DEFS).on(TRAININGTYPES_DEFS.TTDF_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK)
+                                    .and(TRAININGTYPES_DEFS.TTDF_PK.eq(Fields.selectTypeDefinition(TRAININGTYPES_DEFS.TTDF_TRTY_FK, this.date))))
+                                .leftJoin(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_DEFS.TTDF_TRTY_FK))
                                .groupBy(CERTIFICATES.fields())
                                .fetchMap(CERTIFICATES.CERT_PK)
                            : this.ctx.selectFrom(CERTIFICATES).fetchMap(CERTIFICATES.CERT_PK);
@@ -89,12 +96,14 @@ public class SubResourcesEndpoint {
 
     final Table<Record> types = DSL
         .select(TRAININGTYPES.fields())
+        .select(TRAININGTYPES_DEFS.fields())
         .select(JSONFields.arrayAggOrderBy(CERTIFICATES.CERT_ORDER.asc(), Fields.concat(CERTIFICATES.fields(), TRAININGTYPES_CERTIFICATES.TTCE_DURATION))
             .as("certificates"))
         .from(TRAININGTYPES)
-        .leftJoin(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
+        .join(TRAININGTYPES_DEFS).on(TRAININGTYPES_DEFS.TTDF_PK.eq(Fields.selectTypeDefinition(TRAININGTYPES.TRTY_PK, this.date)))
+        .leftJoin(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK.eq(TRAININGTYPES_DEFS.TTDF_PK))
         .leftJoin(CERTIFICATES).on(CERTIFICATES.CERT_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
-        .groupBy(TRAININGTYPES.fields())
+        .groupBy(Fields.concat(TRAININGTYPES.fields(), TRAININGTYPES_DEFS.fields()))
         .asTable();
 
     return this.adminHints

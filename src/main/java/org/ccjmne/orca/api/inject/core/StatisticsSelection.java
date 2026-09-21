@@ -7,6 +7,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_EMPLOYEES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,11 +29,13 @@ import org.jooq.types.YearToMonth;
 
 public class StatisticsSelection {
 
-  private static final Integer DURATION_INFINITE = Integer.valueOf(0);
-
-  public static final Field<LocalDate> EXPIRY = DSL.max(DSL
-      .when(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.eq(StatisticsSelection.DURATION_INFINITE), DSL.localDate(Constants.DATE_NEVER))
-      .otherwise(TRAININGS.TRNG_DATE.plus(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.mul(new YearToMonth(0, 1)))));
+  public static final Field<LocalDate> EXPIRY = DSL.field(
+      "expiryAgg({0}, {1}, {2}, {3} ORDER BY {0})",
+      SQLDataType.LOCALDATE,
+      TRAININGS.TRNG_DATE,
+      TRAININGTYPES_CERTIFICATES.TTCE_DURATION,
+      TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY,
+      EMPLOYEES_VOIDINGS.EMVO_DATE);
 
   // TODO: The number of months under which an aptitude is to be renewed soon
   // should be configurable per aptitude
@@ -71,8 +74,10 @@ public class StatisticsSelection {
                 DSL.field(EMPLOYEES_VOIDINGS.EMVO_DATE).as("void_since"),
                 StatisticsSelection.fieldValidity(this.date).as("status"))
         .from(TRAININGTYPES_CERTIFICATES)
-        .join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK))
+        .join(TRAININGTYPES_DEFS).on(TRAININGTYPES_DEFS.TTDF_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK))
+        .join(TRAININGTYPES).on(TRAININGTYPES.TRTY_PK.eq(TRAININGTYPES_DEFS.TTDF_TRTY_FK))
         .join(TRAININGS).on(TRAININGS.TRNG_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
+        .and(TRAININGTYPES_DEFS.TTDF_PK.eq(Fields.selectTypeDefinition(TRAININGS.TRNG_TRTY_FK, TRAININGS.TRNG_DATE)))
         .join(TRAININGS_EMPLOYEES).on(TRAININGS_EMPLOYEES.TREM_TRNG_FK.eq(TRAININGS.TRNG_PK))
         .leftJoin(EMPLOYEES_VOIDINGS)
         .on(EMPLOYEES_VOIDINGS.EMVO_EMPL_FK.eq(TRAININGS_EMPLOYEES.TREM_EMPL_FK)

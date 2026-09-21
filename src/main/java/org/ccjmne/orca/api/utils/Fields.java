@@ -2,6 +2,7 @@ package org.ccjmne.orca.api.utils;
 
 import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 import static org.ccjmne.orca.jooq.codegen.Tables.UPDATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.USERS;
 
@@ -91,6 +92,17 @@ public class Fields {
   public static Field<Integer> selectUpdate(final Field<LocalDate> date) {
     return DSL.coalesce(DSL.select(UPDATES.UPDT_PK).from(UPDATES)
         .where(UPDATES.UPDT_DATE.eq(DSL.select(DSL.max(UPDATES.UPDT_DATE)).from(UPDATES).where(UPDATES.UPDT_DATE.le(date)))).asField(), NO_UPDATE);
+  }
+
+  /** Selects the latest training-type definition effective on {@code date}. */
+  public static Field<Integer> selectTypeDefinition(final Field<Integer> trainingType, final Field<LocalDate> date) {
+    return DSL.select(TRAININGTYPES_DEFS.TTDF_PK)
+        .from(TRAININGTYPES_DEFS)
+        .where(TRAININGTYPES_DEFS.TTDF_TRTY_FK.eq(trainingType))
+        .and(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.le(date))
+        .orderBy(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM.desc())
+        .limit(1)
+        .asField();
   }
 
   /**

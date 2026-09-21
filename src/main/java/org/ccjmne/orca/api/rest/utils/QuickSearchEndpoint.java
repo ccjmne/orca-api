@@ -8,6 +8,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -140,8 +141,9 @@ public class QuickSearchEndpoint {
         .select(QuickSearchEndpoint.stringAgg(CERTIFICATES.CERT_SHORT).as("shorts"))
         .select(QuickSearchEndpoint.stringAgg(CERTIFICATES.CERT_NAME).as("certs"))
         .from(TRAININGTYPES)
-        .join(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(TRAININGTYPES.TRTY_PK))
-        .join(CERTIFICATES).on(CERTIFICATES.CERT_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
+        .join(TRAININGTYPES_DEFS).on(TRAININGTYPES_DEFS.TTDF_PK.eq(Fields.selectTypeDefinition(TRAININGTYPES.TRTY_PK, DSL.currentLocalDate())))
+        .leftJoin(TRAININGTYPES_CERTIFICATES).on(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK.eq(TRAININGTYPES_DEFS.TTDF_PK))
+        .leftJoin(CERTIFICATES).on(CERTIFICATES.CERT_PK.eq(TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK))
         .groupBy(TRAININGTYPES.fields())
         .asTable();
 

@@ -1,0 +1,47 @@
+name: orca-api-local
+
+x-api: &api
+  build:
+    context: .
+  image: orca-api-local
+  networks:
+    - orca-test-network
+  ports:
+    - "127.0.0.1:8080:8080"
+  mem_limit: 768m
+  cpus: 2
+  restart: unless-stopped
+
+services:
+  api:
+    <<: *api
+    container_name: orca-api-test
+    profiles: [normal]
+    environment:
+      CATALINA_OPTS: >-
+        -Ddb_host=orca-db-test
+        -Ddb_port=5432
+        -Ddb_name=orca_test
+        -Ddb_user=postgres
+        -Ddb_pass=postgres
+        -Ddemo=false
+        -Dpatch_notes_service=127.0.0.1
+
+  api-demo:
+    <<: *api
+    container_name: orca-api-demo
+    profiles: [demo]
+    environment:
+      CATALINA_OPTS: >-
+        -Ddb_host=orca-db-test
+        -Ddb_port=5432
+        -Ddb_name=orca_demo
+        -Ddb_user=postgres
+        -Ddb_pass=postgres
+        -Ddemo=true
+        -Ddemo-s3-cleanup=false
+        -Dpatch_notes_service=127.0.0.1
+
+networks:
+  orca-test-network:
+    external: true

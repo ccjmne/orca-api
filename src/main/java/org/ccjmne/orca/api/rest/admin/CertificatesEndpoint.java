@@ -3,6 +3,7 @@ package org.ccjmne.orca.api.rest.admin;
 import static org.ccjmne.orca.jooq.codegen.Tables.CERTIFICATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 
 import java.util.Collections;
 import java.util.List;
@@ -123,15 +124,22 @@ public class CertificatesEndpoint {
           .returning(TRAININGTYPES.TRTY_PK)
           .fetchOne().getValue(TRAININGTYPES.TRTY_PK);
 
+      final Integer definition = transactionCtx
+          .insertInto(TRAININGTYPES_DEFS)
+          .set(TRAININGTYPES_DEFS.TTDF_TRTY_FK, id)
+          .set(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM, Fields.DATE_NEGATIVE_INFINITY)
+          .returning(TRAININGTYPES_DEFS.TTDF_PK)
+          .fetchOne().getValue(TRAININGTYPES_DEFS.TTDF_PK);
+
       final Row3<Integer, Integer, Integer>[] certs = ((List<Map<String, Integer>>) type.getOrDefault("certificates", Collections.EMPTY_LIST)).stream()
-          .map(c -> DSL.row(id, c.get(CERTIFICATES.CERT_PK.getName()), c.get(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.getName())))
+          .map(c -> DSL.row(definition, c.get(CERTIFICATES.CERT_PK.getName()), c.get(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.getName())))
           .toArray(Row3[]::new);
 
       if (certs.length > 0) {
         transactionCtx
             .insertInto(TRAININGTYPES_CERTIFICATES)
             .select(DSL.selectFrom(DSL.values(certs).as(DSL.table(),
-                                                        TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK,
+                                                        TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK,
                                                         TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
                                                         TRAININGTYPES_CERTIFICATES.TTCE_DURATION)))
             .execute();
@@ -155,17 +163,18 @@ public class CertificatesEndpoint {
           .where(TRAININGTYPES.TRTY_PK.eq(this.sessionType))
           .execute();
 
-      transactionCtx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK.eq(this.sessionType)).execute();
+      final org.jooq.Field<Integer> definition = Fields.selectTypeDefinition(this.sessionType, DSL.currentLocalDate());
+      transactionCtx.delete(TRAININGTYPES_CERTIFICATES).where(TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK.eq(definition)).execute();
 
       final Row3<Integer, Integer, Integer>[] certs = ((List<Map<String, Integer>>) type.getOrDefault("certificates", Collections.EMPTY_LIST)).stream()
-          .map(c -> DSL.row(this.sessionType, c.get(CERTIFICATES.CERT_PK.getName()), c.get(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.getName())))
+          .map(c -> DSL.row(definition, c.get(CERTIFICATES.CERT_PK.getName()), c.get(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.getName())))
           .toArray(Row3[]::new);
 
       if (certs.length > 0) {
         transactionCtx
             .insertInto(TRAININGTYPES_CERTIFICATES)
             .select(DSL.selectFrom(DSL.values(certs).as(DSL.table(),
-                                                        TRAININGTYPES_CERTIFICATES.TTCE_TRTY_FK,
+                                                        TRAININGTYPES_CERTIFICATES.TTCE_TTDF_FK,
                                                         TRAININGTYPES_CERTIFICATES.TTCE_CERT_FK,
                                                         TRAININGTYPES_CERTIFICATES.TTCE_DURATION)))
             .execute();

@@ -38,10 +38,12 @@ public class DemoBareWorkingState {
     // truncating Tables, which can be done through ctx.meta()
     CLIENT.getSchema().getSequences().forEach(sequence -> ctx.alterSequence(sequence).restart().execute());
 
-    // Delete S3 resources
-    final String objectKey = String.format("%s-welcome.json", ctx.selectFrom(CLIENT).fetchOne(CLIENT.CLNT_ID));
-    if (client.doesObjectExist(ClientEndpoint.ORCA_RESOURCES_BUCKET, objectKey)) {
-      client.deleteObject(new DeleteObjectRequest(ClientEndpoint.ORCA_RESOURCES_BUCKET, objectKey));
+    // Cloud cleanup is opt-in so local demo resets remain self-contained.
+    if (Boolean.getBoolean("demo-s3-cleanup")) {
+      final String objectKey = String.format("%s-welcome.json", ctx.selectFrom(CLIENT).fetchOne(CLIENT.CLNT_ID));
+      if (client.doesObjectExist(ClientEndpoint.ORCA_RESOURCES_BUCKET, objectKey)) {
+        client.deleteObject(new DeleteObjectRequest(ClientEndpoint.ORCA_RESOURCES_BUCKET, objectKey));
+      }
     }
 
     ctx.insertInto(CLIENT, CLIENT.CLNT_ID, CLIENT.CLNT_NAME, CLIENT.CLNT_MAILTO, CLIENT.CLNT_LOGO, CLIENT.CLNT_LIVECHAT)
