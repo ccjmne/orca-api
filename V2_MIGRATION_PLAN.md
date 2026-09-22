@@ -45,7 +45,6 @@ Implement the coherent core migration first:
 
 Do not mix in secondary features yet:
 
-- Employee birth fields
 - S3 dual-stack
 - General dependency modernization
 
@@ -74,6 +73,8 @@ Do not mix in secondary features yet:
 - Authentication decodes Base64 credentials as UTF-8.
 - Annual reports reuse the historical global site-group resource and expose
   year-end snapshot suggestions.
+- Employee resources expose birth name and birthplace fields through the full
+  generated employee record projection.
 
 Relevant commits, oldest first:
 
@@ -128,6 +129,8 @@ month names into session-search ranges in `orca-ui-2` commit `3ad650b`.
   API service.
 - Annual reports return current and historical population/statistics snapshots,
   suggested dates, and reject accounts without global site access.
+- Employee birth name, birth city, and birth country match the restored database
+  values in resource responses.
 
 ### Remaining Work
 
