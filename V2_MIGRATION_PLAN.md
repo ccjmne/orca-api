@@ -45,7 +45,6 @@ Implement the coherent core migration first:
 
 Do not mix in secondary features yet:
 
-- S3 dual-stack
 - General dependency modernization
 
 ## Migration Checkpoint
@@ -75,6 +74,7 @@ Do not mix in secondary features yet:
   year-end snapshot suggestions.
 - Employee resources expose birth name and birthplace fields through the full
   generated employee record projection.
+- The S3 client uses AWS dual-stack endpoints for IPv4 and IPv6 connectivity.
 
 Relevant commits, oldest first:
 

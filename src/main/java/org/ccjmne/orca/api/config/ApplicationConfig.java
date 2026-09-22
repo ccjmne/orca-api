@@ -40,7 +40,7 @@ public class ApplicationConfig extends ResourceConfig {
    * </ul>
    */
   private static final Regions  REGION   = Regions.EU_WEST_1;
-  private static final AmazonS3 S3CLIENT = AmazonS3ClientBuilder.standard().withRegion(REGION).build();
+  private static final AmazonS3 S3CLIENT = AmazonS3ClientBuilder.standard().withRegion(REGION).withDualstackEnabled(Boolean.TRUE).build();
 
   public ApplicationConfig() {
     super.register(new AbstractBinder() {
