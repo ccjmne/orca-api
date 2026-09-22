@@ -47,7 +47,6 @@ Do not mix in secondary features yet:
 
 - Annual reports
 - Employee birth fields
-- UTF-8 authentication
 - S3 dual-stack
 - General dependency modernization
 
@@ -73,6 +72,7 @@ Do not mix in secondary features yet:
   on each session's own date.
 - Demo data includes a dated renewal definition and deterministic sessions
   immediately before, on, and after its inclusive transition date.
+- Authentication decodes Base64 credentials as UTF-8.
 
 Relevant commits, oldest first:
 
@@ -123,6 +123,8 @@ month names into session-search ranges in `orca-ui-2` commit `3ad650b`.
 - The companion frontend exposes ordered definition history and definition
   create/update/delete controls from session-type administration, while keeping
   type-name editing separate from effective-dated flags and certificates.
+- ASCII and non-ASCII credentials authenticate successfully through the normal
+  API service.
 
 ### Remaining Work
 
