@@ -45,7 +45,6 @@ Implement the coherent core migration first:
 
 Do not mix in secondary features yet:
 
-- Annual reports
 - Employee birth fields
 - S3 dual-stack
 - General dependency modernization
@@ -73,6 +72,8 @@ Do not mix in secondary features yet:
 - Demo data includes a dated renewal definition and deterministic sessions
   immediately before, on, and after its inclusive transition date.
 - Authentication decodes Base64 credentials as UTF-8.
+- Annual reports reuse the historical global site-group resource and expose
+  year-end snapshot suggestions.
 
 Relevant commits, oldest first:
 
@@ -125,6 +126,8 @@ month names into session-search ranges in `orca-ui-2` commit `3ad650b`.
   type-name editing separate from effective-dated flags and certificates.
 - ASCII and non-ASCII credentials authenticate successfully through the normal
   API service.
+- Annual reports return current and historical population/statistics snapshots,
+  suggested dates, and reject accounts without global site access.
 
 ### Remaining Work
 
