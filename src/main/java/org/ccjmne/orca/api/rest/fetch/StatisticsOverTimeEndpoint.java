@@ -101,7 +101,9 @@ public class StatisticsOverTimeEndpoint {
   }
 
   private SelectQuery<? extends Record> seriesify(final Table<? extends Record> stats, final String[] fields) {
-    final Table<Record1<@NonNull LocalDate>> dates = DSL.select(this.date).asTable();
+    final Table<Record1<@NonNull LocalDate>> dates = DSL.select(this.date)
+        .union(DSL.select(this.parameters.get(QueryParams.TO_OR_TODAY)))
+        .asTable();
     return DSL
         .select(dates.field(this.date))
         .select(JSONFields
