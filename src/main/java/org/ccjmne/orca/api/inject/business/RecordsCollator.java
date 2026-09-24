@@ -309,14 +309,16 @@ public class RecordsCollator {
    * </ul>
    */
   private <T extends Record> SelectQuery<T> applyFilteringImpl(final SelectQuery<T> query) {
+    final List<Field<?>> availableFields = Arrays.asList(query.fields());
     query.addConditions(Maps
         .transformEntries(
                           this.filterWhere.stream()
-                              .map(FilterConfig.toCondition(Arrays.asList(query.fields())))
+                              .map(FilterConfig.toCondition(availableFields))
                               .filter(Optional::isPresent).map(Optional::get)
                               .collect(Collectors.groupingBy(FieldCondition::getName)),
                           (f, conditions) -> this.connectors.getOrDefault(f, DSL::and).apply(Collections2.transform(conditions, FieldCondition::getCondition)))
         .values());
+    this.filterWhere.removeIf(filter -> filter.getFieldCondition(availableFields).isPresent());
     return query;
   }
 
