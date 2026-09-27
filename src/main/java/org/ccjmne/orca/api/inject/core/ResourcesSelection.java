@@ -65,7 +65,8 @@ public class ResourcesSelection {
    * </ul>
    */
   public boolean includeRetiredEmployees() {
-    return this.parameters.has(QueryParams.SESSION) || (this.parameters.has(QueryParams.EMPLOYEE) && this.restrictions.canAccessSessions());
+    return this.parameters.has(QueryParams.SESSION) || ((this.parameters.has(QueryParams.EMPLOYEE)
+        || this.parameters.isEnabled(QueryParams.TRAINERS_ONLY)) && this.restrictions.canAccessSessions());
   }
 
   /**

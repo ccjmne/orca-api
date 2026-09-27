@@ -81,6 +81,7 @@ public class QueryParams {
 
   // Quick-search parameters
   public static final FieldType<String>                                 SEARCH_TERMS  = new FieldType<>("q", String.class);
+  public static final FieldType<Boolean>                                TRAINERS_ONLY = new FieldType<>("trainers-only", Boolean.class);
   public static final AllParamsType<List<String>>                       RESOURCE_TYPE = new AllParamsType<>("type", v -> v,
                                                                                                             QuickSearchEndpoint.RESOURCES_TYPES);
   public static final DependentType<Field<LocalDate>, Field<LocalDate>> SESSION_DATE  = new DependentType<>("session-date", QueryParams.DATE,

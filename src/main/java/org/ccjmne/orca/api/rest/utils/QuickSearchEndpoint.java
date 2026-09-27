@@ -6,6 +6,7 @@ import static org.ccjmne.orca.jooq.codegen.Tables.SITES;
 import static org.ccjmne.orca.jooq.codegen.Tables.SITES_TAGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TAGS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS;
+import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGS_TRAINERS;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
@@ -121,6 +122,9 @@ public class QuickSearchEndpoint {
         .select(table.fields())
         .from(table)
         .where(distance.lessOrEqual(Double.valueOf(.5)))
+        .and(this.parameters.isEnabled(QueryParams.TRAINERS_ONLY) ? table.field(EMPLOYEES.EMPL_PK)
+            .in(DSL.select(TRAININGS_TRAINERS.TRTR_EMPL_FK).from(TRAININGS_TRAINERS))
+            : DSL.trueCondition())
         .orderBy(distance)
         .limit(LIMIT).fetch();
   }
