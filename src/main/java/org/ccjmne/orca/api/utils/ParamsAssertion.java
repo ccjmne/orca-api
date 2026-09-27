@@ -3,9 +3,7 @@ package org.ccjmne.orca.api.utils;
 import static org.ccjmne.orca.jooq.codegen.Tables.CERTIFICATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES;
 
-import java.util.AbstractMap.SimpleEntry;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.activation.UnsupportedDataTypeException;
 import javax.inject.Inject;
@@ -30,42 +28,37 @@ import com.mchange.util.AssertException;
 // TODO: Should it be absorbed by QueryParams?
 public class ParamsAssertion {
 
-  private static Map<Type<?, ? extends Field<Integer>>, Entry<Table<?>, TableField<?, Integer>>> FIELDS = ImmutableMap
-      .of(QueryParams.CERTIFICATE, new SimpleEntry<>(CERTIFICATES, CERTIFICATES.CERT_PK),
-          QueryParams.SESSION_TYPE, new SimpleEntry<>(TRAININGTYPES, TRAININGTYPES.TRTY_PK));
+  private static Map<Type<?, ? extends Field<Integer>>, AssertionConfig> FIELDS = ImmutableMap.of(
+          QueryParams.CERTIFICATE,  new AssertionConfig("certificate",    CERTIFICATES,  CERTIFICATES.CERT_PK),
+          QueryParams.SESSION_TYPE, new AssertionConfig("training type",  TRAININGTYPES, TRAININGTYPES.TRTY_PK));
 
-  private final QueryParams parameters;
+  private final QueryParams params;
 
   @Inject
-  public ParamsAssertion(final QueryParams parameters) {
-    this.parameters = parameters;
+  public ParamsAssertion(final QueryParams params) {
+    this.params = params;
   }
 
-  public AssertionResult resourceExists(final Type<?, ? extends Field<Integer>> type, final DSLContext transactionCtx) {
-    final Entry<Table<?>, TableField<?, Integer>> fields = ParamsAssertion.FIELDS.get(type);
-    if (fields == null) {
+  public void resourceExists(final Type<?, ? extends Field<Integer>> type, final DSLContext tx) {
+    final var cfg = ParamsAssertion.FIELDS.get(type);
+    if (cfg == null) {
       throw new IllegalArgumentException("Could not ensure existence of resource", new UnsupportedDataTypeException("Unsupported QueryParams.Type"));
     }
-
-    return new AssertionResult(transactionCtx.fetchExists(DSL.selectFrom(fields.getKey()).where(fields.getValue().eq(this.parameters.get(type)))));
+    if (!tx.fetchExists(DSL.selectFrom(cfg.table).where(cfg.field.eq(this.params.get(type))))) {
+      throw new AssertException(String.format("No %s for %d.", cfg.kind, this.params.get(type)));
+    }
   }
 
-  public class AssertionResult {
+  private static class AssertionConfig {
 
-    final boolean passed;
+    private final String                 kind;
+    private final Table<?>               table;
+    private final TableField<?, Integer> field;
 
-    public AssertionResult(final boolean passed) {
-      this.passed = passed;
-    }
-
-    public boolean hasPassed() {
-      return this.passed;
-    }
-
-    public void or(final String message) {
-      if (!this.passed) {
-        throw new AssertException(message);
-      }
+    private AssertionConfig(final String kind, final Table<?> table, final TableField<?, Integer> field) {
+      this.kind  = kind;
+      this.table = table;
+      this.field = field;
     }
   }
 }
