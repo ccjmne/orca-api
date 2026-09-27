@@ -7,9 +7,11 @@ import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_CERTIFICATES;
 import static org.ccjmne.orca.jooq.codegen.Tables.TRAININGTYPES_DEFS;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -97,7 +99,7 @@ public class CertificatesEndpoint {
   @POST
   @Path("reorder")
   @Consumes(MediaType.APPLICATION_JSON)
-  @SuppressWarnings({ "unchecked", "null" })
+  @SuppressWarnings({ "unchecked" })
   public void reorderCerts(final List<Integer> certificates) {
     if ((certificates == null) || certificates.isEmpty()) {
       return;
@@ -128,14 +130,29 @@ public class CertificatesEndpoint {
           .returning(TRAININGTYPES.TRTY_PK)
           .fetchOne().getValue(TRAININGTYPES.TRTY_PK);
 
-      final Integer definition = transactionCtx
+      final Integer def = transactionCtx
           .insertInto(TRAININGTYPES_DEFS)
           .set(TRAININGTYPES_DEFS.TTDF_TRTY_FK, id)
           .set(TRAININGTYPES_DEFS.TTDF_EFFECTIVE_FROM, Fields.DATE_NEGATIVE_INFINITY)
           .returning(TRAININGTYPES_DEFS.TTDF_PK)
           .fetchOne().getValue(TRAININGTYPES_DEFS.TTDF_PK);
 
-      CertificatesEndpoint.replaceDefinition(transactionCtx, definition, type);
+      if (type.containsKey(CERTIFICATES.CERT_SHORT.getName())) {
+        final Integer cert = transactionCtx
+            .insertInto(CERTIFICATES)
+            .set(CERTIFICATES.CERT_NAME, (String) type.get(CERTIFICATES.CERT_NAME.getName()))
+            .set(CERTIFICATES.CERT_SHORT, (String) type.get(CERTIFICATES.CERT_SHORT.getName()))
+            .set(CERTIFICATES.CERT_TARGET, (Integer) type.get(CERTIFICATES.CERT_TARGET.getName()))
+            .set(CERTIFICATES.CERT_ORDER, DSL.select(DSL.count().plus(DSL.one())).from(CERTIFICATES))
+            .set(CERTIFICATES.CERT_TRTY_FK, id)
+            .returning(CERTIFICATES.CERT_PK)
+            .fetchOne().getValue(CERTIFICATES.CERT_PK);
+        ((List<Map<String, Integer>>) type.computeIfAbsent("certificates", key -> new ArrayList<>()))
+            .add(Map.of(CERTIFICATES.CERT_PK.getName(), cert,
+                        TRAININGTYPES_CERTIFICATES.TTCE_DURATION.getName(),
+                        (Integer) type.get(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.getName())));
+      }
+      CertificatesEndpoint.replaceDefinition(transactionCtx, def, type);
 
       return id;
     });
@@ -222,13 +239,14 @@ public class CertificatesEndpoint {
 
       transactionCtx.delete(TRAININGTYPES).where(TRAININGTYPES.TRTY_PK.eq(this.sessionType)).execute();
       transactionCtx.execute(Fields.cleanupSequence(TRAININGTYPES, TRAININGTYPES.TRTY_PK, TRAININGTYPES.TRTY_ORDER));
+      transactionCtx.execute(Fields.cleanupSequence(CERTIFICATES, CERTIFICATES.CERT_PK, CERTIFICATES.CERT_ORDER));
     });
   }
 
   @POST
   @Path("session-types/reorder")
   @Consumes(MediaType.APPLICATION_JSON)
-  @SuppressWarnings({ "unchecked", "null" })
+  @SuppressWarnings({ "unchecked" })
   public void reorderTypes(final List<Integer> sessionTypes) {
     if ((null == sessionTypes) || sessionTypes.isEmpty()) {
       return;
@@ -244,18 +262,29 @@ public class CertificatesEndpoint {
   }
 
   @SuppressWarnings("unchecked")
-  private static void replaceDefinition(final DSLContext transactionCtx, final Integer id, final Map<String, Object> definition) {
-    final List<Map<String, Integer>> certificateList = (List<Map<String, Integer>>) definition.getOrDefault("certificates", Collections.EMPTY_LIST);
+  private static void replaceDefinition(final DSLContext transactionCtx, final Integer id, final Map<String, Object> def) {
+    final List<Map<String, Integer>> certificateList = (List<Map<String, Integer>>) def.getOrDefault("certificates", Collections.EMPTY_LIST);
     if (certificateList.stream().anyMatch(certificate -> certificate.get(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.getName()).intValue() < 0)) {
       throw new IllegalArgumentException("Certificate durations cannot be negative.");
     }
+
+    if (transactionCtx.fetchExists(DSL.selectOne()
+        .from(CERTIFICATES)
+        .join(TRAININGTYPES_DEFS).on(TRAININGTYPES_DEFS.TTDF_PK.eq(id))
+        .where(CERTIFICATES.CERT_PK.in(certificateList.stream()
+            .map(cert -> cert.get(CERTIFICATES.CERT_PK.getName()))
+            .collect(Collectors.toList())))
+        .and(CERTIFICATES.CERT_TRTY_FK.ne(TRAININGTYPES_DEFS.TTDF_TRTY_FK)))) {
+        throw new IllegalArgumentException("An implicit certificate can only be associated with its training type.");
+    }
+
     transactionCtx.update(TRAININGTYPES_DEFS)
         .set(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY,
-             DSL.coalesce(DSL.val((Boolean) definition.get(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY.getName())), TRAININGTYPES_DEFS.TTDF_PRESENCEONLY))
+             DSL.coalesce(DSL.val((Boolean) def.get(TRAININGTYPES_DEFS.TTDF_PRESENCEONLY.getName())), TRAININGTYPES_DEFS.TTDF_PRESENCEONLY))
         .set(TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY,
-             DSL.coalesce(DSL.val((Boolean) definition.get(TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY.getName())), TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY))
+             DSL.coalesce(DSL.val((Boolean) def.get(TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY.getName())), TRAININGTYPES_DEFS.TTDF_EXTENDVALIDITY))
         .set(TRAININGTYPES_DEFS.TTDF_CERTIFIED,
-             DSL.coalesce(DSL.val((Boolean) definition.get(TRAININGTYPES_DEFS.TTDF_CERTIFIED.getName())), TRAININGTYPES_DEFS.TTDF_CERTIFIED))
+             DSL.coalesce(DSL.val((Boolean) def.get(TRAININGTYPES_DEFS.TTDF_CERTIFIED.getName())), TRAININGTYPES_DEFS.TTDF_CERTIFIED))
         .where(TRAININGTYPES_DEFS.TTDF_PK.eq(id))
         .execute();
     transactionCtx.deleteFrom(TRAININGTYPES_CERTIFICATES)
@@ -263,9 +292,9 @@ public class CertificatesEndpoint {
         .execute();
 
     final Row3<Integer, Integer, Integer>[] certificates = certificateList.stream()
-        .map(certificate -> DSL.row(id,
-                                    certificate.get(CERTIFICATES.CERT_PK.getName()),
-                                    certificate.get(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.getName())))
+        .map(cert -> DSL.row(id,
+                                    cert.get(CERTIFICATES.CERT_PK.getName()),
+                                    cert.get(TRAININGTYPES_CERTIFICATES.TTCE_DURATION.getName())))
         .toArray(Row3[]::new);
     if (certificates.length > 0) {
       transactionCtx.insertInto(
