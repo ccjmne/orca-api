@@ -41,51 +41,39 @@ public class QueryParams {
   private static final Param<JSONB> TAGS_FIELD_UNIVERSAL = DSL.val(JSONB.valueOf(new TextNode(Constants.TAGS_VALUE_UNIVERSAL).toString()));
 
   // Resources identifiers
-  public static final FieldType<Integer> SITE         = new FieldType<>("site", Integer.class);
-  public static final FieldType<Integer> EMPLOYEE     = new FieldType<>("employee", Integer.class);
-  public static final AllParamsType<List<Integer>> TRAINEES = new AllParamsType<>("trainees",
-                                                                                  v -> v.stream().map(Integer::valueOf).collect(Collectors.toList()),
-                                                                                  Collections.emptyList());
-  public static final FieldType<Integer> TRAINER      = new FieldType<>("trainer", Integer.class);
-  public static final FieldType<Integer> SESSION      = new FieldType<>("session", Integer.class);
-  public static final FieldType<Integer> CERTIFICATE  = new FieldType<>("certificate", Integer.class);
-  public static final FieldType<Integer> SESSION_TYPE = new FieldType<>("session-type", Integer.class);
+  public static final FieldType<Integer> SITE               = new FieldType<>(    "site",         Integer.class);
+  public static final FieldType<Integer> EMPLOYEE           = new FieldType<>(    "employee",     Integer.class);
+  public static final FieldType<Integer> TRAINER            = new FieldType<>(    "trainer",      Integer.class);
+  public static final FieldType<Integer> SESSION            = new FieldType<>(    "session",      Integer.class);
+  public static final FieldType<Integer> CERTIFICATE        = new FieldType<>(    "certificate",  Integer.class);
+  public static final FieldType<Integer> SESSION_TYPE       = new FieldType<>(    "session-type", Integer.class);
+  public static final AllParamsType<List<Integer>> TRAINEES = new AllParamsType<>("trainees",     v -> v.stream().map(Integer::valueOf).collect(Collectors.toList()), Collections.emptyList());
 
   // Virtual resources identifiers
-  public static final FirstParamType<Field<JSONB>>           GROUP_BY    = new FirstParamType<>("group-by", v -> Constants.TAGS_VALUE_UNIVERSAL
-      .equals(v) ? TAGS_FIELD_UNIVERSAL : DSL.field("site_tags -> {0}", JSONB.class, v), TAGS_FIELD_UNIVERSAL);
-  public static final DependentType<Field<JSONB>, Condition> GROUP_VALUE = new DependentType<>("group-value", QueryParams.GROUP_BY,
-                                                                                               QueryParams::computeGroupValue, v -> DSL.noCondition());
+  public static final FirstParamType<Field<JSONB>>           GROUP_BY    = new FirstParamType<>("group-by",    v -> Constants.TAGS_VALUE_UNIVERSAL.equals(v) ? TAGS_FIELD_UNIVERSAL : DSL.field("site_tags -> {0}", JSONB.class, v), TAGS_FIELD_UNIVERSAL);
+  public static final DependentType<Field<JSONB>, Condition> GROUP_VALUE = new DependentType<>( "group-value", QueryParams.GROUP_BY, QueryParams::computeGroupValue, v -> DSL.noCondition());
 
   // Admin-mode flag (decorates resources w/ information facilitating management)
   public static final FieldType<Boolean> INCLUDE_ADMIN_HINTS = new FieldType<>("admin-hints", Boolean.class);
 
   // Collation flags
   public static final FieldType<Boolean> INCLUDE_DECOMMISSIONED = new FieldType<>("include-decommissioned", Boolean.class);
-  public static final FieldType<Boolean> FILTER_BY_SESSIONS     = new FieldType<>("filter-by-sessions", Boolean.class);
+  public static final FieldType<Boolean> FILTER_BY_SESSIONS     = new FieldType<>("filter-by-sessions",     Boolean.class);
 
   // Temporal selectors
-  public static final FieldType<Integer>                                YEAR          = new FieldType<>("year", Integer.class);
-  public static final FirstParamType<Field<LocalDate>>                  DATE          = new FirstParamType<>("date", v -> DSL.val(v, LocalDate.class),
-                                                                                                             DSL.currentLocalDate());
-  public static final DependentType<Field<LocalDate>, Field<LocalDate>> FROM          = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate,
-                                                                                                            d -> Fields.DATE_NEGATIVE_INFINITY);
-  public static final DependentType<Field<LocalDate>, Field<LocalDate>> TO            = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate,
-                                                                                                            d -> Fields.DATE_INFINITY);
-  public static final DependentType<Field<LocalDate>, Field<LocalDate>> FROM_OR_TODAY = new DependentType<>("from", QueryParams.DATE, QueryParams::parseDate,
-                                                                                                            d -> d);
-  public static final DependentType<Field<LocalDate>, Field<LocalDate>> TO_OR_TODAY   = new DependentType<>("to", QueryParams.DATE, QueryParams::parseDate,
-                                                                                                            d -> d);
-  public static final FirstParamType<Field<LocalDate>>                  INTERVAL      = new FirstParamType<>("interval", v -> DSL
-      .field("{0}::interval", LocalDate.class, v), DSL.field("'1 month'::interval", LocalDate.class));
+  public static final FieldType<Integer>                                YEAR          = new FieldType<>(     "year",     Integer.class);
+  public static final FirstParamType<Field<LocalDate>>                  DATE          = new FirstParamType<>("date",     v -> DSL.val(v, LocalDate.class),                    DSL.currentLocalDate());
+  public static final FirstParamType<Field<LocalDate>>                  INTERVAL      = new FirstParamType<>("interval", v -> DSL.field("{0}::interval", LocalDate.class, v), DSL.field("'1 month'::interval", LocalDate.class));
+  public static final DependentType<Field<LocalDate>, Field<LocalDate>> FROM          = new DependentType<>( "from",     QueryParams.DATE, QueryParams::parseDate, d -> Fields.DATE_NEGATIVE_INFINITY);
+  public static final DependentType<Field<LocalDate>, Field<LocalDate>> TO            = new DependentType<>( "to",       QueryParams.DATE, QueryParams::parseDate, d -> Fields.DATE_INFINITY);
+  public static final DependentType<Field<LocalDate>, Field<LocalDate>> FROM_OR_TODAY = new DependentType<>( "from",     QueryParams.DATE, QueryParams::parseDate, d -> d);
+  public static final DependentType<Field<LocalDate>, Field<LocalDate>> TO_OR_TODAY   = new DependentType<>( "to",       QueryParams.DATE, QueryParams::parseDate, d -> d);
 
   // Quick-search parameters
-  public static final FieldType<String>                                 SEARCH_TERMS  = new FieldType<>("q", String.class);
-  public static final FieldType<Boolean>                                TRAINERS_ONLY = new FieldType<>("trainers-only", Boolean.class);
-  public static final AllParamsType<List<String>>                       RESOURCE_TYPE = new AllParamsType<>("type", v -> v,
-                                                                                                            QuickSearchEndpoint.RESOURCES_TYPES);
-  public static final DependentType<Field<LocalDate>, Field<LocalDate>> SESSION_DATE  = new DependentType<>("session-date", QueryParams.DATE,
-                                                                                                            QueryParams::parseDate, d -> d);
+  public static final FieldType<String>                                 SEARCH_TERMS  = new FieldType<>(    "q",             String.class);
+  public static final FieldType<Boolean>                                TRAINERS_ONLY = new FieldType<>(    "trainers-only", Boolean.class);
+  public static final AllParamsType<List<String>>                       RESOURCE_TYPE = new AllParamsType<>("type",          v -> v, QuickSearchEndpoint.RESOURCES_TYPES);
+  public static final DependentType<Field<LocalDate>, Field<LocalDate>> SESSION_DATE  = new DependentType<>("session-date",  QueryParams.DATE, QueryParams::parseDate, d -> d);
 
   private static final Pattern IS_INFINITY_DATE = Pattern.compile("^-?infinity$");
   private static final Pattern IS_RELATIVE_DATE = Pattern.compile("^[+-].*$");
@@ -132,7 +120,7 @@ public class QueryParams {
 
   /**
    * Is {@code true} when the given {@code type} <strong>does have a default
-   * value<strong> that wasn't overridden by the query parameters.
+   * value</strong> that wasn't overridden by the query parameters.
    */
   public <T> boolean isDefault(final Type<?, T> type) {
     // Don't use QueryParams#has or QueryParams#of, which treat unspecified
@@ -176,7 +164,7 @@ public class QueryParams {
    * Returns the given {@code Type}'s parameter iff it was provided by the
    * request.<br />
    * Otherwise, returns {@code orElse}, <strong>regardless of whether
-   * the given {@code Type} specifies a default value<strong>.
+   * the given {@code Type} specifies a default value</strong>.
    */
   public <T> T getOrDefault(final Type<?, T> type, final @NonNull T orElse) {
     return this.types.containsKey(type) ? this.get(type) : orElse;

@@ -40,10 +40,10 @@ import com.google.common.collect.ImmutableMap;
 @Path("quick-search")
 public class QuickSearchEndpoint {
 
-  private static final int           LIMIT                = 8;
-  private static final Field<Double> FIELD_DISTANCE       = DSL.field("distance", Double.class);
-  private static final Field<Integer> FIELD_DATE_DISTANCE = DSL.field("date_distance", Integer.class);
-  private static final Field<String> FIELD_SITA_VALUE_RAW = SITES_TAGS.SITA_VALUE.as("value_raw");
+  private static final int            LIMIT                = 8;
+  private static final Field<Double>  FIELD_DISTANCE       = DSL.field("distance",      Double.class);
+  private static final Field<Integer> FIELD_DATE_DISTANCE  = DSL.field("date_distance", Integer.class);
+  private static final Field<String>  FIELD_SITA_VALUE_RAW = SITES_TAGS.SITA_VALUE.as("value_raw");
 
   /**
    * These very specific fields are covered by <b>GiST indexes</b> in the
@@ -51,9 +51,9 @@ public class QuickSearchEndpoint {
    */
   private static final Map<String, Field<?>[]> FIELDS = ImmutableMap
       .of("employee", new Field<?>[] { EMPLOYEES.EMPL_EXTERNAL_ID, EMPLOYEES.EMPL_SURNAME, EMPLOYEES.EMPL_FIRSTNAME, EMPLOYEES.EMPL_NOTES },
-          "site", new Field<?>[] { SITES.SITE_EXTERNAL_ID, SITES.SITE_NAME, SITES.SITE_NOTES },
+          "site",     new Field<?>[] { SITES.SITE_EXTERNAL_ID, SITES.SITE_NAME, SITES.SITE_NOTES },
           "site-tag", new Field<?>[] { TAGS.TAGS_SHORT, TAGS.TAGS_NAME, FIELD_SITA_VALUE_RAW },
-          "session", new Field<?>[] {});
+          "session",  new Field<?>[] {});
 
   public static final List<String> RESOURCES_TYPES = new ArrayList<>(FIELDS.keySet());
 
@@ -66,12 +66,12 @@ public class QuickSearchEndpoint {
 
   @Inject
   private QuickSearchEndpoint(final DSLContext ctx, final ResourcesSelection resourcesSelection, final QueryParams parameters) {
-    this.ctx = ctx;
+    this.ctx                = ctx;
     this.resourcesSelection = resourcesSelection;
-    this.parameters = parameters;
-    this.resourcesTypes = parameters.get(QueryParams.RESOURCE_TYPE);
-    this.searchTerms = parameters.getOrDefault(QueryParams.SEARCH_TERMS, DSL.val(""));
-    this.sessionDate = parameters.get(QueryParams.SESSION_DATE);
+    this.parameters         = parameters;
+    this.resourcesTypes     = parameters.get(QueryParams.RESOURCE_TYPE);
+    this.searchTerms        = parameters.getOrDefault(QueryParams.SEARCH_TERMS, DSL.val(""));
+    this.sessionDate        = parameters.get(QueryParams.SESSION_DATE);
   }
 
   @GET
